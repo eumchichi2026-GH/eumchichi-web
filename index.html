@@ -23,6 +23,25 @@
   * { box-sizing: border-box; margin: 0; }
   [hidden] { display: none !important; }   /* hidden 속성은 어떤 display 규칙보다 우선 — 모달·칩 안 닫히던 버그 재발 방지 */
   html { scroll-behavior: smooth; }
+  /* ── 모바일 (좁은 화면) 대응 ── */
+  @media (max-width: 520px) {
+    main { padding: 24px 14px 72px; }
+    header { margin-bottom: 28px; }
+    section.card { padding: 20px 14px; }
+    details.manual .manual-body { padding: 4px 10px 12px; }
+    /* iOS는 글자 16px 미만 입력칸에 포커스하면 화면을 확대해 흔들린다 → 16px 고정 */
+    .nl-wrap textarea, select,
+    .modal input[type="email"], .modal input[type="password"], .modal input[type="text"] { font-size: 16px; }
+    .nl-wrap button { padding: 0 13px; font-size: 0.84rem; }
+    .chips button { padding: 9px 12px; font-size: 0.84rem; }
+    .song { padding: 15px 14px; }
+    .song .top { flex-wrap: wrap; }
+    .reason { grid-template-columns: 78px 1fr; font-size: 0.76rem; }
+    .plane-card { padding: 14px 12px 10px; }
+    .modal { padding: 24px 18px 20px; }
+    .auth-btn { padding: 6px 11px; font-size: 0.76rem; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     html { scroll-behavior: auto; }
     * { transition: none !important; animation: none !important; }
@@ -255,7 +274,10 @@
   }
   .chips button:hover { border-color: var(--teal); color: var(--teal-deep); }
   .chips button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
-  .chips-hint { font-size: 0.78rem; color: var(--pine-soft); margin: 0 0 6px; }
+  .chips-hint { font-size: 0.78rem; color: var(--pine-soft); margin: 10px 0 6px; }
+  /* 켜졌다 꺼지는 요소들의 높이를 예약해 레이아웃 점프 방지 */
+  #nlStatus { min-height: 1.35em; margin-top: 8px; }
+  #vaEcho { min-height: 2.6em; }
 
   details.manual { margin-top: 14px; border: 1.5px solid var(--haze); border-radius: 12px; padding: 0; background: #fff; }
   details.manual summary {
@@ -370,16 +392,17 @@
           placeholder="예: 시험이 코앞이라 너무 불안한데, 차분하게 가라앉히고 싶어"></textarea>
         <button id="nlApply" type="button">AI로<br/>이해하기</button>
       </div>
-      <p class="plane-note" id="nlStatus" role="status" hidden></p>
-      <div class="linear-preview" id="nlPreview" hidden></div>
+      <p class="plane-note" id="nlStatus" role="status"></p>
+      <div class="linear-preview" id="nlPreview"></div>
 
       <details class="manual" id="manualBox">
         <summary>직접 자세히 지정하기 <span style="font-weight:400;color:var(--pine-soft);">(선택)</span></summary>
         <div class="manual-body">
-          <p class="chips-hint" id="chipHint">단어를 고르면 좌표에 자동으로 찍혀요. 딱 맞는 단어가 없으면 좌표를 직접 탭해도 됩니다.</p>
-          <div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div>
+          <!-- 평면을 맨 위에 고정: 아래 칩·문구가 바뀌어도 탭하는 위치가 움직이지 않도록 -->
           <div class="va-input" id="vaWrap" aria-describedby="vaEcho"></div>
           <p class="plane-note" id="vaEcho">가로: 기분(안 좋음↔좋음) · 세로: 활력(나른함↔들뜸). 먼저 <b>지금 상태</b>를, 이어서 <b>목표 상태</b>를 골라주세요.</p>
+          <p class="chips-hint" id="chipHint">좌표를 직접 탭하거나, 아래 단어를 골라도 자동으로 찍혀요.</p>
+          <div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div>
         </div>
       </details>
     </div>
@@ -1452,9 +1475,19 @@ function vaColor(p) {
 function renderLinearPreview() {
   const box = $("nlPreview");
   if (!box) return;
-  if (!CUR_VA) { box.hidden = true; box.innerHTML = ""; return; }
   const W = 560, H = 74, PAD = 60, y = 34;
   const x1 = PAD, x2 = W - PAD;
+  if (!CUR_VA) {
+    /* 아직 미선택: 같은 크기의 자리표시자를 그려 높이를 고정 (나타났다 사라지며 화면이 튀는 것 방지) */
+    let ph = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="지금과 목표를 고르면 흐름이 표시됩니다">';
+    ph += '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '" stroke="#dfe9e4" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 9"/>';
+    ph += '<circle cx="' + x1 + '" cy="' + y + '" r="10" fill="none" stroke="#c9d8d2" stroke-width="2" stroke-dasharray="3 4"/>';
+    ph += svgLab(x1, y + 26, "지금은?", 11, "#9fb5ad");
+    ph += '<circle cx="' + x2 + '" cy="' + y + '" r="11" fill="none" stroke="#c9d8d2" stroke-width="2" stroke-dasharray="3 4"/>';
+    ph += svgLab(x2, y + 26, "목표는?", 11, "#9fb5ad");
+    ph += '</svg>';
+    box.innerHTML = ph; box.hidden = false; return;
+  }
   const c1 = vaColor(CUR_VA), c2 = TGT_VA ? vaColor(TGT_VA) : "#dfe9e4";
   let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="지금에서 목표로 가는 흐름 미리보기">';
   s += '<defs><linearGradient id="pvG" x1="0" y1="0" x2="1" y2="0">'
@@ -1575,8 +1608,7 @@ let NL_RETRY_PENDING = false;  // 429 자동 재시도 대기 중 여부
 function nlStatusMsg(msg, isErr) {
   const el = $("nlStatus");
   if (!el) return;
-  el.hidden = !msg;
-  el.textContent = msg || "";
+  el.textContent = msg || "";   /* 빈 문구여도 한 줄 높이를 유지해 화면이 튀지 않게 한다 */
   el.style.color = isErr ? "#a34537" : "";
 }
 
