@@ -1,0 +1,1865 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>음치치 — 음악으로 쉬어가기</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<link href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --mist: #edf3f0;
+    --pine: #16352d;
+    --pine-soft: #47635b;
+    --teal: #0e6b5b;
+    --teal-deep: #0a4f44;
+    --haze: #dfe9e4;
+    --card: #f8fbf9;
+    --tense: #c96f5a;
+    --gold: #c9a24a;
+    --focus-ring: 3px solid #7db8a9;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  [hidden] { display: none !important; }   /* hidden 속성은 어떤 display 규칙보다 우선 — 모달·칩 안 닫히던 버그 재발 방지 */
+  html { scroll-behavior: smooth; }
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    * { transition: none !important; animation: none !important; }
+  }
+  body {
+    font-family: "Pretendard Variable", Pretendard, sans-serif;
+    background: var(--mist);
+    color: var(--pine);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+  main { max-width: 640px; margin: 0 auto; padding: 40px 20px 96px; }
+
+  header { margin-bottom: 36px; }
+  .brand {
+    font-family: "Hahmlet", serif;
+    font-weight: 600;
+    font-size: 1.35rem;
+    letter-spacing: -0.01em;
+  }
+  .brand small { font-family: "Pretendard Variable", Pretendard, sans-serif; font-weight: 500; color: var(--pine-soft); font-size: 0.8rem; margin-left: 8px; }
+  h1 {
+    font-family: "Hahmlet", serif;
+    font-weight: 500;
+    font-size: clamp(1.6rem, 5vw, 2.1rem);
+    line-height: 1.35;
+    margin-top: 20px;
+    letter-spacing: -0.015em;
+  }
+  h1 em { font-style: normal; color: var(--teal); }
+
+  #status {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 18px; padding: 10px 14px;
+    background: var(--card); border: 1px solid var(--haze); border-radius: 10px;
+    font-size: 0.85rem; color: var(--pine-soft);
+  }
+  #status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex: none; }
+  #status.ok .dot { background: var(--teal); }
+  #status.err .dot { background: var(--tense); }
+  #status.err { color: #8a4636; border-color: #ecd3cb; background: #faf3f1; }
+
+  /* ── 우상단 로그인/회원가입 ── */
+  header { position: relative; }
+  .auth-row { position: absolute; top: 0; right: 0; display: flex; align-items: center; gap: 8px; }
+  #authButtons { display: flex; gap: 8px; }
+  .auth-btn {
+    padding: 7px 14px; font-size: 0.8rem; font-weight: 600; font-family: inherit;
+    border-radius: 999px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
+    color: var(--pine); background: #fff; border: 1px solid var(--haze);
+  }
+  .auth-btn:hover { background: var(--card); border-color: #c8d8d1; }
+  .auth-btn.primary { color: #fff; background: var(--teal); border-color: var(--teal); }
+  .auth-btn.primary:hover { background: var(--teal-deep); }
+  .auth-btn:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+  .auth-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 5px 6px; font-size: 0.8rem; font-weight: 600;
+    background: var(--card); border: 1px solid var(--haze); border-radius: 999px;
+  }
+  .auth-chip img { width: 22px; height: 22px; border-radius: 50%; display: block; background: var(--haze); }
+  .auth-chip .out {
+    margin-left: 2px; padding: 4px 10px; font-size: 0.72rem; font-weight: 600; font-family: inherit;
+    color: var(--pine-soft); background: transparent; border: none; border-left: 1px solid var(--haze); cursor: pointer;
+  }
+  .auth-chip .out:hover { color: var(--tense); }
+
+  /* ── 로그인/회원가입 모달 ── */
+  .modal-back {
+    position: fixed; inset: 0; z-index: 50;
+    background: rgba(22, 53, 45, 0.45);
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: 6vh 16px 16px; overflow-y: auto;
+  }
+  .modal {
+    width: 100%; max-width: 420px; position: relative;
+    background: var(--mist); border-radius: 18px; padding: 28px 24px 24px;
+    box-shadow: 0 18px 50px rgba(10, 40, 33, 0.28);
+  }
+  .modal h2 { font-family: "Hahmlet", serif; font-weight: 600; font-size: 1.25rem; margin-bottom: 4px; }
+  .modal .sub { font-size: 0.83rem; color: var(--pine-soft); margin-bottom: 18px; }
+  .modal-x {
+    position: absolute; top: 14px; right: 14px; width: 32px; height: 32px;
+    font-size: 1.1rem; line-height: 1; color: var(--pine-soft);
+    background: transparent; border: none; border-radius: 8px; cursor: pointer;
+  }
+  .modal-x:hover { background: var(--haze); }
+  .modal label.f { display: block; font-size: 0.82rem; font-weight: 600; margin: 14px 0 6px; }
+  .modal input[type="email"], .modal input[type="password"], .modal input[type="text"] {
+    width: 100%; padding: 11px 12px; font-size: 0.92rem; font-family: inherit;
+    color: var(--pine); background: #fff; border: 1px solid var(--haze); border-radius: 10px;
+  }
+  .modal input:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
+  .auth-err {
+    margin-top: 12px; padding: 9px 12px; font-size: 0.8rem;
+    color: #8a4636; background: #faf3f1; border: 1px solid #ecd3cb; border-radius: 8px;
+  }
+  .modal .go-btn {
+    width: 100%; margin-top: 18px; padding: 12px;
+    font-size: 0.95rem; font-weight: 700; font-family: inherit;
+    color: #fff; background: var(--teal); border: none; border-radius: 10px; cursor: pointer;
+  }
+  .modal .go-btn:hover { background: var(--teal-deep); }
+  .modal .go-btn:disabled { background: #a9beb7; cursor: default; }
+  .modal .alt-btn {
+    width: 100%; margin-top: 10px; padding: 11px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 0.88rem; font-weight: 600; font-family: inherit;
+    color: var(--pine); background: #fff; border: 1px solid var(--haze); border-radius: 10px; cursor: pointer;
+  }
+  .modal .alt-btn:hover { background: var(--card); }
+  .modal .switch { margin-top: 16px; font-size: 0.82rem; color: var(--pine-soft); text-align: center; }
+  .modal .switch a { color: var(--teal); font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+  /* ── 온보딩 취향 조사 ── */
+  .ob-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .ob-chips button {
+    padding: 7px 13px; font-size: 0.82rem; font-weight: 600; font-family: inherit;
+    color: var(--pine); background: #fff; border: 1px solid var(--haze); border-radius: 999px; cursor: pointer;
+  }
+  .ob-chips button[aria-pressed="true"] { color: #fff; background: var(--teal); border-color: var(--teal); }
+  .ob-hint { font-size: 0.74rem; color: var(--pine-soft); margin-top: 6px; }
+  .track-results { margin-top: 8px; display: grid; gap: 6px; }
+  .track-results button {
+    text-align: left; padding: 9px 12px; font-size: 0.83rem; font-family: inherit;
+    color: var(--pine); background: #fff; border: 1px solid var(--haze); border-radius: 10px; cursor: pointer;
+  }
+  .track-results button:hover { background: var(--card); }
+  .track-picked { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+  .track-picked span {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 8px 6px 12px; font-size: 0.78rem; font-weight: 600;
+    background: var(--haze); border-radius: 999px;
+  }
+  .track-picked button { border: none; background: transparent; color: var(--pine-soft); font-size: 0.9rem; cursor: pointer; padding: 0 2px; }
+  .track-picked button:hover { color: var(--tense); }
+  .modal select { width: 100%; padding: 10px 12px; font-size: 0.9rem; font-family: inherit; background: #fff; border: 1px solid var(--haze); border-radius: 10px; }
+  .ob-foot { display: flex; justify-content: space-between; margin-top: 14px; font-size: 0.8rem; }
+  .ob-foot a { color: var(--pine-soft); cursor: pointer; text-decoration: underline; }
+  .ob-foot a:hover { color: var(--teal); }
+
+  section.card {
+    background: var(--card); border: 1px solid var(--haze);
+    border-radius: 16px; padding: 26px 24px; margin-top: 26px;
+  }
+  .field { margin-bottom: 26px; }
+  .field:last-child { margin-bottom: 0; }
+  label.q, span.q {
+    display: block; font-weight: 600; font-size: 1rem; margin-bottom: 12px;
+  }
+  .q span.num {
+    color: var(--teal); font-family: "Hahmlet", serif; margin-right: 6px;
+  }
+
+  .stress-wrap { padding: 4px 2px 0; }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 14px; border-radius: 999px;
+    background: linear-gradient(90deg, #9fc6b8 0%, #d8c98e 55%, var(--tense) 100%);
+    outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--card); border: 3px solid var(--pine);
+    box-shadow: 0 2px 6px rgba(22,53,45,0.25);
+    transition: transform 0.15s ease;
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--card); border: 3px solid var(--pine);
+  }
+  input[type="range"]:focus-visible { outline: var(--focus-ring); outline-offset: 4px; }
+  input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
+  .stress-labels {
+    display: flex; justify-content: space-between;
+    font-size: 0.78rem; color: var(--pine-soft); margin-top: 8px;
+  }
+  #stressEcho { margin-top: 12px; font-size: 0.95rem; font-weight: 600; }
+  #stressEcho b { color: var(--teal); }
+
+  /* 목적: 구체 문구 + 결과 예고 카드 */
+  .goals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 420px) { .goals { grid-template-columns: 1fr; } }
+  .goals input { position: absolute; opacity: 0; pointer-events: none; }
+  .goals label {
+    display: block; padding: 12px 14px;
+    border: 1.5px solid var(--haze); border-radius: 12px;
+    cursor: pointer; background: #fff;
+    transition: border-color 0.12s, background 0.12s;
+    user-select: none;
+  }
+  .goals label b { display: block; font-size: 0.92rem; font-weight: 600; }
+  .goals label small { display: block; font-size: 0.76rem; color: var(--pine-soft); margin-top: 2px; font-weight: 400; }
+  .goals label:hover { border-color: #b8cfc6; }
+  .goals input:checked + label {
+    border-color: var(--teal); background: #e6f1ed;
+  }
+  .goals input:checked + label b { color: var(--teal-deep); font-weight: 700; }
+  .goals input:focus-visible + label { outline: var(--focus-ring); outline-offset: 2px; }
+
+  select {
+    width: 100%; padding: 11px 12px; font-size: 0.9rem;
+    font-family: inherit; color: var(--pine);
+    border: 1.5px solid var(--haze); border-radius: 10px; background: #fff;
+  }
+  select:focus-visible { outline: var(--focus-ring); }
+
+  .nl-wrap { display: flex; gap: 8px; margin-top: 12px; align-items: stretch; }
+  .nl-wrap textarea {
+    flex: 1; padding: 11px 12px; font-size: 0.9rem; resize: none;
+    font-family: inherit; color: var(--pine); line-height: 1.5;
+    border: 1.5px solid var(--haze); border-radius: 10px; background: #fff;
+  }
+  .nl-wrap textarea:focus-visible { outline: var(--focus-ring); }
+  .nl-wrap button {
+    padding: 0 16px; border: none; border-radius: 10px; white-space: nowrap;
+    background: var(--teal); color: #fff; font-weight: 600; font-size: 0.88rem;
+    cursor: pointer; font-family: inherit;
+  }
+  .nl-wrap button:hover { background: var(--teal-deep); }
+  .nl-wrap button:disabled { background: #a9beb7; cursor: not-allowed; }
+  .nl-wrap button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 12px; }
+  .chips button {
+    padding: 8px 13px; border: 1.5px solid var(--haze); border-radius: 999px;
+    background: #fff; color: var(--pine); font-size: 0.85rem; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+  }
+  .chips button:hover { border-color: var(--teal); color: var(--teal-deep); }
+  .chips button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+  .chips-hint { font-size: 0.78rem; color: var(--pine-soft); margin: 0 0 6px; }
+
+  details.manual { margin-top: 14px; border: 1.5px solid var(--haze); border-radius: 12px; padding: 0; background: #fff; }
+  details.manual summary {
+    padding: 12px 14px; cursor: pointer; font-size: 0.88rem; font-weight: 600;
+    color: var(--pine); list-style: none; user-select: none;
+  }
+  details.manual summary::-webkit-details-marker { display: none; }
+  details.manual summary::before { content: "▸ "; color: var(--teal); }
+  details.manual[open] summary::before { content: "▾ "; }
+  details.manual .manual-body { padding: 4px 14px 14px; }
+  .linear-preview { margin-top: 12px; }
+  .linear-preview svg, .journey svg { width: 100%; height: auto; display: block; }
+
+  button#go {
+    width: 100%; margin-top: 4px; padding: 15px;
+    font-size: 1.02rem; font-weight: 700; font-family: inherit;
+    color: #fff; background: var(--teal); border: none; border-radius: 12px;
+    cursor: pointer; transition: background 0.12s;
+  }
+  button#go:hover { background: var(--teal-deep); }
+  button#go:disabled { background: #a9beb7; cursor: not-allowed; }
+  button#go:focus-visible { outline: var(--focus-ring); outline-offset: 3px; }
+
+  #results { margin-top: 40px; }
+  #results h2 {
+    font-family: "Hahmlet", serif; font-weight: 500; font-size: 1.3rem; margin-bottom: 6px;
+  }
+  #resultNote { font-size: 0.85rem; color: var(--pine-soft); margin-bottom: 18px; }
+
+  /* V/A 경로 시각화 */
+  .plane-card {
+    background: var(--card); border: 1px solid var(--haze); border-radius: 14px;
+    padding: 18px 18px 12px; margin-bottom: 18px;
+  }
+  .plane-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; }
+  .plane-card svg { width: 100%; height: auto; display: block; }
+  .plane-note { font-size: 0.74rem; color: var(--pine-soft); margin-top: 8px; }
+  .va-input svg { width: 100%; height: auto; display: block; cursor: crosshair; touch-action: manipulation; border-radius: 10px; }
+  .va-input svg:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
+  .seq-nav { display: flex; gap: 8px; margin-top: 10px; }
+  .seq-nav button {
+    flex: 1; padding: 10px 0; border: 1.5px solid #cfe0d9; border-radius: 10px;
+    background: #ffffff; color: var(--teal-deep); font-weight: 600; font-size: 0.88rem;
+    cursor: pointer; font-family: inherit;
+  }
+  .seq-nav button:hover { border-color: var(--teal); }
+  .seq-nav button:disabled { color: #a9beb7; border-color: #e4ede9; cursor: not-allowed; }
+  .seq-nav button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+
+  .song {
+    background: var(--card); border: 1px solid var(--haze); border-radius: 14px;
+    padding: 18px 20px; margin-bottom: 14px;
+  }
+  .song .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+  .song .title { font-weight: 700; font-size: 1.02rem; }
+  .song .step {
+    display: inline-block; min-width: 22px; text-align: center;
+    font-family: "Hahmlet", serif; font-size: 0.85rem; color: #fff;
+    background: var(--teal); border-radius: 50%; margin-right: 8px;
+  }
+  .song .artist { color: var(--pine-soft); font-size: 0.88rem; font-weight: 500; }
+  .song .score { font-family: "Hahmlet", serif; color: var(--teal); font-size: 0.95rem; flex: none; }
+  .reasons { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+  .reason { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--pine-soft); }
+  .bar { height: 6px; border-radius: 999px; background: var(--haze); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--teal); border-radius: 999px; }
+  .song a.spotify {
+    display: inline-block; margin-top: 14px; padding: 8px 14px;
+    font-size: 0.85rem; font-weight: 600; text-decoration: none;
+    color: var(--teal-deep); border: 1.5px solid var(--teal); border-radius: 999px;
+  }
+  .song a.spotify:hover { background: #e6f1ed; }
+  .song a.spotify:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+
+  .after-btn {
+    margin-top: 14px; padding: 10px 18px;
+    font-size: 0.9rem; font-weight: 700; font-family: inherit;
+    color: #fff; background: var(--teal); border: none; border-radius: 10px;
+    cursor: pointer; transition: background 0.12s;
+  }
+  .after-btn:hover { background: var(--teal-deep); }
+  .after-btn:disabled { background: #a9beb7; cursor: default; }
+  .after-btn:focus-visible { outline: var(--focus-ring); outline-offset: 3px; }
+
+  footer { margin-top: 56px; font-size: 0.75rem; color: var(--pine-soft); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="brand">음치치 <small>Eumchichi · 데모 <span id="buildTag">v0.9.3</span></small></div>
+    <h1>지금 상태를 알려주면,<br /><em>맞는 음악</em>을 찾아드릴게요.</h1>
+    <div id="status"><span class="dot"></span><span id="statusText">연결 준비 중…</span></div>
+    <div class="auth-row" id="authRow">
+      <div id="authButtons" hidden>
+        <button id="openLogin" class="auth-btn" type="button">로그인</button>
+        <button id="openSignup" class="auth-btn primary" type="button">회원가입</button>
+      </div>
+      <div class="auth-chip" id="authChip" hidden>
+        <img id="authPhoto" alt="" referrerpolicy="no-referrer" />
+        <span id="authName"></span>
+        <button class="out" id="logoutBtn" type="button">로그아웃</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="card" aria-label="상태 입력">
+    <div class="field">
+      <span class="q" id="vaLabel"><span class="num">01</span>지금 어떤 상태인지, 어떻게 되고 싶은지 말해주세요</span>
+      <div class="nl-wrap">
+        <textarea id="nlText" rows="2" maxlength="200" aria-label="지금 상태와 원하는 상태를 자유롭게 설명"
+          placeholder="예: 시험이 코앞이라 너무 불안한데, 차분하게 가라앉히고 싶어"></textarea>
+        <button id="nlApply" type="button">AI로<br/>이해하기</button>
+      </div>
+      <p class="plane-note" id="nlStatus" role="status" hidden></p>
+      <div class="linear-preview" id="nlPreview" hidden></div>
+
+      <details class="manual" id="manualBox">
+        <summary>직접 자세히 지정하기 <span style="font-weight:400;color:var(--pine-soft);">(선택)</span></summary>
+        <div class="manual-body">
+          <p class="chips-hint" id="chipHint">단어를 고르면 좌표에 자동으로 찍혀요. 딱 맞는 단어가 없으면 좌표를 직접 탭해도 됩니다.</p>
+          <div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div>
+          <div class="va-input" id="vaWrap" aria-describedby="vaEcho"></div>
+          <p class="plane-note" id="vaEcho">가로: 기분(안 좋음↔좋음) · 세로: 활력(나른함↔들뜸). 먼저 <b>지금 상태</b>를, 이어서 <b>목표 상태</b>를 골라주세요.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="field">
+      <label class="q" for="lyric"><span class="num">02</span>가사는 어떤 게 좋나요? <span style="font-weight:400;color:var(--pine-soft);font-size:0.85rem;">(선택)</span></label>
+      <select id="lyric">
+        <option value="no_preference" selected>상관없어요</option>
+        <option value="prefer_instrumental">가사 적은 곡이 좋아요</option>
+        <option value="instrumental_only">가사 없는 곡만요</option>
+        <option value="prefer_vocal">가사 있는 곡이 좋아요</option>
+      </select>
+    </div>
+
+    <button id="go" disabled>추천 받기</button>
+  </section>
+
+  <section id="results" aria-live="polite"></section>
+
+  <footer>입력 기반 추정 추천이며, 의학적 진단이나 치료가 아닙니다. · 곡 정보와 링크는 Spotify 제공.</footer>
+</main>
+
+<!-- ── 로그인 / 회원가입 / 온보딩 모달 ── -->
+<div class="modal-back" id="authModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <button class="modal-x" id="authClose" type="button" aria-label="닫기">✕</button>
+
+    <!-- 1단계: 로그인 / 회원가입 -->
+    <div id="authStep1">
+      <h2 id="authTitle">로그인</h2>
+      <p class="sub" id="authSub">기록과 취향을 이어서 쓰려면 로그인하세요.</p>
+      <label class="f" for="authEmail">이메일</label>
+      <input id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" />
+      <label class="f" for="authPw">비밀번호</label>
+      <input id="authPw" type="password" autocomplete="current-password" placeholder="6자 이상" />
+      <div id="signupExtra" hidden>
+        <label class="f" for="authNick">닉네임 <span style="font-weight:400;color:var(--pine-soft);">(선택)</span></label>
+        <input id="authNick" type="text" maxlength="20" placeholder="표시할 이름" />
+      </div>
+      <p class="auth-err" id="authErr" hidden></p>
+      <button class="go-btn" id="authSubmit" type="button">로그인</button>
+      <button class="alt-btn" id="authGoogle" type="button">
+        <svg width="15" height="15" viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Google로 계속하기
+      </button>
+      <p class="switch" id="authSwitchWrap">계정이 없나요? <a id="authSwitch">회원가입</a></p>
+    </div>
+
+    <!-- 2단계: 온보딩 취향 조사 (첫 가입 시 1회) -->
+    <div id="authStep2" hidden>
+      <h2>취향을 알려주세요</h2>
+      <p class="sub">한 번만 저장해두면, 매번 물어보지 않고 추천에 반영돼요.</p>
+
+      <label class="f">좋아하는 장르 <span style="font-weight:400;color:var(--pine-soft);">(여러 개 선택)</span></label>
+      <div class="ob-chips" id="obGenres" role="group" aria-label="선호 장르 선택"></div>
+
+      <label class="f" for="obArtists">좋아하는 가수</label>
+      <input id="obArtists" type="text" placeholder="예: 아이유, NewJeans (쉼표로 구분)" />
+
+      <label class="f" for="obTrackSearch">좋아하는 곡</label>
+      <input id="obTrackSearch" type="text" placeholder="곡 제목이나 가수로 검색 (최대 5곡)" />
+      <p class="ob-hint">지금 서비스에 있는 곡 중에서 골라주세요. 고른 곡의 특성이 취향 분석에 쓰여요.</p>
+      <div class="track-results" id="obTrackResults"></div>
+      <div class="track-picked" id="obTrackPicked"></div>
+
+      <label class="f" for="obLyric">평소 가사 선호</label>
+      <select id="obLyric">
+        <option value="no_preference" selected>상관없어요</option>
+        <option value="prefer_instrumental">가사 적은 곡이 좋아요</option>
+        <option value="instrumental_only">가사 없는 곡만요</option>
+        <option value="prefer_vocal">가사 있는 곡이 좋아요</option>
+      </select>
+
+      <p class="auth-err" id="obErr" hidden></p>
+      <button class="go-btn" id="obSave" type="button">저장하고 시작하기</button>
+      <button class="alt-btn" id="obForce" type="button" hidden>저장 없이 이 취향으로 계속하기</button>
+      <div class="ob-foot">
+        <a id="obSkip">나중에 할게요</a>
+        <a id="obLogout">로그아웃하고 나가기</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+
+<script>
+/* =====================================================================
+   1) firebaseConfig — 입력 완료 (eumchichi-5a1cd). 공개돼도 되는 값입니다.
+   ===================================================================== */
+/* =====================================================================
+   1-b) Gemini 설정 — 자연어 상태 입력 → V/A 좌표 변환 (스키마 변환 전용).
+   ⚠ API 키는 이 파일에 없다. 모든 Gemini 호출은 같은 도메인의 서버리스
+   함수 /api/gemini(api/gemini.js)를 거치고, 키는 Vercel 환경변수
+   GEMINI_API_KEY 에만 존재한다 (브라우저·GitHub에 절대 노출되지 않음).
+   서버에 키가 없거나 서버 없이(file://) 열면 자연어 입력이 자동 숨김된다.
+   설계 원칙(데이터 문서): LLM은 자연어→스키마 변환만 담당, 추천 순위는
+   수치 계산으로만 결정. 생체데이터는 프롬프트에 포함하지 않는다.
+   ===================================================================== */
+const GEMINI_PROXY = "/api/gemini";   // 키는 서버(Vercel 환경변수)에만 존재
+let NL_AVAILABLE = false;             // 서버에 키가 있는지 초기화 때 확인
+/* 모델명은 하드코딩하지 않는다: 2025~2026년에 모델 종료·개명이 잦아
+   (2.0-flash 종료, 2.5 계열 조기 404 보고 등) 어떤 이름을 박아도 깨질 수 있다.
+   대신 ListModels로 이 키가 지금 쓸 수 있는 flash 계열을 조회해 자동 선택하고,
+   호출이 404면 다음 후보로 넘어간다. */
+let GEMINI_MODEL = null;        // 런타임에 결정됨
+let MODEL_CANDIDATES = null;    // 우선순위 정렬된 후보 목록
+let MODEL_IDX = 0;
+
+async function resolveGeminiModels() {
+  if (MODEL_CANDIDATES && MODEL_CANDIDATES.length) return;
+  const res = await fetch(GEMINI_PROXY, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "listModels" })
+  });
+  if (!res.ok) throw new Error("모델 목록 조회 실패 " + res.status);
+  const data = await res.json();
+  const names = (data.models || [])
+    .filter(m => (m.supportedGenerationMethods || []).includes("generateContent"))
+    .map(m => (m.name || "").replace(/^models\//, ""))
+    .filter(n => /^gemini-\d/.test(n) && n.includes("flash"))
+    .filter(n => !/(image|tts|audio|live|thinking|robotics|embed)/.test(n));
+  // 우선순위: 최신 버전 > lite(가벼운 스키마 변환에 적합) > 정식판(preview·exp 감점)
+  const score = n => {
+    const ver = parseFloat((n.match(/^gemini-(\d+(?:\.\d+)?)/) || [])[1] || 0);
+    let s = ver * 100;
+    if (n.includes("lite")) s += 30;
+    if (/(preview|exp)/.test(n)) s -= 50;
+    if (/-\d{2}-\d{2}$|-\d{3,}$/.test(n)) s -= 5;   // 날짜 고정판보다 별칭 우선
+    return s;
+  };
+  MODEL_CANDIDATES = [...new Set(names)].sort((a, b) => score(b) - score(a));
+  MODEL_IDX = 0;
+  GEMINI_MODEL = MODEL_CANDIDATES[0] || null;
+  console.info("Gemini 모델 후보:", MODEL_CANDIDATES);
+  if (!GEMINI_MODEL) throw new Error("이 키로 사용 가능한 flash 모델이 없어요");
+}
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBzgeZAGiwC_0fc7CNQGVyIE4RNQGYCjS8",
+  authDomain: "eumchichi-5a1cd.firebaseapp.com",
+  projectId: "eumchichi-5a1cd",
+  storageBucket: "eumchichi-5a1cd.firebasestorage.app",
+  messagingSenderId: "631450879307",
+  appId: "1:631450879307:web:61ee4b2563db7ea53d14ce"
+};
+
+/* =====================================================================
+   2) 추천 설정 — 로직 수정 없이 이 블록만 조정하면 됩니다.
+      ※ 프론트 데모용 단순화 버전. 정식 규칙은 데이터 파이프라인의
+        context_target_map_v0.3.csv가 기준이며, 추후 교체하세요.
+   ===================================================================== */
+const TAG_KEYS = ["calmness","focus_suitability","relaxation_suitability",
+                  "energizing_suitability","lyric_distraction","instrumental_probability"];
+
+/* 목표 태그: goal 프리셋 대신, 사분면 네 꼭짓점의 프로토타입을
+   목표 좌표 (v, e)로 이중선형 보간해서 만든다.
+   BR(긍정·저활력)=휴식, TR(긍정·고활력)=활기, TL(부정·고활력)=격정,
+   BL(부정·저활력)=차분한 침잠. 값은 기존 GOAL_TARGETS(rest/energize 등)에서 유도. */
+const CORNER_TARGETS = {
+  BR: { calmness:0.90, focus_suitability:0.35, relaxation_suitability:0.95, energizing_suitability:0.05, lyric_distraction:0.20, instrumental_probability:0.60 },
+  TR: { calmness:0.20, focus_suitability:0.25, relaxation_suitability:0.20, energizing_suitability:0.90, lyric_distraction:0.55, instrumental_probability:0.25 },
+  TL: { calmness:0.10, focus_suitability:0.30, relaxation_suitability:0.10, energizing_suitability:0.85, lyric_distraction:0.45, instrumental_probability:0.35 },
+  BL: { calmness:0.80, focus_suitability:0.45, relaxation_suitability:0.50, energizing_suitability:0.10, lyric_distraction:0.25, instrumental_probability:0.60 }
+};
+function blendTarget(tgt) {
+  const v = tgt.v, e = tgt.e, out = {};
+  for (const k of TAG_KEYS) {
+    out[k] = (1-v)*(1-e)*CORNER_TARGETS.BL[k] + v*(1-e)*CORNER_TARGETS.BR[k]
+           + (1-v)*e*CORNER_TARGETS.TL[k]     + v*e*CORNER_TARGETS.TR[k];
+  }
+  return out;
+}
+
+const WEIGHTS = { calmness:1.0, focus_suitability:1.0, relaxation_suitability:1.0,
+                  energizing_suitability:1.0, lyric_distraction:0.7, instrumental_probability:0.7 };
+
+const TOP_K = 5;
+const PATH_SONGS = 3;                 // ISO 시퀀스 곡 수
+const WAYPOINT_START = 0.0;           // 첫 경유지 = 현재 상태 그 자체 (ISO: 동조 우선)
+const SCORE_W = 0.3;                  // 시퀀스 cost에서 태그 적합도 비중 (0.2~0.5 사이 튜닝)
+const TEMPO_W = 0.08;                 // 템포↔각성도 정합 보조 가중치 (0이면 미사용)
+const MAX_STEP_JUMP = 0.45;           // 인접 곡 간 V/A 최대 이동거리 (급점프 방지)
+const ALGO_VERSION = "v0.9-personalized";  // 피드백 로그 분석용 버전 표식
+
+/* ── 개인화 가중치 — 여기만 조정하면 됩니다 ──
+   설계: 개인 피드백 > 취향(온보딩) > 가수·장르 일치 > 전체 사용자 피드백.
+   본인 피드백이 가장 크게, 전체 피드백은 조금씩만 영향을 준다. */
+const TASTE_W        = 0.12;  // 취향 벡터(선호곡 태그 평균)와의 적합도
+const ARTIST_BONUS   = 0.06;  // 선호 가수 일치 가점
+const GENRE_BONUS    = 0.04;  // 선호 장르 일치 가점 (songs 문서에 genres 필드가 있을 때만)
+const PERSONAL_FB_W  = 0.10;  // 본인 피드백 (완청·클릭·전후 변화) — 개인 신호 중 최우선
+const GLOBAL_FB_W    = 0.03;  // 전체 사용자 피드백 (song_stats 집계) — 약하게만
+const FAVORITE_GENRES = ["K-pop","발라드","힙합","R&B","인디","록","팝","재즈","클래식","lo-fi","EDM","OST","시티팝","뉴에이지"];
+const INSTRUMENTAL_ONLY_MIN = 0.6;
+const PREFER_INSTRUMENTAL_MIN = 0.3;
+
+/* 감정·목적 단어 칩: 사용자는 일상어(범주)로 고르고, 시스템은 좌표(차원)로 저장.
+   [라벨, v(기분 0~1), e(활력 0~1)] — 문구·위치는 팀에서 자유롭게 다듬으세요. */
+const MOOD_CHIPS = [
+  ["불안해요", 0.30, 0.72], ["짜증나요", 0.25, 0.65], ["답답해요", 0.32, 0.55],
+  ["걱정돼요", 0.35, 0.60], ["지쳤어요", 0.30, 0.25], ["우울해요", 0.25, 0.32],
+  ["나른해요", 0.50, 0.25], ["그냥 그래요", 0.50, 0.50], ["설레요", 0.75, 0.68],
+  ["신나요", 0.82, 0.80], ["편안해요", 0.72, 0.28]
+];
+const GOAL_CHIPS = [
+  ["푹 쉬고 싶어요", 0.65, 0.15], ["차분해지고 싶어요", 0.60, 0.30],
+  ["집중해야 해요", 0.55, 0.45], ["기분 전환하고 싶어요", 0.75, 0.65],
+  ["신나고 싶어요", 0.80, 0.85], ["시원하게 털어버리고 싶어요", 0.78, 0.75]
+];
+
+const TAG_LABELS = {
+  calmness:"차분함", focus_suitability:"집중 적합", relaxation_suitability:"이완 적합",
+  energizing_suitability:"활력", lyric_distraction:"가사 방해도", instrumental_probability:"기악 확률"
+};
+
+/* ===================== 이하 앱 로직 ===================== */
+const $ = (id) => document.getElementById(id);
+const statusBox = $("status"), statusText = $("statusText");
+let SONGS = [];
+let fallbackUsed = false;
+
+function setStatus(kind, msg) {
+  statusBox.className = kind;
+  statusText.textContent = msg;
+}
+
+$("lyric").addEventListener("change", clearPath);
+
+async function init() {
+  if (firebaseConfig.apiKey.includes("붙여넣기")) {
+    setStatus("err", "firebaseConfig가 비어 있어요. 기존 index.html에서 firebaseConfig 블록을 복사해 이 파일의 1번 블록에 덮어써 주세요.");
+    return;
+  }
+  try {
+    firebase.initializeApp(firebaseConfig);
+    setStatus("", "로그인 확인 중…");
+    initAuthUI();
+    /* Safari 등 팝업 차단으로 redirect 방식으로 로그인하고 돌아온 경우 결과 회수.
+       이미 다른 곳에서 쓰던 구글 계정을 link 시도했다면 그 계정으로 전환. */
+    try {
+      await firebase.auth().getRedirectResult();
+    } catch (e) {
+      if (e.code === "auth/credential-already-in-use" && e.credential) {
+        await firebase.auth().signInWithCredential(e.credential);
+      } else if (e.code) console.warn("리다이렉트 로그인 회수 실패:", e);
+    }
+    /* 저장된 세션(구글 or 이전 익명)이 있으면 그대로 쓰고, 없을 때만 새 익명 로그인.
+       매번 signInAnonymously()를 부르면 uid가 갈려서 로그 연속성이 깨진다. */
+    const firstUser = await new Promise(res => {
+      const un = firebase.auth().onAuthStateChanged(u => { un(); res(u); });
+    });
+    if (!firstUser) await firebase.auth().signInAnonymously();
+    setStatus("", "음악 데이터 불러오는 중…");
+    const snap = await firebase.firestore().collection("songs").get();
+
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (d.review_status === "reject_song") return;
+      let tags = d.final_tag;
+      if (!tags || !TAG_KEYS.some(k => typeof tags[k] === "number")) {
+        tags = d.ai_or_rule_tag;
+        if (tags) fallbackUsed = true;
+      }
+      if (!tags) return;
+      const pr = d.provider_raw || {};
+      const nv = normScale(pr.valence), ne = normScale(pr.energy);
+      const va = (nv !== null && ne !== null) ? { v: nv, e: ne } : null;
+      const tempo = (typeof pr.tempo === "number" && pr.tempo > 0) ? pr.tempo : null;
+      const trackId = d.spotify_track_id || d.source_track_id;
+      const genres = Array.isArray(d.genres) ? d.genres
+                   : (typeof d.genre === "string" && d.genre ? [d.genre] : []);
+      SONGS.push({
+        id: doc.id,
+        title: d.title || doc.id,
+        artist: d.artist || "",
+        tags, va, tempo, trackId, genres,
+        spotifyUrl: d.spotify_url || (trackId ? "https://open.spotify.com/track/" + trackId : null)
+      });
+    });
+
+    if (SONGS.length === 0) {
+      setStatus("err", "songs 컬렉션은 읽었지만 사용할 수 있는 곡이 없어요. final_tag가 업로드됐는지 확인해 주세요.");
+      return;
+    }
+    setStatus("ok", "연결 완료 — " + SONGS.length + "곡 준비됨" + (fallbackUsed ? " (일부 곡은 검수 전 태그 사용)" : ""));
+    SONGS_READY = true;
+    loadGlobalStats();   // 전체 사용자 피드백 통계 (비동기, 실패해도 무관)
+    updateGo();   // 지금·목표가 이미 탭돼 있으면 즉시 활성화
+  } catch (err) {
+    console.error(err);
+    let hint = err.message || String(err);
+    if (err.code === "permission-denied")
+      hint = "권한 거부(permission-denied). 보안규칙 반영 전이면 1분 뒤 새로고침, 계속되면 규칙의 songs 읽기 조건을 확인하세요.";
+    if (err.code === "auth/operation-not-allowed")
+      hint = "익명 로그인이 꺼져 있어요. 콘솔 → Authentication → 로그인 방법에서 '익명'을 켜주세요.";
+    if (err.code === "auth/network-request-failed" || location.protocol === "file:")
+      hint += " — 파일을 더블클릭해 연 경우 로컬 서버(python -m http.server 등)로 다시 열어보세요.";
+    setStatus("err", hint);
+  }
+}
+
+/* ===================== 로그인·회원가입·온보딩 (v0.9) =====================
+   - 이메일/비밀번호 + 구글, 둘 다 지원 (콘솔에서 두 제공업체 모두 활성화 필요)
+   - 익명 상태에서 가입/구글 연결 시 linkWith*로 uid를 유지 → 기존 로그 연속성 보존
+   - 첫 가입(users/{uid} 문서 없음) 시 온보딩 취향 조사 → Firestore users에 저장
+   - 취향 벡터 = 선호곡들의 6종 태그 평균. 추천 점수에 personalBonus로 반영 */
+
+let USER_PROFILE = null;   // users/{uid} 문서 내용
+let TASTE_VECTOR = null;   // 선호곡 태그 평균 (없으면 null)
+let PERSONAL_FB  = {};     // song_id → 본인 피드백 점수 (대략 -1 ~ +1)
+let GLOBAL_FB    = {};     // song_id → 전체 사용자 피드백 점수 (대략 -1 ~ +1)
+let AUTH_MODE = "login";   // 모달 1단계 모드: login | signup
+let OB_TRACKS = [];        // 온보딩에서 고른 선호곡 (SONGS 항목 참조)
+let LAST_HANDLED = null;   // handleUserChange 중복 실행 방지 키
+let AUTH_ACTION = false;   // 사용자가 방금 직접 로그인/가입을 했는지 (세션 복원과 구분)
+
+function initAuthUI() {
+  $("openLogin").addEventListener("click", () => openAuthModal("login"));
+  $("openSignup").addEventListener("click", () => openAuthModal("signup"));
+  $("authClose").addEventListener("click", closeAuthModal);
+  $("authModal").addEventListener("click", (e) => { if (e.target === $("authModal")) closeAuthModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("authModal").hidden) closeAuthModal(); });
+  $("authSwitch").addEventListener("click", () => setAuthMode(AUTH_MODE === "login" ? "signup" : "login"));
+  $("authSubmit").addEventListener("click", emailSubmit);
+  $("authPw").addEventListener("keydown", (e) => { if (e.key === "Enter") emailSubmit(); });
+  $("authGoogle").addEventListener("click", googleLogin);
+  $("logoutBtn").addEventListener("click", async () => {
+    try {
+      await firebase.auth().signOut();
+      await firebase.auth().signInAnonymously();   // 익명으로 복귀 (새 uid)
+    } catch (e) { console.warn("로그아웃 실패:", e); }
+  });
+  initOnboardingUI();
+  firebase.auth().onAuthStateChanged((u) => { updateAuthUI(u); handleUserChange(u); });
+}
+
+function openAuthModal(mode) {
+  const u = firebase.auth().currentUser;
+  if (u && !u.isAnonymous) return;   // 이미 로그인 상태 — 로그인창을 띄우지 않는다
+  setAuthMode(mode);
+  $("authStep1").hidden = false;
+  $("authStep2").hidden = true;
+  $("authErr").hidden = true;
+  $("authModal").hidden = false;
+  $("authEmail").focus();
+}
+function closeAuthModal() { $("authModal").hidden = true; }
+
+function setAuthMode(mode) {
+  AUTH_MODE = mode;
+  const signup = mode === "signup";
+  $("authTitle").textContent = signup ? "회원가입" : "로그인";
+  $("authSub").textContent = signup
+    ? "가입하면 취향을 저장해 매번 물어보지 않고 추천에 반영해요."
+    : "기록과 취향을 이어서 쓰려면 로그인하세요.";
+  $("signupExtra").hidden = !signup;
+  $("authSubmit").textContent = signup ? "가입하기" : "로그인";
+  $("authSwitchWrap").innerHTML = signup
+    ? '이미 계정이 있나요? <a id="authSwitch">로그인</a>'
+    : '계정이 없나요? <a id="authSwitch">회원가입</a>';
+  $("authSwitch").addEventListener("click", () => setAuthMode(AUTH_MODE === "login" ? "signup" : "login"));
+  $("authPw").autocomplete = signup ? "new-password" : "current-password";
+  $("authErr").hidden = true;
+}
+
+function authError(msg) { const el = $("authErr"); el.textContent = msg; el.hidden = false; }
+
+const AUTH_ERR_KO = {
+  "auth/invalid-email": "이메일 형식이 올바르지 않아요.",
+  "auth/missing-password": "비밀번호를 입력해 주세요.",
+  "auth/weak-password": "비밀번호는 6자 이상이어야 해요.",
+  "auth/email-already-in-use": "이미 가입된 이메일이에요. 로그인으로 전환해 주세요.",
+  "auth/user-not-found": "가입되지 않은 이메일이에요. 회원가입으로 전환해 주세요.",
+  "auth/wrong-password": "비밀번호가 맞지 않아요.",
+  "auth/invalid-credential": "이메일 또는 비밀번호가 맞지 않아요.",
+  "auth/too-many-requests": "시도가 너무 많았어요. 잠시 후 다시 해주세요.",
+  "auth/operation-not-allowed": "이메일/비밀번호 로그인이 콘솔에서 꺼져 있어요. Authentication → 로그인 방법에서 켜주세요."
+};
+
+async function emailSubmit() {
+  const email = $("authEmail").value.trim();
+  const pw = $("authPw").value;
+  if (!email) return authError("이메일을 입력해 주세요.");
+  if (!pw) return authError("비밀번호를 입력해 주세요.");
+  $("authSubmit").disabled = true;
+  AUTH_ACTION = true;   // 사용자가 직접 로그인/가입을 시도함 → 온보딩 자동 오픈 허용
+  try {
+    const cur = firebase.auth().currentUser;
+    if (AUTH_MODE === "signup") {
+      const cred = firebase.auth.EmailAuthProvider.credential(email, pw);
+      if (cur && cur.isAnonymous) {
+        await cur.linkWithCredential(cred);          // 익명 uid 유지한 채 계정 생성
+      } else {
+        await firebase.auth().createUserWithEmailAndPassword(email, pw);
+      }
+    } else {
+      await firebase.auth().signInWithEmailAndPassword(email, pw);
+    }
+    /* 같은 계정 재로그인이나 link는 onAuthStateChanged가 안 뜰 수 있어
+       성공하면 항상 직접 후처리 (프로필 로드 → 모달 닫기 or 온보딩) */
+    await handleUserChange(firebase.auth().currentUser, true);
+  } catch (e) {
+    authError(AUTH_ERR_KO[e.code] || ("실패: " + (e.message || e.code)));
+  } finally {
+    $("authSubmit").disabled = false;
+  }
+}
+
+async function googleLogin() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  const user = firebase.auth().currentUser;
+  AUTH_ACTION = true;
+  try {
+    if (user && user.isAnonymous) {
+      await user.linkWithPopup(provider);            // uid 유지한 채 구글 계정 연결
+    } else {
+      await firebase.auth().signInWithPopup(provider);
+    }
+    await handleUserChange(firebase.auth().currentUser, true);
+  } catch (e) {
+    if (e.code === "auth/credential-already-in-use" && e.credential) {
+      /* 이 구글 계정이 이미 다른 uid로 가입돼 있음 → 그 기존 계정으로 전환 */
+      try { await firebase.auth().signInWithCredential(e.credential); }
+      catch (e2) { authError("기존 계정 전환에 실패했어요: " + (e2.code || e2.message)); }
+    } else if (e.code === "auth/operation-not-supported-in-this-environment") {
+      /* file://로 직접 연 경우 팝업·리다이렉트 둘 다 불가 — 로컬 서버로 열어야 함 */
+      authError("이 환경에서는 구글 로그인이 안 돼요. 파일을 더블클릭해 열었다면 로컬 서버(python -m http.server 8000)로 다시 열어주세요. 이메일 로그인은 그대로 됩니다.");
+    } else if (e.code === "auth/popup-blocked" ||
+               e.code === "auth/cancelled-popup-request") {
+      /* Safari 등 팝업 차단 → 리다이렉트 폴백 (결과는 init의 getRedirectResult가 회수) */
+      try {
+        if (user && user.isAnonymous) await user.linkWithRedirect(provider);
+        else await firebase.auth().signInWithRedirect(provider);
+      } catch (e3) { authError("로그인에 실패했어요: " + (e3.code || e3.message)); }
+    } else if (e.code === "auth/operation-not-allowed") {
+      authError("구글 로그인이 콘솔에서 꺼져 있어요. Authentication → 로그인 방법에서 'Google'을 켜주세요.");
+    } else if (e.code !== "auth/popup-closed-by-user") {
+      authError("로그인에 실패했어요: " + (e.code || e.message));
+    }
+  }
+}
+
+function updateAuthUI(user) {
+  const loggedIn = !!user && !user.isAnonymous;
+  $("authButtons").hidden = loggedIn;    // 로그인 상태면 로그인/회원가입 버튼은 없어야 한다
+  $("authChip").hidden = !loggedIn;      // 로그아웃 상태면 내 계정 표시는 없어야 한다
+  if (!loggedIn) {
+    $("authName").textContent = "";      // 로그아웃 즉시 이름·사진 제거
+    $("authPhoto").removeAttribute("src");
+  }
+  /* 로그인 완료 상태에서 로그인 폼(1단계)이 열려 있으면 자동으로 닫는다.
+     (온보딩 2단계는 취향 저장 흐름이므로 유지) */
+  if (loggedIn && !$("authModal").hidden && !$("authStep1").hidden) closeAuthModal();
+  if (loggedIn) {
+    const name = (USER_PROFILE && USER_PROFILE.display_name) || user.displayName || user.email || "로그인됨";
+    $("authName").textContent = name;
+    $("authPhoto").src = user.photoURL ||
+      "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='22' height='22'><circle cx='11' cy='11' r='11' fill='%23dfe9e4'/></svg>";
+  }
+}
+
+/* 로그인 상태가 바뀔 때마다: 프로필 로드 → (없으면) 온보딩 → 개인 피드백 로드 */
+async function handleUserChange(user, force) {
+  const key = user ? user.uid + ":" + user.isAnonymous : "none";
+  if (!force && key === LAST_HANDLED) return;
+  LAST_HANDLED = key;
+  USER_PROFILE = null; TASTE_VECTOR = null; PERSONAL_FB = {};
+  if (!user || user.isAnonymous) { updateAuthUI(user); return; }
+  try {
+    const doc = await firebase.firestore().collection("users").doc(user.uid).get();
+    if (doc.exists) {
+      applyProfile(doc.data());
+      closeAuthModal();
+    } else if (AUTH_ACTION) {
+      openOnboarding();          // 방금 직접 가입/로그인함 → 취향 조사
+    } else {
+      /* 새로고침 등 세션 복원: 모달을 강제로 띄우지 않고 그냥 쓰게 둔다.
+         취향 없이도 앱 전체가 동작하며, 온보딩은 다음 직접 로그인 때 다시 안내 */
+      closeAuthModal();
+    }
+    AUTH_ACTION = false;
+  } catch (e) {
+    console.warn("프로필 로드 실패(users 규칙에 본인 읽기/쓰기 허용 필요):", e);
+    closeAuthModal();
+  }
+  updateAuthUI(user);
+  loadPersonalFeedback(user.uid);   // 비동기 — 실패해도 앱 동작에는 영향 없음
+}
+
+function applyProfile(p) {
+  USER_PROFILE = p;
+  TASTE_VECTOR = p.taste_vector || null;
+  if (p.lyric_preference_default) $("lyric").value = p.lyric_preference_default;  // 매번 안 물어봐도 되게 기본값 주입
+}
+
+/* ── 온보딩 취향 조사 ── */
+function initOnboardingUI() {
+  const box = $("obGenres");
+  FAVORITE_GENRES.forEach(g => {
+    const b = document.createElement("button");
+    b.type = "button"; b.textContent = g; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => b.setAttribute("aria-pressed", b.getAttribute("aria-pressed") !== "true"));
+    box.appendChild(b);
+  });
+  $("obTrackSearch").addEventListener("input", renderTrackSearch);
+  $("obSave").addEventListener("click", saveOnboarding);
+  /* 저장이 실패해도 이 취향으로 세션을 이어갈 수 있게 (Firestore 없이 로컬 적용) */
+  $("obForce").addEventListener("click", () => {
+    const p = buildOnboardingProfile(firebase.auth().currentUser);
+    applyProfile(p);
+    updateAuthUI(firebase.auth().currentUser);
+    closeAuthModal();
+    setStatus("ok", "취향을 이 세션에만 적용했어요 (저장은 안 됨)");
+  });
+  /* 나중에 할게요: 빈 프로필을 저장해 다음 로그인에 다시 묻지 않음. 저장 실패해도 그냥 닫힘 */
+  $("obSkip").addEventListener("click", async () => {
+    closeAuthModal();
+    const user = firebase.auth().currentUser;
+    if (!user || user.isAnonymous) return;
+    try {
+      await firebase.firestore().collection("users").doc(user.uid).set({
+        skipped: true,
+        created_at: firebase.firestore.FieldValue.serverTimestamp(),
+        updated_at: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      USER_PROFILE = { skipped: true };
+    } catch (e) { console.warn("건너뛰기 저장 실패(다음 로그인에 다시 물어봄):", e); }
+  });
+  /* 가입 도중이라도 로그아웃 상태(익명)로 돌아갈 수 있어야 한다 */
+  $("obLogout").addEventListener("click", async () => {
+    closeAuthModal();
+    try {
+      await firebase.auth().signOut();
+      await firebase.auth().signInAnonymously();
+    } catch (e) { console.warn("로그아웃 실패:", e); }
+  });
+}
+
+function openOnboarding() {
+  OB_TRACKS = [];
+  renderPickedTracks();
+  $("obTrackResults").innerHTML = "";
+  $("obErr").hidden = true;
+  $("obForce").hidden = true;
+  $("authStep1").hidden = true;
+  $("authStep2").hidden = false;
+  $("authModal").hidden = false;
+}
+
+function renderTrackSearch() {
+  const q = $("obTrackSearch").value.trim().toLowerCase();
+  const box = $("obTrackResults");
+  box.innerHTML = "";
+  if (q.length < 1 || !SONGS.length) return;
+  SONGS.filter(s => (s.title + " " + s.artist).toLowerCase().includes(q))
+    .slice(0, 8)
+    .forEach(s => {
+      if (OB_TRACKS.some(t => t.id === s.id)) return;
+      const b = document.createElement("button");
+      b.type = "button";
+      b.innerHTML = "<b>" + esc(s.title) + "</b> — " + esc(s.artist);
+      b.addEventListener("click", () => {
+        if (OB_TRACKS.length >= 5) return;
+        OB_TRACKS.push(s);
+        $("obTrackSearch").value = "";
+        box.innerHTML = "";
+        renderPickedTracks();
+      });
+      box.appendChild(b);
+    });
+}
+
+function renderPickedTracks() {
+  const box = $("obTrackPicked");
+  box.innerHTML = "";
+  OB_TRACKS.forEach((s, i) => {
+    const chip = document.createElement("span");
+    chip.append(s.title);   // append는 텍스트 노드라 esc() 불필요 (이중 이스케이프 방지)
+    const x = document.createElement("button");
+    x.type = "button"; x.textContent = "✕"; x.setAttribute("aria-label", s.title + " 제거");
+    x.addEventListener("click", () => { OB_TRACKS.splice(i, 1); renderPickedTracks(); });
+    chip.appendChild(x);
+    box.appendChild(chip);
+  });
+}
+
+function buildOnboardingProfile(user) {
+  const genres = [...$("obGenres").querySelectorAll('button[aria-pressed="true"]')].map(b => b.textContent);
+  const artists = $("obArtists").value.split(",").map(a => a.trim()).filter(Boolean);
+  /* 취향 벡터: 선호곡들의 6종 태그 평균 — "선호곡의 특성"을 수치로 요약 */
+  let taste = null;
+  if (OB_TRACKS.length) {
+    taste = {};
+    for (const k of TAG_KEYS) {
+      const vals = OB_TRACKS.map(s => (typeof s.tags[k] === "number" ? s.tags[k] : 0.5));
+      taste[k] = Number((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(4));
+    }
+  }
+  return {
+    display_name: ($("authNick").value || "").trim() || (user && user.displayName) || null,
+    email: (user && user.email) || null,
+    preferred_genres: genres,
+    preferred_artists: artists,
+    favorite_tracks: OB_TRACKS.map(s => s.id),
+    lyric_preference_default: $("obLyric").value,
+    taste_vector: taste
+  };
+}
+
+async function saveOnboarding() {
+  const errEl = $("obErr");
+  errEl.hidden = true;
+  try {
+    const user = firebase.auth().currentUser;
+    if (!user) { errEl.textContent = "로그인 상태가 아니에요. 창을 닫고 다시 로그인해 주세요."; errEl.hidden = false; return; }
+    const profile = buildOnboardingProfile(user);
+    $("obSave").disabled = true;
+    $("obSave").textContent = "저장 중…";
+    const write = firebase.firestore().collection("users").doc(user.uid).set({
+      ...profile,
+      created_at: firebase.firestore.FieldValue.serverTimestamp(),
+      updated_at: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+    /* 8초 안에 응답이 없으면 멈춘 것으로 보고 원인 안내 (오프라인 쓰기 대기 등) */
+    await Promise.race([
+      write,
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000))
+    ]);
+    applyProfile(profile);
+    updateAuthUI(user);
+    closeAuthModal();
+    setStatus("ok", "취향 저장 완료 — 이제 추천에 반영됩니다");
+  } catch (e) {
+    console.error("온보딩 저장 실패:", e);
+    let msg;
+    if (e.code === "permission-denied")
+      msg = "Firestore 규칙이 users 쓰기를 막고 있어요. 규칙에 users/{uid} 본인 읽기·쓰기 허용을 추가하고 게시해 주세요.";
+    else if (e.message === "timeout")
+      msg = "저장 응답이 없어요(8초 초과). 네트워크 상태와 Firestore 규칙 게시 여부를 확인해 주세요.";
+    else
+      msg = "저장 실패: " + (e.code || e.message || e);
+    errEl.textContent = msg + " — 급하면 아래 버튼으로 저장 없이 계속할 수 있어요.";
+    errEl.hidden = false;
+    $("obForce").hidden = false;
+  } finally {
+    $("obSave").disabled = false;
+    $("obSave").textContent = "저장하고 시작하기";
+  }
+}
+
+/* ── 피드백 환류 ──
+   개인: 본인 로그(recommendations + context_events)에서 곡별 점수를 계산 (가장 큰 가중치)
+   전체: song_stats 집계 문서(이벤트 발생 시 increment로 갱신)에서 약하게 반영 */
+async function loadPersonalFeedback(uid) {
+  PERSONAL_FB = {};
+  const add = (id, v) => { PERSONAL_FB[id] = (PERSONAL_FB[id] || 0) + v; };
+  try {
+    const db = firebase.firestore();
+    const recSnap = await db.collection("recommendations").where("user_id", "==", uid).limit(100).get();
+    const recSongs = {};
+    recSnap.forEach(d => {
+      recSongs[d.id] = (d.data().sequence || []).filter(r => r.role === "path").map(r => r.song_id);
+    });
+    const evSnap = await db.collection("context_events").where("user_id", "==", uid).limit(400).get();
+    evSnap.forEach(d => {
+      const e = d.data();
+      if (e.type === "track_complete" && e.payload && e.payload.song_id) add(e.payload.song_id, 0.3);
+      else if (e.type === "spotify_click" && e.payload && e.payload.song_id) add(e.payload.song_id, 0.15);
+      else if (e.type === "post_change" && e.rec_id && recSongs[e.rec_id]) {
+        const c = (e.payload && typeof e.payload.change === "number") ? e.payload.change : 0;  // -2 ~ +2
+        recSongs[e.rec_id].forEach(id => add(id, c * 0.35));  // 전후 변화가 그 시퀀스의 곡들에 귀속
+      }
+    });
+  } catch (e) {
+    console.warn("개인 피드백 로드 실패(규칙에 본인 문서 읽기 허용 필요):", e);
+  }
+}
+
+async function loadGlobalStats() {
+  GLOBAL_FB = {};
+  try {
+    const snap = await firebase.firestore().collection("song_stats").get();
+    snap.forEach(d => {
+      const s = d.data();
+      let g = 0;
+      if (s.n_change) g += Math.max(-1, Math.min(1, (s.sum_change / s.n_change) / 2)) * 0.8;  // 평균 전후 변화 (-2~+2 → -1~+1)
+      if (s.completes) g += Math.min(0.2, s.completes * 0.02);                                 // 완청 누적, 약한 상한
+      GLOBAL_FB[d.id] = g;
+    });
+  } catch (e) {
+    console.warn("전체 피드백 통계 로드 실패(song_stats 규칙 필요):", e);
+  }
+}
+
+function bumpStats(songId, fields) {
+  try {
+    firebase.firestore().collection("song_stats").doc(songId)
+      .set(fields, { merge: true })
+      .catch(e => console.warn("song_stats 갱신 실패:", e));
+  } catch (e) { /* 무시 — 통계는 best-effort */ }
+}
+
+/* 추천 점수에 더해지는 개인화 보정치. ranked 한 곳에만 적용되어
+   ISO 시퀀스 cost(c.score 경유)와 추가 추천 순위에 함께 반영된다. */
+function personalBonus(s) {
+  let b = 0;
+  if (TASTE_VECTOR) b += TASTE_W * weightedFit(s.tags, TASTE_VECTOR);
+  if (USER_PROFILE) {
+    const arts = USER_PROFILE.preferred_artists || [];
+    if (s.artist && arts.some(a => a && s.artist.toLowerCase().includes(a.toLowerCase()))) b += ARTIST_BONUS;
+    const gs = USER_PROFILE.preferred_genres || [];
+    if (s.genres && s.genres.length && gs.length &&
+        gs.some(g => s.genres.some(x => String(x).toLowerCase().includes(g.toLowerCase())))) b += GENRE_BONUS;
+  }
+  if (PERSONAL_FB[s.id]) b += PERSONAL_FB_W * Math.max(-1, Math.min(1, PERSONAL_FB[s.id]));
+  if (GLOBAL_FB[s.id])   b += GLOBAL_FB_W   * Math.max(-1, Math.min(1, GLOBAL_FB[s.id]));
+  return b;
+}
+
+/* 거리 기반 적합도 (가중 RMSE의 보수). 0~1, 높을수록 목표에 가까움.
+   코사인과 달리 벡터 "크기"까지 반영 — 모든 특성이 절반인 밋밋한 곡은
+   방향이 같아도 점수가 깎인다. */
+function weightedFit(tags, target) {
+  let sum = 0, wsum = 0;
+  for (const k of TAG_KEYS) {
+    const w = WEIGHTS[k] ?? 1;
+    const a = (typeof tags[k] === "number" ? tags[k] : 0.5);
+    const b = target[k] ?? 0.5;
+    sum += w * (a - b) * (a - b);
+    wsum += w;
+  }
+  return 1 - Math.sqrt(sum / wsum);
+}
+
+/* §3 스케일 방어: 소스에 따라 valence/energy가 0~1, 0~10, 0~100으로 혼재할 수 있음.
+   1 초과값은 0~10으로 보고 /10, 10 초과값은 0~100으로 보고 /100 후 0~1로 클램프. */
+function normScale(x) {
+  if (typeof x !== "number" || !isFinite(x)) return null;
+  if (x > 1) x = (x <= 10) ? x / 10 : x / 100;
+  return Math.min(1, Math.max(0, x));
+}
+
+/* ===================== §5-1 피드백 로그 ===================== */
+let LAST_REC_ID = null;    // 직전 추천 문서 ID — 후속 이벤트와 조인하는 키
+let LAST_PATH_IDS = [];    // 직전 시퀀스 곡 ID — post_change를 곡별 통계에 귀속시킬 때 사용
+let LAST_CUR_VA = null;    // 직전 추천 시점의 지금 좌표 (청취 전후 비교용)
+let LAST_TGT_VA = null;    // 직전 추천의 목표 좌표
+
+const round3 = p => ({ v: Number(p.v.toFixed(3)), e: Number(p.e.toFixed(3)) });
+
+async function logRecommendation(input, seq, extras) {
+  LAST_REC_ID = null;
+  LAST_PATH_IDS = seq.map(s => s.id);
+  LAST_CUR_VA = round3(input.cur);
+  LAST_TGT_VA = round3(input.tgt);
+  try {
+    const rows = [
+      ...seq.map((s, i) => ({ song_id: s.id, position: i + 1, role: "path", score: Number(s.score.toFixed(4)) })),
+      ...extras.map((s, i) => ({ song_id: s.id, position: seq.length + i + 1, role: "extra", score: Number(s.score.toFixed(4)) }))
+    ];
+    const ref = await firebase.firestore().collection("recommendations").add({
+      user_id: firebase.auth().currentUser.uid,
+      is_anonymous: firebase.auth().currentUser.isAnonymous,   // 구글 로그인 사용자 구분용
+      created_at: firebase.firestore.FieldValue.serverTimestamp(),
+      algorithm_version: ALGO_VERSION,
+      input: {
+        lyric_preference: input.lyric,
+        current_va: LAST_CUR_VA,   // 사용자가 좌표에 직접 탭한 지금 상태
+        target_va: LAST_TGT_VA,    // 사용자가 좌표에 직접 탭한 목표 상태
+        input_mode: { current: CUR_MODE, target: TGT_MODE },   // 점별 입력 방식: tap | chip | nl
+        nl_text: LAST_NL_TEXT,     // 자연어 원문 (해석 품질 감사용, 미사용 시 null)
+        nl_model: LAST_NL_TEXT ? GEMINI_MODEL : null   // 어떤 모델이 해석했는지
+      },
+      sequence: rows
+    });
+    LAST_REC_ID = ref.id;
+  } catch (e) {
+    console.warn("추천 로그 저장 실패(앱 동작에는 영향 없음):", e);
+  }
+}
+
+async function logEvent(type, payload) {
+  /* 전체 사용자 통계(song_stats)와 이 세션의 개인 피드백을 함께 갱신 —
+     다음 추천부터 바로 반영된다. */
+  const inc = firebase.firestore.FieldValue.increment;
+  const addLocal = (id, v) => { PERSONAL_FB[id] = (PERSONAL_FB[id] || 0) + v; };
+  if (type === "spotify_click" && payload.song_id) {
+    bumpStats(payload.song_id, { clicks: inc(1) });
+    addLocal(payload.song_id, 0.15);
+  } else if (type === "track_complete" && payload.song_id) {
+    bumpStats(payload.song_id, { completes: inc(1) });
+    addLocal(payload.song_id, 0.3);
+  } else if (type === "post_change" && typeof payload.change === "number") {
+    LAST_PATH_IDS.forEach(id => {
+      bumpStats(id, { sum_change: inc(payload.change), n_change: inc(1) });
+      addLocal(id, payload.change * 0.35);
+    });
+  }
+  try {
+    await firebase.firestore().collection("context_events").add({
+      user_id: firebase.auth().currentUser.uid,
+      rec_id: LAST_REC_ID,   // 로그 저장이 실패했으면 null일 수 있음
+      type, payload,
+      created_at: firebase.firestore.FieldValue.serverTimestamp()
+    });
+  } catch (e) {
+    console.warn("이벤트 로그 저장 실패:", e);
+  }
+}
+
+/* ===================== 시퀀스 연속재생 (Spotify iFrame Embed API) =====================
+   OAuth 없이 동작. 브라우저에 Spotify 로그인이 되어 있으면 전곡, 아니면 30초 미리듣기.
+   곡이 끝나면 다음 곡을 자동 로드해 ①→③이 끊기지 않게 한다. */
+let SpotifyIFrameAPI = null;
+let PENDING_MOUNT = null;
+let EMBED_CTRL = null;
+let QUEUE = [], QUEUE_IDX = 0;
+
+window.onSpotifyIframeApiReady = (api) => {
+  SpotifyIFrameAPI = api;
+  if (PENDING_MOUNT) { PENDING_MOUNT(); PENDING_MOUNT = null; }
+};
+
+function nowPlayingText() {
+  const marks = ["①", "②", "③", "④", "⑤"];
+  const s = QUEUE[QUEUE_IDX];
+  if (!s) return "";
+  return "지금 재생: " + (marks[QUEUE_IDX] || (QUEUE_IDX + 1)) + " " + s.title + (s.artist ? " — " + s.artist : "");
+}
+
+function setupPlayer(seq) {
+  QUEUE = seq.filter(s => s.trackId);
+  QUEUE_IDX = 0;
+  const mount = () => {
+    const host = $("embedHost");
+    if (!host || QUEUE.length === 0) return;
+    try { if (EMBED_CTRL) EMBED_CTRL.destroy(); } catch (e) {}
+    EMBED_CTRL = null;
+    SpotifyIFrameAPI.createController(host, {
+      uri: "spotify:track:" + QUEUE[0].trackId,
+      width: "100%", height: 152
+    }, (ctrl) => {
+      EMBED_CTRL = ctrl;
+      let started = false;    // 이번 곡에서 재생이 실제로 시작됐는지
+      let advancing = false;  // 곡 전환 중 중복 감지 방지
+      let fired = {};         // 이번 곡에서 이미 기록한 마일스톤 (25/50/75)
+      const setNow = () => { const el = $("nowPlaying"); if (el) el.textContent = nowPlayingText(); };
+      const setNavState = () => {
+        const pv = $("prevTrack"), nx = $("nextTrack");
+        if (pv) pv.disabled = QUEUE_IDX <= 0;
+        if (nx) nx.disabled = QUEUE_IDX >= QUEUE.length - 1;
+      };
+      // 지정 곡으로 이동 (자동 이어재생과 수동 넘기기가 공용)
+      const goTo = (idx) => {
+        QUEUE_IDX = idx;
+        ctrl.loadUri("spotify:track:" + QUEUE[idx].trackId);
+        ctrl.play();
+        setNow(); setNavState();
+        started = false;
+        fired = {};   // 새 곡의 마일스톤은 처음부터 다시
+        setTimeout(() => { advancing = false; }, 1500);
+      };
+      setNow(); setNavState();
+
+      // 곡 넘기기 버튼: 수동 이동은 track_skip으로 기록 (이탈 신호로 활용)
+      const pv = $("prevTrack"), nx = $("nextTrack");
+      const manualJump = (dir) => {
+        const to = QUEUE_IDX + dir;
+        if (to < 0 || to >= QUEUE.length || advancing) return;
+        advancing = true;
+        logEvent("track_skip", {
+          song_id: QUEUE[QUEUE_IDX].id, position: QUEUE_IDX + 1,
+          direction: dir > 0 ? "next" : "prev"
+        });
+        goTo(to);
+      };
+      if (pv) pv.addEventListener("click", () => manualJump(-1));
+      if (nx) nx.addEventListener("click", () => manualJump(1));
+
+      ctrl.addListener("playback_update", (e) => {
+        const d = e.data || {};
+        if (advancing) return;
+        if (!started && !d.isPaused && d.position > 1000) {
+          started = true;
+          if (QUEUE_IDX === 0) logEvent("sequence_play_start", { song_id: QUEUE[0].id });
+        }
+        // §부분 청취: 재생 위치가 25/50/75%를 넘을 때마다 마일스톤 1건씩 기록.
+        // duration_ms를 같이 저장해 미리듣기(약 30초)와 전곡을 분석 시 구분한다.
+        if (started && d.duration > 0) {
+          const pct = (d.position / d.duration) * 100;
+          for (const m of [25, 50, 75]) {
+            if (!fired[m] && pct >= m) {
+              fired[m] = true;
+              logEvent("track_milestone", {
+                song_id: QUEUE[QUEUE_IDX].id, position: QUEUE_IDX + 1,
+                milestone: m, duration_ms: Math.round(d.duration)
+              });
+            }
+          }
+        }
+        // 곡 종료 감지: 끝 지점 도달 또는 (재생됐던 곡이) 0초로 되돌아가 멈춘 경우
+        const ended = d.duration > 0 &&
+          (d.position >= d.duration - 400 || (started && d.isPaused && d.position === 0));
+        if (!ended) return;
+        advancing = true;
+        logEvent("track_complete", { song_id: QUEUE[QUEUE_IDX].id, position: QUEUE_IDX + 1 });
+        if (QUEUE_IDX + 1 < QUEUE.length) {
+          goTo(QUEUE_IDX + 1);
+        } else {
+          logEvent("sequence_complete", {});
+          const el = $("nowPlaying");
+          if (el) el.textContent = "시퀀스 재생 완료 — 아래에서 지금 상태를 기록해 주시면 큰 도움이 돼요.";
+        }
+      });
+    });
+  };
+  if (SpotifyIFrameAPI) mount();
+  else PENDING_MOUNT = mount;
+}
+
+function songVA(s) {
+  if (s.va) return s.va;
+  return { v: 0.5, e: (typeof s.tags.energizing_suitability === "number" ? s.tags.energizing_suitability : 0.5) };
+}
+
+/* ===================== V/A 사분면: 입력 + 경로 표시 =====================
+   폼 01번의 좌표 하나가 모든 상태 입력과 결과 표시를 담당한다.
+   탭 순서: 첫 탭 = 지금(CUR_VA) → 둘째 탭 = 목표(TGT_VA) → 셋째 탭 = 리셋 후 새 지금.
+   배경은 사분면별 정서 색(긴장=적색, 활기=호박색, 침잠=청회색, 안정=녹색)으로
+   칠해 각 영역의 의미가 한눈에 보이게 한다. */
+let CUR_VA = null;   // 지금 상태 (첫 탭)
+let TGT_VA = null;   // 목표 상태 (둘째 탭)
+let CUR_MODE = null; // 지금 상태 입력 방식: "tap" | "chip" | "nl"
+let TGT_MODE = null; // 목표 상태 입력 방식
+let SONGS_READY = false;
+const PLANE = { W: 560, H: 380, PAD: 44 };
+const PX = v => PLANE.PAD + v * (PLANE.W - 2 * PLANE.PAD);
+const PY = e => (PLANE.H - PLANE.PAD) - e * (PLANE.H - 2 * PLANE.PAD);
+const svgLab = (x,y,t,size,fill,weight) => '<text x="'+x+'" y="'+y+'" font-size="'+(size||12)+'" fill="'+(fill||"#47635b")+'"'+(weight?' font-weight="'+weight+'"':'')+' text-anchor="middle" font-family="Pretendard Variable, sans-serif">'+t+'</text>';
+
+function initPlane() {
+  const { W, H, PAD } = PLANE;
+  const cx = PX(0.5), cy = PY(0.5);
+  let s = '<svg id="vaPlane" viewBox="0 0 ' + W + ' ' + H + '" tabindex="0" role="application"'
+    + ' aria-label="상태 좌표 입력. 첫 탭은 지금 상태, 둘째 탭은 목표 상태입니다. 화살표 키로 마지막 지정 위치를 조정할 수 있어요.">';
+  // 연속 색 지형: 네 꼭짓점에서 색이 퍼져나와 중앙에서 자연스럽게 섞인다.
+  // 경계선 없는 그라디언트 — 감정이 구역으로 나뉘지 않고 연속임을 시각화.
+  const RAD = Math.hypot(W - 2*PAD, H - 2*PAD) * 0.72;
+  const corner = (id, x, y, color) =>
+    '<radialGradient id="' + id + '" gradientUnits="userSpaceOnUse" cx="' + x + '" cy="' + y + '" r="' + RAD + '">'
+    + '<stop offset="0" stop-color="' + color + '" stop-opacity="0.40"/>'
+    + '<stop offset="0.55" stop-color="' + color + '" stop-opacity="0.13"/>'
+    + '<stop offset="1" stop-color="' + color + '" stop-opacity="0"/></radialGradient>';
+  s += '<defs>'
+    + '<clipPath id="planeClip"><rect x="' + PAD + '" y="' + PAD + '" width="' + (W-2*PAD) + '" height="' + (H-2*PAD) + '" rx="10"/></clipPath>'
+    + corner("cTL", PAD, PAD, "#d95d4e")
+    + corner("cTR", W-PAD, PAD, "#e0a23f")
+    + corner("cBL", PAD, H-PAD, "#6f89a6")
+    + corner("cBR", W-PAD, H-PAD, "#4f9e6e")
+    + '</defs>';
+  s += '<rect x="' + PAD + '" y="' + PAD + '" width="' + (W-2*PAD) + '" height="' + (H-2*PAD) + '" fill="#ffffff" stroke="#dfe9e4" rx="10"/>';
+  const field = '<rect x="' + PAD + '" y="' + PAD + '" width="' + (W-2*PAD) + '" height="' + (H-2*PAD) + '"';
+  s += '<g clip-path="url(#planeClip)">'
+    + field + ' fill="url(#cTL)"/>' + field + ' fill="url(#cTR)"/>'
+    + field + ' fill="url(#cBL)"/>' + field + ' fill="url(#cBR)"/>'
+    + '</g>';
+  // 좌표 읽기 보조선 — 구역 경계가 아니라 눈금이므로 아주 옅게
+  s += '<line x1="' + cx + '" y1="' + PAD + '" x2="' + cx + '" y2="' + (H-PAD) + '" stroke="#ffffff" stroke-opacity="0.55" stroke-dasharray="3 7"/>';
+  s += '<line x1="' + PAD + '" y1="' + cy + '" x2="' + (W-PAD) + '" y2="' + cy + '" stroke="#ffffff" stroke-opacity="0.55" stroke-dasharray="3 7"/>';
+  s += svgLab(cx, 20, "깨어있음·들뜸");
+  s += svgLab(cx, H-10, "나른함·차분");
+  s += svgLab(26, cy+4, "기분 ↓");
+  s += svgLab(W-26, cy+4, "기분 ↑");
+  s += svgLab(PX(0.25), PY(0.88), "긴장되는 쪽", 11.5, "#a34537", 600);
+  s += svgLab(PX(0.75), PY(0.88), "신나는 쪽", 11.5, "#96692a", 600);
+  s += svgLab(PX(0.25), PY(0.10), "처지는 쪽", 11.5, "#4a617c", 600);
+  s += svgLab(PX(0.75), PY(0.10), "편안한 쪽", 11.5, "#2f6b49", 600);
+  s += svgLab(cx + 24, cy - 8, "보통", 10, "#9fb5ad");
+  s += '<g id="pathLayer"></g><g id="markerLayer"></g>';
+  s += '</svg>';
+  $("vaWrap").innerHTML = s;
+
+  const svg = $("vaPlane");
+  const fromEvent = (ev) => {
+    const r = svg.getBoundingClientRect();
+    const x = (ev.clientX - r.left) / r.width * PLANE.W;
+    const y = (ev.clientY - r.top) / r.height * PLANE.H;
+    return {
+      v: Math.min(1, Math.max(0, (x - PLANE.PAD) / (PLANE.W - 2 * PLANE.PAD))),
+      e: Math.min(1, Math.max(0, (PLANE.H - PLANE.PAD - y) / (PLANE.H - 2 * PLANE.PAD)))
+    };
+  };
+  svg.addEventListener("pointerdown", (ev) => {
+    const p = fromEvent(ev);
+    if (!CUR_VA) { CUR_VA = p; CUR_MODE = "tap"; }                 // 첫 탭 → 지금
+    else if (!TGT_VA) { TGT_VA = p; TGT_MODE = "tap"; }            // 둘째 탭 → 목표
+    else { CUR_VA = p; CUR_MODE = "tap"; TGT_VA = null; TGT_MODE = null;
+           LAST_NL_TEXT = null; clearPath(); }                     // 셋째 탭 → 리셋 후 새 지금
+    updatePlaneUI();
+  });
+  // 접근성: 화살표 키는 마지막으로 지정한 점(목표 있으면 목표, 없으면 지금)을 0.05씩 이동
+  svg.addEventListener("keydown", (ev) => {
+    const step = { ArrowLeft:[-0.05,0], ArrowRight:[0.05,0], ArrowUp:[0,0.05], ArrowDown:[0,-0.05] }[ev.key];
+    if (!step) return;
+    ev.preventDefault();
+    const key = TGT_VA ? "TGT" : "CUR";
+    const p = (key === "TGT" ? TGT_VA : CUR_VA) || { v: 0.5, e: 0.5 };
+    const np = { v: Math.min(1, Math.max(0, p.v + step[0])),
+                 e: Math.min(1, Math.max(0, p.e + step[1])) };
+    if (key === "TGT") TGT_VA = np; else CUR_VA = np;
+    updatePlaneUI();
+  });
+  updatePlaneUI();
+}
+
+function vaWord(p) {
+  const mood = p.v < 0.45 ? "기분 가라앉음" : p.v > 0.55 ? "기분 괜찮음" : "기분 보통";
+  const en = p.e < 0.45 ? "활력 낮음" : p.e > 0.55 ? "활력 높음" : "활력 보통";
+  return mood + " · " + en;
+}
+
+function updatePlaneUI() {
+  const layer = $("markerLayer");
+  if (!layer) return;
+  let s = "";
+  if (CUR_VA) {
+    s += '<circle cx="' + PX(CUR_VA.v) + '" cy="' + PY(CUR_VA.e) + '" r="9" fill="#c96f5a"/>'
+      + svgLab(PX(CUR_VA.v), PY(CUR_VA.e) + 26, "지금", 12, "#47635b", 600);
+  }
+  if (TGT_VA) {
+    s += '<circle cx="' + PX(TGT_VA.v) + '" cy="' + PY(TGT_VA.e) + '" r="10" fill="none" stroke="#0e6b5b" stroke-width="2.5"/>'
+      + '<circle cx="' + PX(TGT_VA.v) + '" cy="' + PY(TGT_VA.e) + '" r="3.5" fill="#0e6b5b"/>'
+      + svgLab(PX(TGT_VA.v), PY(TGT_VA.e) - 16, "목표", 12, "#47635b", 600);
+  }
+  layer.innerHTML = s;
+
+  const echo = $("vaEcho");
+  if (echo) {
+    if (!CUR_VA)
+      echo.innerHTML = "가로: 기분(안 좋음↔좋음) · 세로: 활력(나른함↔들뜸). 먼저 <b>지금 상태</b>를 단어나 좌표로 골라주세요.";
+    else if (!TGT_VA)
+      echo.innerHTML = "지금: " + vaWord(CUR_VA) + " — 이어서 <b>도착하고 싶은 목표 상태</b>를 골라주세요.";
+    else
+      echo.innerHTML = "지금: " + vaWord(CUR_VA) + " → 목표: " + vaWord(TGT_VA)
+        + " — 준비 완료! 좌표를 다시 탭하면 처음부터 새로 지정합니다.";
+  }
+  renderChips();
+  renderLinearPreview();
+  updateGo();
+}
+
+/* 좌표 → 정서 색: 사분면 꼭짓점 색을 이중선형 보간. 연속 공간임을 색으로 표현 */
+const CORNER_RGB = { TL:[217,93,78], TR:[224,162,63], BL:[111,137,166], BR:[79,158,110] };
+function vaColor(p) {
+  const v = p.v, e = p.e, m = [];
+  for (let i = 0; i < 3; i++) {
+    m[i] = Math.round(
+      (1-v)*(1-e)*CORNER_RGB.BL[i] + v*(1-e)*CORNER_RGB.BR[i]
+      + (1-v)*e*CORNER_RGB.TL[i]   + v*e*CORNER_RGB.TR[i]);
+  }
+  return "rgb(" + m.join(",") + ")";
+}
+
+/* 입력 화면의 선형 미리보기: 지금 ──→ 목표 를 한 줄로 (사분면 없이 흐름만) */
+function renderLinearPreview() {
+  const box = $("nlPreview");
+  if (!box) return;
+  if (!CUR_VA) { box.hidden = true; box.innerHTML = ""; return; }
+  const W = 560, H = 74, PAD = 60, y = 34;
+  const x1 = PAD, x2 = W - PAD;
+  const c1 = vaColor(CUR_VA), c2 = TGT_VA ? vaColor(TGT_VA) : "#dfe9e4";
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="지금에서 목표로 가는 흐름 미리보기">';
+  s += '<defs><linearGradient id="pvG" x1="0" y1="0" x2="1" y2="0">'
+    + '<stop offset="0" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/></linearGradient></defs>';
+  s += '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '" stroke="url(#pvG)" stroke-width="7" stroke-linecap="round"' + (TGT_VA ? '' : ' stroke-dasharray="2 9"') + '/>';
+  s += '<circle cx="' + x1 + '" cy="' + y + '" r="10" fill="' + c1 + '"/>';
+  s += svgLab(x1, y + 26, "지금", 11.5, "#47635b", 600);
+  s += svgLab(x1, y - 16, vaWord(CUR_VA), 10, "#7d938b");
+  if (TGT_VA) {
+    s += '<circle cx="' + x2 + '" cy="' + y + '" r="11" fill="none" stroke="' + c2 + '" stroke-width="3"/>'
+      + '<circle cx="' + x2 + '" cy="' + y + '" r="4" fill="' + c2 + '"/>';
+    s += svgLab(x2, y + 26, "목표", 11.5, "#47635b", 600);
+    s += svgLab(x2, y - 16, vaWord(TGT_VA), 10, "#7d938b");
+  } else {
+    s += '<circle cx="' + x2 + '" cy="' + y + '" r="11" fill="none" stroke="#c9d8d2" stroke-width="2" stroke-dasharray="3 4"/>';
+    s += svgLab(x2, y + 26, "목표는?", 11, "#9fb5ad");
+  }
+  s += '</svg>';
+  box.innerHTML = s;
+  box.hidden = false;
+}
+
+/* 결과 화면의 ISO 여정: 지금 → ①②③ → 목표. 각 곡을 그 곡의 정서 색으로 칠해
+   색이 점차 목표 쪽으로 물들어가는 것 = ISO 원리(동조 후 점진 이동)를 그대로 보여준다 */
+function journeySVG(cur, tgt, seq) {
+  const W = 560, H = 148, PAD = 56, y = 56;
+  const nodes = [
+    { p: cur, label: "지금", sub: vaWord(cur) },
+    ...seq.map((o, i) => ({ p: o._p, label: String(i + 1), title: o.title })),
+    { p: tgt, label: "목표", sub: vaWord(tgt) }
+  ];
+  const xs = nodes.map((_, i) => PAD + (W - 2 * PAD) * (i / (nodes.length - 1)));
+  let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="지금에서 목표까지 곡을 따라 이동하는 경로">';
+  s += '<defs><linearGradient id="jG" x1="0" y1="0" x2="1" y2="0">';
+  nodes.forEach((n, i) => {
+    s += '<stop offset="' + (i / (nodes.length - 1)).toFixed(3) + '" stop-color="' + vaColor(n.p) + '"/>';
+  });
+  s += '</linearGradient></defs>';
+  s += '<line x1="' + xs[0] + '" y1="' + y + '" x2="' + xs[xs.length-1] + '" y2="' + y + '" stroke="url(#jG)" stroke-width="8" stroke-linecap="round"/>';
+  nodes.forEach((n, i) => {
+    const col = vaColor(n.p), x = xs[i];
+    if (i === 0) {
+      s += '<circle cx="' + x + '" cy="' + y + '" r="11" fill="' + col + '"/>';
+      s += svgLab(x, y + 30, "지금", 11.5, "#47635b", 600);
+      s += svgLab(x, y - 20, n.sub, 9.5, "#7d938b");
+    } else if (i === nodes.length - 1) {
+      s += '<circle cx="' + x + '" cy="' + y + '" r="12" fill="#ffffff" stroke="' + col + '" stroke-width="3"/>'
+        + '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="' + col + '"/>';
+      s += svgLab(x, y + 30, "목표", 11.5, "#47635b", 600);
+      s += svgLab(x, y - 20, n.sub, 9.5, "#7d938b");
+    } else {
+      s += '<circle cx="' + x + '" cy="' + y + '" r="13" fill="' + col + '"/>';
+      s += '<text x="' + x + '" y="' + (y + 4.5) + '" font-size="12.5" fill="#ffffff" text-anchor="middle" font-family="Hahmlet, serif">' + n.label + '</text>';
+      const t = n.title.length > 11 ? n.title.slice(0, 10) + "…" : n.title;
+      s += svgLab(x, y + 30, esc(t), 10, "#47635b");
+    }
+  });
+  s += '</svg>';
+  return s;
+}
+
+/* 단계에 맞는 단어 칩: 지금 고르는 중이면 감정 칩, 목표 고르는 중이면 목적 칩.
+   둘 다 정해지면 칩을 숨긴다 (좌표 재탭으로 리셋). */
+function renderChips() {
+  const row = $("chipRow"), hint = $("chipHint");
+  if (!row) return;
+  const done = CUR_VA && TGT_VA;
+  const list = !CUR_VA ? MOOD_CHIPS : (!TGT_VA ? GOAL_CHIPS : []);
+  row.hidden = done; if (hint) hint.hidden = done;
+  row.innerHTML = list.map((c, i) =>
+    "<button type='button' data-i='" + i + "'>" + esc(c[0]) + "</button>").join("");
+  row.querySelectorAll("button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const c = (!CUR_VA ? MOOD_CHIPS : GOAL_CHIPS)[Number(btn.dataset.i)];
+      if (!c) return;
+      const p = { v: c[1], e: c[2] };
+      if (!CUR_VA) { CUR_VA = p; CUR_MODE = "chip"; }
+      else if (!TGT_VA) { TGT_VA = p; TGT_MODE = "chip"; }
+      clearPath();
+      updatePlaneUI();
+    });
+  });
+}
+
+function updateGo() {
+  $("go").disabled = !(SONGS_READY && CUR_VA && TGT_VA);
+}
+
+function clearPath() {
+  const layer = $("pathLayer");
+  if (layer) layer.innerHTML = "";
+}
+
+function drawPath(cur, tgt, seq) {
+  const layer = $("pathLayer");
+  if (!layer) return;
+  let s = "";
+  const pts = [[PX(cur.v), PY(cur.e)], ...seq.map(o => [PX(o._p.v), PY(o._p.e)]), [PX(tgt.v), PY(tgt.e)]];
+  s += '<polyline points="' + pts.map(p => p.join(",")).join(" ") + '" fill="none" stroke="#0e6b5b" stroke-width="2.5" stroke-dasharray="7 6" stroke-linecap="round" opacity="0.75"/>';
+  seq.forEach((o, i) => {
+    s += '<circle cx="' + PX(o._p.v) + '" cy="' + PY(o._p.e) + '" r="12" fill="#0e6b5b"/>';
+    s += '<text x="' + PX(o._p.v) + '" y="' + (PY(o._p.e)+4.5) + '" font-size="12" fill="#ffffff" text-anchor="middle" font-family="Hahmlet, serif">' + (i+1) + '</text>';
+  });
+  layer.innerHTML = s;
+  updatePlaneUI();  // 지금/목표 마커가 경로 위에 오도록 다시 그림
+}
+
+/* ===================== 자연어 상태 입력 (Gemini) =====================
+   역할은 스키마 변환뿐: 사용자의 문장 → {current, target} 좌표 JSON.
+   추천 순위·시퀀스는 이후 전부 수치 계산으로만 결정된다(설계 원칙).
+   변환 결과는 좌표에 그대로 찍히므로 사용자가 탭으로 수정할 수 있다. */
+let LAST_NL_TEXT = null;   // 이번 좌표가 자연어에서 왔다면 그 원문 (로그용)
+let NL_RETRY_PENDING = false;  // 429 자동 재시도 대기 중 여부
+
+/* NL_PROMPT는 api/gemini.js(서버)로 이전 — 프롬프트를 서버에 고정해
+   이 엔드포인트가 범용 Gemini 중계기로 도용되는 것을 막는다. */
+
+function nlStatusMsg(msg, isErr) {
+  const el = $("nlStatus");
+  if (!el) return;
+  el.hidden = !msg;
+  el.textContent = msg || "";
+  el.style.color = isErr ? "#a34537" : "";
+}
+
+const validPt = (p) =>
+  p && typeof p.v === "number" && typeof p.e === "number" && isFinite(p.v) && isFinite(p.e)
+    ? { v: Math.min(1, Math.max(0, p.v)), e: Math.min(1, Math.max(0, p.e)) } : null;
+
+async function nlToVA(isRetry) {
+  const text = $("nlText").value.trim();
+  if (!text) { nlStatusMsg("먼저 상태를 한 문장으로 적어주세요.", true); return; }
+  const btn = $("nlApply");
+  btn.disabled = true;
+  nlStatusMsg(isRetry ? "잠시 뒤 다시 시도하는 중…" : "AI가 문장을 이해하는 중…");
+  try {
+    if (text.length > 600) { nlStatusMsg("설명이 너무 길어요. 600자 이내로 줄여주세요.", true); return; }
+    await resolveGeminiModels();   // 지금 쓸 수 있는 모델을 먼저 확정 (서버 경유)
+    const res = await fetch(GEMINI_PROXY, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "generate", model: GEMINI_MODEL, text })
+    });
+    if (res.status === 404) {
+      // 이 모델이 방금 종료됐거나 목록과 실제가 어긋난 경우 → 다음 후보로 즉시 전환
+      console.warn("모델 404:", GEMINI_MODEL, "→ 다음 후보 시도");
+      MODEL_IDX++;
+      if (MODEL_CANDIDATES && MODEL_IDX < MODEL_CANDIDATES.length) {
+        GEMINI_MODEL = MODEL_CANDIDATES[MODEL_IDX];
+        return nlToVA(isRetry);   // 404는 한도를 소모하지 않으므로 바로 재시도
+      }
+      nlStatusMsg("사용 가능한 AI 모델을 찾지 못했어요. 아래 '직접 자세히 지정하기'로 골라주세요.", true);
+      const mb = $("manualBox"); if (mb) mb.open = true;
+      return;
+    }
+    if (res.status === 429) {
+      // 무료 등급 호출 한도 또는 모델 자격 문제. 실제 사유를 콘솔에 남긴다.
+      try { console.warn("Gemini 429 상세:", await res.json()); } catch (_) {}
+      if (!isRetry) {
+        NL_RETRY_PENDING = true;
+        nlStatusMsg("요청이 몰렸어요. 5초 뒤 자동으로 다시 시도할게요…");
+        setTimeout(() => { NL_RETRY_PENDING = false; nlToVA(true); }, 5000);
+        return;
+      }
+      nlStatusMsg("AI 호출 한도(무료 등급)에 걸렸어요. 1분쯤 뒤 다시 시도하거나, 아래 '직접 자세히 지정하기'로 골라주세요.", true);
+      return;
+    }
+    if (res.status === 503 || res.status === 500 || res.status === 504) {
+      /* 모델 과부하·일시 장애 (무료 flash에서 흔함). 코드 문제 아님.
+         같은 모델로 3초 뒤 1회 재시도 → 그래도 실패하면 다음 모델 후보로 전환 */
+      if (!isRetry) {
+        NL_RETRY_PENDING = true;
+        nlStatusMsg("AI 서버가 붐벼요 (" + res.status + "). 3초 뒤 자동으로 다시 시도할게요…");
+        setTimeout(() => { NL_RETRY_PENDING = false; nlToVA(true); }, 3000);
+        return;
+      }
+      MODEL_IDX++;
+      if (MODEL_CANDIDATES && MODEL_IDX < MODEL_CANDIDATES.length) {
+        GEMINI_MODEL = MODEL_CANDIDATES[MODEL_IDX];
+        console.warn("5xx 지속 → 다음 모델로 전환:", GEMINI_MODEL);
+        return nlToVA(true);
+      }
+      nlStatusMsg("AI 서버가 계속 붐비네요 (" + res.status + "). 잠시 뒤 다시 누르거나, 아래 '직접 자세히 지정하기'로 골라주세요.", true);
+      const mb = $("manualBox"); if (mb) mb.open = true;
+      return;
+    }
+    if (res.status === 400 || res.status === 403) {
+      nlStatusMsg("서버 API 키 설정 문제로 보여요 (" + res.status + "). Vercel 환경변수 GEMINI_API_KEY를 확인해주세요. 지금은 아래에서 직접 골라주세요.", true);
+      const mb = $("manualBox"); if (mb) mb.open = true;
+      return;
+    }
+    if (!res.ok) throw new Error("API 응답 " + res.status);
+    const data = await res.json();
+    const raw = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    const parsed = JSON.parse(raw.replace(/```json|```/g, "").trim());
+    const cur = validPt(parsed.current), tgt = validPt(parsed.target);
+    if (!cur && !tgt) throw new Error("좌표를 읽지 못했어요");
+
+    if (cur) { CUR_VA = cur; CUR_MODE = "nl"; }
+    TGT_VA = tgt;               // 목표 언급이 없으면 null → 사용자가 칩/탭으로 지정
+    TGT_MODE = tgt ? "nl" : null;
+    LAST_NL_TEXT = text;
+    clearPath();
+    updatePlaneUI();
+    if (!tgt) { const mb = $("manualBox"); if (mb) mb.open = true; }  // 목표만 마저 고르게 펼침
+    nlStatusMsg("해석: " + (parsed.reason || "완료")
+      + (tgt ? " — 아래 흐름이 어색하면 '직접 자세히 지정하기'에서 고칠 수 있어요."
+             : " — 어떤 상태가 되고 싶은지도 문장에 적거나, 아래에서 목표를 골라주세요."));
+  } catch (e) {
+    console.warn("자연어 해석 실패:", e);
+    nlStatusMsg("해석에 실패했어요 (" + (e.message || e) + "). 아래 '직접 자세히 지정하기'로 골라주세요.", true);
+  } finally {
+    btn.disabled = NL_RETRY_PENDING;   // 자동 재시도 대기 중엔 중복 클릭 방지
+  }
+}
+
+async function initNL() {
+  const btn = $("nlApply");
+  const hideNL = () => {   // 자연어 숨김 — 칩·탭 입력이 주 입력이 되도록 펼침
+    const wrap = document.querySelector(".nl-wrap");
+    if (wrap) wrap.hidden = true;
+    const mb = $("manualBox");
+    if (mb) mb.open = true;
+  };
+  try {   // 서버에 키가 있는지 확인 (서버 없이 file://로 열면 실패 → 숨김)
+    const r = await fetch(GEMINI_PROXY);
+    const info = r.ok ? await r.json() : null;
+    NL_AVAILABLE = !!(info && info.hasKey);
+  } catch (_) { NL_AVAILABLE = false; }
+  if (!NL_AVAILABLE) { hideNL(); return; }
+  btn.addEventListener("click", () => nlToVA());
+  $("nlText").addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!$("nlApply").disabled) nlToVA(); }
+  });
+}
+
+function recommend() {
+  if (!CUR_VA || !TGT_VA) return;      // 지금·목표 둘 다 탭해야 활성화되지만 이중 방어
+  const lyric = $("lyric").value;
+  const target = blendTarget(TGT_VA);  // 목표 좌표 → 6종 태그 목표 (코너 보간)
+
+  let pool = SONGS;
+  if (lyric === "instrumental_only")
+    pool = pool.filter(s => (s.tags.instrumental_probability ?? 0) >= INSTRUMENTAL_ONLY_MIN);
+  else if (lyric === "prefer_instrumental")
+    pool = pool.filter(s => (s.tags.instrumental_probability ?? 0) >= PREFER_INSTRUMENTAL_MIN);
+  else if (lyric === "prefer_vocal")
+    pool = pool.filter(s => (s.tags.instrumental_probability ?? 1) <= 0.7);
+
+  const ranked = pool
+    .map(s => ({ ...s, score: weightedFit(s.tags, target) + personalBonus(s) }))  // 취향·피드백 보정 포함
+    .sort((a, b) => b.score - a.score);
+
+  // ISO 시퀀스: 목표 기준으로 후보를 미리 자르지 않고, (가사 필터를 통과한)
+  // 전체 pool에서 경유지마다 곡을 고른다. 첫 경유지 t=0 → 현재 상태와 동조.
+  // 245곡 × 경유지 3개 전수 탐색이라 성능 문제 없음.
+  const cur = CUR_VA, tgt = TGT_VA;   // 둘 다 사용자가 좌표에 직접 탭한 값
+  const n = Math.min(PATH_SONGS, ranked.length);
+  const used = new Set();
+  const seq = [];
+  for (let i = 0; i < n; i++) {
+    const t = (n === 1) ? 1 : WAYPOINT_START + (1 - WAYPOINT_START) * (i / (n - 1));
+    const wp = { v: cur.v + (tgt.v - cur.v) * t, e: cur.e + (tgt.e - cur.e) * t };
+    const prev = seq.length ? seq[seq.length - 1]._p : { v: cur.v, e: cur.e };
+    const pick = (limitJump) => {
+      let best = null, bestCost = Infinity;
+      for (const c of ranked) {
+        if (used.has(c.id)) continue;
+        const pva = songVA(c);
+        // 급점프 방지: 직전 곡(또는 현재 상태)에서 너무 먼 곡은 1차 탐색에서 제외
+        if (limitJump && Math.hypot(pva.v - prev.v, pva.e - prev.e) > MAX_STEP_JUMP) continue;
+        let cost = Math.hypot(pva.v - wp.v, pva.e - wp.e) - c.score * SCORE_W;
+        // §4 템포 보조: 경유지 각성도가 낮을수록 느린 곡 선호 (50~180BPM → 0~1 근사)
+        if (TEMPO_W > 0 && c.tempo) {
+          const tn = Math.min(1, Math.max(0, (c.tempo - 50) / 130));
+          cost += Math.abs(tn - wp.e) * TEMPO_W;
+        }
+        if (cost < bestCost) { bestCost = cost; best = c; }
+      }
+      return best;
+    };
+    const best = pick(true) || pick(false); // 상한 안에 곡이 없으면 제한 해제 재탐색
+    if (best) { used.add(best.id); seq.push({ ...best, _p: songVA(best) }); }
+  }
+
+  // 시퀀스 외 추가 추천(목표 상태에 맞는 곡)
+  const extras = ranked.filter(s => !used.has(s.id)).slice(0, Math.max(0, TOP_K - seq.length));
+  const list = [...seq, ...extras];
+  const stepOf = {};
+  seq.forEach((s, i) => stepOf[s.id] = i + 1);
+
+  drawPath(cur, tgt, seq);   // 경로를 별도 차트가 아니라 01번 입력 좌표 위에 그림
+  logRecommendation({ lyric, cur, tgt }, seq, extras);   // §5-1 피드백 로그 (비동기, 실패해도 UI 영향 없음)
+  renderResults(list, seq, cur, tgt, target, pool.length, stepOf);
+}
+
+function renderResults(list, seq, cur, tgt, target, poolSize, stepOf) {
+  const box = $("results");
+  if (list.length === 0) {
+    box.innerHTML = "<h2>추천 결과</h2><p id='resultNote'>조건에 맞는 곡이 없어요. 가사 조건을 '상관없어요'로 바꿔서 다시 시도해 보세요.</p>";
+    return;
+  }
+  let html = "<h2>지금의 당신에게, " + list.length + "곡</h2>"
+    + "<p id='resultNote'>" + vaWord(cur) + " → " + vaWord(tgt) + " · 후보 " + poolSize + "곡 · ①→③은 들을 순서, 나머지는 목표 상태에 어울리는 추가 곡</p>";
+
+  // ISO 여정: 지금 → ①②③ → 목표. 각 곡이 자기 정서 색으로 칠해져
+  // 색이 목표 쪽으로 점차 물들어가는 것이 ISO 원리의 시각적 증거.
+  html += "<div class='plane-card journey'><h3>추천 경로 — 음악을 따라 목표 상태로</h3>"
+    + journeySVG(cur, tgt, seq)
+    + "<p class='plane-note'>첫 곡은 <b>지금 상태와 비슷한 곡</b>에서 시작해(동조), 번호 순서대로 들을수록 <b>목표 상태의 곡으로 점진적으로 이동</b>합니다 — 음악치료의 ISO 원리를 적용한 순서예요. 색이 지금의 정서에서 목표의 정서로 물들어가는 게 보이시나요?</p></div>";
+
+  // 연속재생 플레이어: 곡이 끝나면 다음 곡을 자동으로 이어서 재생, 버튼으로 건너뛰기 가능
+  const hasPlayable = seq.some(s => s.trackId);
+  if (hasPlayable) {
+    html += "<div class='plane-card'><h3>이어서 듣기 — 시퀀스 연속재생</h3>"
+      + "<div id='embedHost'></div>"
+      + "<div class='seq-nav'>"
+      + "<button id='prevTrack' type='button' aria-label='이전 곡'>◀ 이전 곡</button>"
+      + "<button id='nextTrack' type='button' aria-label='다음 곡'>다음 곡 ▶</button>"
+      + "</div>"
+      + "<p class='plane-note' id='nowPlaying'></p>"
+      + "<p class='plane-note'>재생을 누르면 ①번 곡부터 순서대로 자동으로 이어져요. 이 브라우저에 Spotify 로그인이 되어 있으면 전곡이, 아니면 30초 미리듣기가 재생됩니다.</p></div>";
+  }
+
+  for (const s of list) {
+    const reasons = TAG_KEYS
+      .map(k => ({ k, tv: target[k] ?? 0, sv: (typeof s.tags[k] === "number" ? s.tags[k] : 0.5) }))
+      .sort((a, b) => (b.tv * b.sv) - (a.tv * a.sv))
+      .slice(0, 3);
+
+    html += "<article class='song'>"
+      + "<div class='top'><div>"
+      + (stepOf[s.id] ? "<span class='step'>" + stepOf[s.id] + "</span>" : "")
+      + "<span class='title'>" + esc(s.title) + "</span>"
+      + " <span class='artist'>" + esc(s.artist) + "</span></div>"
+      + "<span class='score'>" + s.score.toFixed(3) + "</span></div>"
+      + "<div class='reasons'>";
+    for (const r of reasons) {
+      html += "<div class='reason'><span>" + TAG_LABELS[r.k] + " " + r.sv.toFixed(2) + "</span>"
+        + "<span class='bar'><i style='width:" + Math.round(r.sv * 100) + "%'></i></span></div>";
+    }
+    html += "</div>";
+    if (s.spotifyUrl)
+      html += "<a class='spotify' data-song-id='" + esc(s.id) + "' href='" + s.spotifyUrl + "' target='_blank' rel='noopener'>Spotify에서 듣기 ↗</a>";
+    html += "</article>";
+  }
+
+  // §5-2 청취 후 재입력 — 전후 비교의 직접 증거
+  // §5-2 청취 후 재입력 — 1차원 변화 자기보고 (듣기 전 대비 얼마나 달라졌나)
+  html += "<div class='plane-card' id='afterCard'><h3>들어보니 어떠셨나요?</h3>"
+    + "<p class='plane-note' style='margin:0 0 12px'>듣기 전과 비교해 지금 상태를 알려주시면, 추천이 실제로 도움이 됐는지 확인하는 데 쓰여요.</p>"
+    + "<div class='stress-wrap'>"
+    + "<input type='range' id='afterChange' min='-2' max='2' step='1' value='0' aria-describedby='afterEcho' aria-label='청취 전 대비 상태 변화' />"
+    + "<div class='stress-labels'><span>더 나빠졌어요</span><span>그대로예요</span><span>훨씬 나아졌어요</span></div>"
+    + "<div id='afterEcho' style='margin-top:12px;font-size:0.95rem;font-weight:600;'>선택: <b>그대로예요</b></div>"
+    + "</div>"
+    + "<button id='afterSubmit' class='after-btn'>기록하기</button>"
+    + "<p id='afterThanks' class='plane-note' hidden>기록됐어요. 감사합니다!</p></div>";
+
+  box.innerHTML = html;
+
+  setupPlayer(seq);   // 연속재생 플레이어 마운트 (trackId 있는 곡만 큐에 올라감)
+  setupAfterInput();  // 청취 후 변화 슬라이더 마운트
+
+  // 여정 스트립이 결과 안에 있으므로 결과로 스크롤
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+/* 청취 후 변화 자기보고: -2(훨씬 나빠짐) ~ +2(훨씬 나아짐).
+   전 값을 따로 저장할 필요 없이 변화량 자체를 묻는 방식이라 입력 부담이 적다. */
+const CHANGE_WORDS = { "-2":"훨씬 나빠졌어요", "-1":"조금 나빠졌어요", "0":"그대로예요", "1":"조금 나아졌어요", "2":"훨씬 나아졌어요" };
+function setupAfterInput() {
+  const slider = $("afterChange");
+  if (!slider) return;
+  slider.addEventListener("input", () => {
+    $("afterEcho").innerHTML = "선택: <b>" + CHANGE_WORDS[slider.value] + "</b>";
+  });
+  const ab = $("afterSubmit");
+  ab.addEventListener("click", () => {
+    logEvent("post_change", {
+      change: Number(slider.value),   // -2 ~ +2
+      va_before: LAST_CUR_VA,         // 추천 시점의 지금 좌표 (맥락)
+      va_target: LAST_TGT_VA          // 목표 좌표 (맥락)
+    });
+    ab.disabled = true;
+    ab.textContent = "기록 완료";
+    $("afterThanks").hidden = false;
+  });
+}
+
+// Spotify 클릭도 약한 청취 신호로 기록 (위임 리스너 — 재렌더링과 무관하게 1회 등록)
+$("results").addEventListener("click", (e) => {
+  const a = e.target.closest ? e.target.closest("a.spotify") : null;
+  if (a && a.dataset.songId) logEvent("spotify_click", { song_id: a.dataset.songId });
+});
+
+function esc(t) {
+  return String(t).replace(/[&<>"']/g, c =>
+    ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+$("go").addEventListener("click", recommend);
+initPlane();   // 01번 사분면 입력 그리기 (네트워크와 무관하게 즉시)
+initNL();      // 자연어 입력 활성화 (서버에 키 없으면 자동 숨김)
+init();
+</script>
+</body>
+</html>
