@@ -3,427 +3,436 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>음치치 — 음악으로 쉬어가기</title>
+<title>AZT — 나만의 아지트</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
-<link href="https://fonts.googleapis.com/css2?family=Hahmlet:wght@500;600&display=swap" rel="stylesheet" />
 <style>
-  :root {
-    --mist: #edf3f0;
-    --pine: #16352d;
-    --pine-soft: #47635b;
-    --teal: #0e6b5b;
-    --teal-deep: #0a4f44;
-    --haze: #dfe9e4;
-    --card: #f8fbf9;
-    --tense: #c96f5a;
-    --gold: #c9a24a;
-    --focus-ring: 3px solid #7db8a9;
-  }
-  * { box-sizing: border-box; margin: 0; }
-  [hidden] { display: none !important; }   /* hidden 속성은 어떤 display 규칙보다 우선 — 모달·칩 안 닫히던 버그 재발 방지 */
-  html { scroll-behavior: smooth; }
-  /* ── 모바일 (좁은 화면) 대응 ── */
-  @media (max-width: 520px) {
-    main { padding: 24px 14px 72px; }
-    header { margin-bottom: 28px; }
-    section.card { padding: 20px 14px; }
-    details.manual .manual-body { padding: 4px 10px 12px; }
-    /* iOS는 글자 16px 미만 입력칸에 포커스하면 화면을 확대해 흔들린다 → 16px 고정 */
-    .nl-wrap textarea, select,
-    .modal input[type="email"], .modal input[type="password"], .modal input[type="text"] { font-size: 16px; }
-    .nl-wrap button { padding: 0 13px; font-size: 0.84rem; }
-    .chips button { padding: 9px 12px; font-size: 0.84rem; }
-    .song { padding: 15px 14px; }
-    .song .top { flex-wrap: wrap; }
-    .reason { grid-template-columns: 78px 1fr; font-size: 0.76rem; }
-    .plane-card { padding: 14px 12px 10px; }
-    .modal { padding: 24px 18px 20px; }
-    .auth-btn { padding: 6px 11px; font-size: 0.76rem; }
-  }
+/* =====================================================================
+   AZT v9 — MONOCHROME STUDIO
+   흑백 미니멀: 잉크 한 색 + 회색 면 + 1px 선. 그림자·라운드·채색 없음.
+   콘셉트 "스스로 채워가는 아지트": 방문한 페이지에 점이 채워지고,
+   비어 있는 레코드·점선 상자가 기록으로 채워진다.
+   ===================================================================== */
+:root{
+  --ink:#161616; --mid:#6f6f6d; --muted:#9a9a97;
+  --paper:#ffffff; --panel:#f4f4f3; --panel-2:#fafaf9;
+  --line:#e4e4e2; --line-dark:#d8d8d6;
+  --focus:2px solid #161616;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden;background:var(--paper)}
+body{font-family:"Pretendard Variable",Pretendard,system-ui,sans-serif;color:var(--ink);line-height:1.65;min-height:100svh}
+button,input,select,textarea{font:inherit;color:var(--ink)}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,svg:focus-visible{outline:var(--focus);outline-offset:3px}
+[hidden]{display:none!important}
+img{max-width:100%}
+.micro{font-size:.64rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600}
 
-  @media (prefers-reduced-motion: reduce) {
-    html { scroll-behavior: auto; }
-    * { transition: none !important; animation: none !important; }
-  }
-  body {
-    font-family: "Pretendard Variable", Pretendard, sans-serif;
-    background: var(--mist);
-    color: var(--pine);
-    line-height: 1.6;
-    min-height: 100vh;
-  }
-  main { max-width: 640px; margin: 0 auto; padding: 40px 20px 96px; }
+/* ── 상단 바 ── */
+.topbar{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:16px 30px;background:rgba(255,255,255,.94);border-bottom:1px solid var(--line);backdrop-filter:blur(10px)}
+.brandmark{display:flex;align-items:center;gap:10px;font-size:.9rem;font-weight:700;letter-spacing:.34em;text-transform:uppercase}
+.brandmark .leafdot{width:8px;height:8px;background:var(--ink)}
+.brandmark small{font-size:.6rem;letter-spacing:.12em;color:var(--muted);font-weight:500}
+.topnav{display:flex;gap:2px}
+.topnav button,.auth-btn{border:1px solid transparent;background:transparent;color:var(--mid);
+  padding:8px 12px;font-weight:600;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase}
+.topnav button:hover,.auth-btn:hover{color:var(--ink)}
+.topnav button.active{color:var(--ink);border-bottom:1px solid var(--ink)}
+.auth-btn{border:1px solid var(--line-dark);color:var(--ink)}
+.auth-btn:hover{background:var(--panel)}
+.auth-row{display:flex;gap:8px;align-items:center}
+.auth-chip{display:flex;align-items:center;gap:8px;padding:4px 6px;border:1px solid var(--line);background:#fff}
+.auth-chip img{width:24px;height:24px;background:var(--panel)}
+.auth-chip .out{border:0;background:transparent;color:var(--mid);padding:4px 8px;font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.auth-chip .out:hover{color:var(--ink)}
 
-  header { margin-bottom: 36px; }
-  .brand {
-    font-family: "Hahmlet", serif;
-    font-weight: 600;
-    font-size: 1.35rem;
-    letter-spacing: -0.01em;
-  }
-  .brand small { font-family: "Pretendard Variable", Pretendard, sans-serif; font-weight: 500; color: var(--pine-soft); font-size: 0.8rem; margin-left: 8px; }
-  h1 {
-    font-family: "Hahmlet", serif;
-    font-weight: 500;
-    font-size: clamp(1.6rem, 5vw, 2.1rem);
-    line-height: 1.35;
-    margin-top: 20px;
-    letter-spacing: -0.015em;
-  }
-  h1 em { font-style: normal; color: var(--teal); }
+/* ── 페이지 — 페이드 전환, 내부는 일반 스크롤 ── */
+.scene{position:fixed;inset:0;height:100svh;padding:104px 6vw 84px;
+  overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;
+  display:flex;align-items:flex-start;justify-content:center;background:var(--paper);
+  opacity:0;pointer-events:none;z-index:10;visibility:hidden;
+  transform:translateY(22px);
+  transition:opacity .42s ease,transform .42s cubic-bezier(.2,.7,.2,1),visibility 0s linear .42s}
+.scene.scene-active{opacity:1;transform:none;pointer-events:auto;z-index:20;visibility:visible;transition:opacity .42s ease,transform .42s cubic-bezier(.2,.7,.2,1),visibility 0s}
+.scene-inner{width:min(1160px,100%);margin:auto;position:relative}
+.scene::-webkit-scrollbar{width:8px}
+.scene::-webkit-scrollbar-thumb{background:var(--line-dark)}
 
-  #status {
-    display: flex; align-items: center; gap: 10px;
-    margin-top: 18px; padding: 10px 14px;
-    background: var(--card); border: 1px solid var(--haze); border-radius: 10px;
-    font-size: 0.85rem; color: var(--pine-soft);
-  }
-  #status .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--gold); flex: none; }
-  #status.ok .dot { background: var(--teal); }
-  #status.err .dot { background: var(--tense); }
-  #status.err { color: #8a4636; border-color: #ecd3cb; background: #faf3f1; }
+.scene-kicker{font-size:.64rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.scene-title{font-weight:600;letter-spacing:-.02em;font-size:clamp(1.9rem,3.8vw,3.4rem);line-height:1.28;margin-top:18px}
+.scene-title .hl{color:var(--ink)}
+.scene-copy{color:var(--mid);max-width:520px;margin-top:18px;font-size:.92rem;line-height:1.9}
+.scene-note{font-size:.74rem;color:var(--muted);margin-top:8px}
+.room-tag{display:inline-block;font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.page-index{display:none}
 
-  /* ── 우상단 로그인/회원가입 ── */
-  header { position: relative; }
-  .auth-row { position: absolute; top: 0; right: 0; display: flex; align-items: center; gap: 8px; }
-  #authButtons { display: flex; gap: 8px; }
-  .auth-btn {
-    padding: 7px 14px; font-size: 0.8rem; font-weight: 600; font-family: inherit;
-    border-radius: 999px; cursor: pointer; transition: background 0.12s, border-color 0.12s;
-    color: var(--pine); background: #fff; border: 1px solid var(--haze);
-  }
-  .auth-btn:hover { background: var(--card); border-color: #c8d8d1; }
-  .auth-btn.primary { color: #fff; background: var(--teal); border-color: var(--teal); }
-  .auth-btn.primary:hover { background: var(--teal-deep); }
-  .auth-btn:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
-  .auth-chip {
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 5px 6px; font-size: 0.8rem; font-weight: 600;
-    background: var(--card); border: 1px solid var(--haze); border-radius: 999px;
-  }
-  .auth-chip img { width: 22px; height: 22px; border-radius: 50%; display: block; background: var(--haze); }
-  .auth-chip .out {
-    margin-left: 2px; padding: 4px 10px; font-size: 0.72rem; font-weight: 600; font-family: inherit;
-    color: var(--pine-soft); background: transparent; border: none; border-left: 1px solid var(--haze); cursor: pointer;
-  }
-  .auth-chip .out:hover { color: var(--tense); }
 
-  /* ── 로그인/회원가입 모달 ── */
-  .modal-back {
-    position: fixed; inset: 0; z-index: 50;
-    background: rgba(22, 53, 45, 0.45);
-    display: flex; align-items: flex-start; justify-content: center;
-    padding: 6vh 16px 16px; overflow-y: auto;
-  }
-  .modal {
-    width: 100%; max-width: 420px; position: relative;
-    background: var(--mist); border-radius: 18px; padding: 28px 24px 24px;
-    box-shadow: 0 18px 50px rgba(10, 40, 33, 0.28);
-  }
-  .modal h2 { font-family: "Hahmlet", serif; font-weight: 600; font-size: 1.25rem; margin-bottom: 4px; }
-  .modal .sub { font-size: 0.83rem; color: var(--pine-soft); margin-bottom: 18px; }
-  .modal-x {
-    position: absolute; top: 14px; right: 14px; width: 32px; height: 32px;
-    font-size: 1.1rem; line-height: 1; color: var(--pine-soft);
-    background: transparent; border: none; border-radius: 8px; cursor: pointer;
-  }
-  .modal-x:hover { background: var(--haze); }
-  .modal label.f { display: block; font-size: 0.82rem; font-weight: 600; margin: 14px 0 6px; }
-  .modal input[type="email"], .modal input[type="password"], .modal input[type="text"] {
-    width: 100%; padding: 11px 12px; font-size: 0.92rem; font-family: inherit;
-    color: var(--pine); background: #fff; border: 1px solid var(--haze); border-radius: 10px;
-  }
-  .modal input:focus-visible { outline: var(--focus-ring); outline-offset: 1px; }
-  .auth-err {
-    margin-top: 12px; padding: 9px 12px; font-size: 0.8rem;
-    color: #8a4636; background: #faf3f1; border: 1px solid #ecd3cb; border-radius: 8px;
-  }
-  .modal .go-btn {
-    width: 100%; margin-top: 18px; padding: 12px;
-    font-size: 0.95rem; font-weight: 700; font-family: inherit;
-    color: #fff; background: var(--teal); border: none; border-radius: 10px; cursor: pointer;
-  }
-  .modal .go-btn:hover { background: var(--teal-deep); }
-  .modal .go-btn:disabled { background: #a9beb7; cursor: default; }
-  .modal .alt-btn {
-    width: 100%; margin-top: 10px; padding: 11px;
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    font-size: 0.88rem; font-weight: 600; font-family: inherit;
-    color: var(--pine); background: #fff; border: 1px solid var(--haze); border-radius: 10px; cursor: pointer;
-  }
-  .modal .alt-btn:hover { background: var(--card); }
-  .modal .switch { margin-top: 16px; font-size: 0.82rem; color: var(--pine-soft); text-align: center; }
-  .modal .switch a { color: var(--teal); font-weight: 600; cursor: pointer; text-decoration: underline; }
+/* ── 모바일 하단 페이지 바 (데스크톱은 상단 내비 사용, 방문한 페이지에 점이 채워진다) ── */
+.pagebar{display:none}
+@media(max-width:900px){
+  .pagebar{position:fixed;z-index:90;left:0;right:0;bottom:0;display:flex;
+    background:rgba(255,255,255,.96);border-top:1px solid var(--line);backdrop-filter:blur(10px)}
+  .pagebar button{position:relative;flex:1;border:0;background:transparent;color:var(--muted);
+    padding:12px 4px 14px;font-size:.66rem;font-weight:600;letter-spacing:.06em}
+  .pagebar button.active{color:var(--ink);font-weight:700}
+  .pagebar button.active:before{content:"";position:absolute;top:0;left:22%;right:22%;height:2px;background:var(--ink)}
+  .pagebar button.visited:after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
+    width:3px;height:3px;border-radius:50%;background:var(--ink)}
+}
 
-  /* ── 온보딩 취향 조사 ── */
-  .ob-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .ob-chips button {
-    padding: 7px 13px; font-size: 0.82rem; font-weight: 600; font-family: inherit;
-    color: var(--pine); background: #fff; border: 1px solid var(--haze); border-radius: 999px; cursor: pointer;
-  }
-  .ob-chips button[aria-pressed="true"] { color: #fff; background: var(--teal); border-color: var(--teal); }
-  .ob-hint { font-size: 0.74rem; color: var(--pine-soft); margin-top: 6px; }
-  .track-results { margin-top: 8px; display: grid; gap: 6px; }
-  .track-results button {
-    text-align: left; padding: 9px 12px; font-size: 0.83rem; font-family: inherit;
-    color: var(--pine); background: #fff; border: 1px solid var(--haze); border-radius: 10px; cursor: pointer;
-  }
-  .track-results button:hover { background: var(--card); }
-  .track-picked { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
-  .track-picked span {
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 6px 8px 6px 12px; font-size: 0.78rem; font-weight: 600;
-    background: var(--haze); border-radius: 999px;
-  }
-  .track-picked button { border: none; background: transparent; color: var(--pine-soft); font-size: 0.9rem; cursor: pointer; padding: 0 2px; }
-  .track-picked button:hover { color: var(--tense); }
-  .modal select { width: 100%; padding: 10px 12px; font-size: 0.9rem; font-family: inherit; background: #fff; border: 1px solid var(--haze); border-radius: 10px; }
-  .ob-foot { display: flex; justify-content: space-between; margin-top: 14px; font-size: 0.8rem; }
-  .ob-foot a { color: var(--pine-soft); cursor: pointer; text-decoration: underline; }
-  .ob-foot a:hover { color: var(--teal); }
+/* ── 버튼 ── */
+.primary{border:1px solid var(--ink);background:transparent;color:var(--ink);
+  padding:15px 26px;font-weight:600;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;transition:.16s}
+.primary:hover{background:var(--ink);color:#fff}
+.primary:disabled{border-color:var(--line-dark);color:var(--muted);cursor:not-allowed;background:transparent}
+.ghost{border:1px solid var(--line-dark);background:transparent;color:var(--mid);
+  padding:14px 20px;font-weight:600;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase}
+.ghost:hover{border-color:var(--ink);color:var(--ink)}
 
-  section.card {
-    background: var(--card); border: 1px solid var(--haze);
-    border-radius: 16px; padding: 26px 24px; margin-top: 26px;
-  }
-  .field { margin-bottom: 26px; }
-  .field:last-child { margin-bottom: 0; }
-  label.q, span.q {
-    display: block; font-weight: 600; font-size: 1rem; margin-bottom: 12px;
-  }
-  .q span.num {
-    color: var(--teal); font-family: "Hahmlet", serif; margin-right: 6px;
-  }
+/* ── 0F 입구 ── */
+.ground .scene-inner{display:grid;grid-template-columns:1fr 1.05fr;align-items:center;gap:6vw}
+.state-ribbon{display:flex;gap:18px;margin-top:22px}
+.state-ribbon span{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;
+  padding-left:12px;position:relative}
+.state-ribbon span:before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:5px;height:5px;border:1px solid var(--ink)}
+.ground-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
+.disclaimer{font-size:.66rem;color:var(--muted);margin-top:28px}
+.vinyl-panel{background:var(--panel);min-height:52vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:34px}
+.vinyl{width:min(360px,84%);height:auto}
+.vinyl .disc{transform-origin:128px 105px;animation:spin 10s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.vinyl-note{font-size:.7rem;color:var(--muted);letter-spacing:.04em;text-align:center}
 
-  .stress-wrap { padding: 4px 2px 0; }
-  input[type="range"] {
-    -webkit-appearance: none; appearance: none;
-    width: 100%; height: 14px; border-radius: 999px;
-    background: linear-gradient(90deg, #9fc6b8 0%, #d8c98e 55%, var(--tense) 100%);
-    outline: none; cursor: pointer;
-  }
-  input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none; appearance: none;
-    width: 30px; height: 30px; border-radius: 50%;
-    background: var(--card); border: 3px solid var(--pine);
-    box-shadow: 0 2px 6px rgba(22,53,45,0.25);
-    transition: transform 0.15s ease;
-  }
-  input[type="range"]::-moz-range-thumb {
-    width: 26px; height: 26px; border-radius: 50%;
-    background: var(--card); border: 3px solid var(--pine);
-  }
-  input[type="range"]:focus-visible { outline: var(--focus-ring); outline-offset: 4px; }
-  input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.12); }
-  .stress-labels {
-    display: flex; justify-content: space-between;
-    font-size: 0.78rem; color: var(--pine-soft); margin-top: 8px;
-  }
-  #stressEcho { margin-top: 12px; font-size: 0.95rem; font-weight: 600; }
-  #stressEcho b { color: var(--teal); }
+/* ── 공통 카드 ── */
+.cabin-floor,.cabin-player,.my-room{background:#fff;border:1px solid var(--line);padding:34px}
+.cabin-floor{border-top:2px solid var(--ink)}
+.floor-label{display:flex;align-items:center;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:22px}
+.floor-label>div{display:flex;align-items:center;gap:16px}
+.floor-no{display:flex;align-items:center;justify-content:center;flex:0 0 44px;height:44px;
+  background:var(--ink);color:#fff;font-size:.8rem;font-weight:700;letter-spacing:.06em}
+.floor-label strong{font-size:1.15rem;font-weight:700;display:block;margin-top:5px;letter-spacing:-.01em}
+.floor-label>span{font-size:.66rem;color:var(--muted);font-weight:600;text-align:right;letter-spacing:.06em}
+.input-layout{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+.note-card{background:var(--panel-2);border:1px solid var(--line);padding:18px}
+.note-card h3{font-size:.86rem;font-weight:700;letter-spacing:.02em}
+.note-card .desc{font-size:.76rem;color:var(--muted);margin:5px 0 13px}
+.nl-wrap{display:flex;gap:8px}
+.nl-wrap textarea{flex:1;min-height:104px;border:1px solid var(--line-dark);padding:12px;background:#fff;resize:vertical}
+.nl-wrap button{min-width:92px;border:1px solid var(--ink);background:var(--ink);color:#fff;font-weight:600;font-size:.72rem;letter-spacing:.1em}
+.nl-wrap button:hover{background:#000}
+.nl-wrap button:disabled{background:var(--panel);border-color:var(--line-dark);color:var(--muted);cursor:wait}
+.setting-stack{display:grid;gap:10px}
+.setting-card{border:1px solid var(--line);background:var(--panel-2);padding:13px}
+.setting-card label{display:block;font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin-bottom:7px;font-weight:600}
+select{width:100%;border:1px solid var(--line-dark);padding:9px;background:#fff}
+.genre-chips,.my-genre-edit{display:flex;flex-wrap:wrap;gap:5px}
+.genre-chips button,.my-genre-edit button{border:1px solid var(--line-dark);background:#fff;padding:7px 10px;font-size:.72rem;color:var(--mid)}
+.genre-chips button:hover,.my-genre-edit button:hover{border-color:var(--ink);color:var(--ink)}
+.genre-chips button[aria-pressed=true],.my-genre-edit button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.manual{margin-top:12px;border:1px solid var(--line);background:#fff}
+.manual summary{padding:11px 13px;font-weight:600;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;color:var(--mid)}
+.manual summary:hover{color:var(--ink)}
+.manual-body{padding:0 13px 13px}
+.go-wrap{display:flex;justify-content:flex-end;margin-top:16px}
+.go-wrap #go{min-width:230px}
+.floor-meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.7rem;margin-top:12px}
+.status-dot{width:5px;height:5px;background:var(--ink);flex:none}
 
-  /* 목적: 구체 문구 + 결과 예고 카드 */
-  .goals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-  @media (max-width: 420px) { .goals { grid-template-columns: 1fr; } }
-  .goals input { position: absolute; opacity: 0; pointer-events: none; }
-  .goals label {
-    display: block; padding: 12px 14px;
-    border: 1.5px solid var(--haze); border-radius: 12px;
-    cursor: pointer; background: #fff;
-    transition: border-color 0.12s, background 0.12s;
-    user-select: none;
-  }
-  .goals label b { display: block; font-size: 0.92rem; font-weight: 600; }
-  .goals label small { display: block; font-size: 0.76rem; color: var(--pine-soft); margin-top: 2px; font-weight: 400; }
-  .goals label:hover { border-color: #b8cfc6; }
-  .goals input:checked + label {
-    border-color: var(--teal); background: #e6f1ed;
-  }
-  .goals input:checked + label b { color: var(--teal-deep); font-weight: 700; }
-  .goals input:focus-visible + label { outline: var(--focus-ring); outline-offset: 2px; }
+/* 감정 좌표 · 칩 · 미리보기 */
+.va-input{margin-top:4px}
+.va-input svg{display:block;width:100%;height:auto;touch-action:manipulation;cursor:crosshair}
+.plane-note{font-size:.74rem;color:var(--muted);margin-top:7px;min-height:1.2em}
+.chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.chips button{border:1px solid var(--line-dark);background:#fff;padding:8px 12px;font-size:.76rem;color:var(--mid)}
+.chips button:hover{border-color:var(--ink);color:var(--ink)}
+.linear-preview{margin-top:10px}
+.linear-preview svg{display:block;width:100%;max-width:560px;height:auto}
 
-  select {
-    width: 100%; padding: 11px 12px; font-size: 0.9rem;
-    font-family: inherit; color: var(--pine);
-    border: 1.5px solid var(--haze); border-radius: 10px; background: #fff;
-  }
-  select:focus-visible { outline: var(--focus-ring); }
+/* ── 2F 결과 ── */
+.result-cabin{width:min(1160px,100%)}
+.result-placeholder{border:1px dashed var(--line-dark);padding:44px 30px;color:var(--muted);text-align:center;font-size:.85rem}
+.result-placeholder b{color:var(--ink)}
+.result-placeholder h2{font-size:1.2rem;font-weight:700;color:var(--ink);margin-bottom:8px}
+.result-placeholder .ghost{margin-top:18px}
+.section-shell{background:transparent;border:0;padding:0}
+.section-head{display:flex;justify-content:space-between;align-items:center;gap:20px;margin-bottom:18px}
+.section-head>div{flex:1}
+.section-head .floor-no{flex:0 0 48px;height:48px}
+.result-cabin .section-head h2{font-size:clamp(1.4rem,3vw,2rem);font-weight:700;letter-spacing:-.01em}
+.result-cabin .section-head p{color:var(--muted);font-size:.76rem;margin-top:3px}
+.section-head .phase{white-space:nowrap}
+.results-wrap{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:16px;align-items:start}
+.cabin-player{border-top:2px solid var(--ink);padding:22px}
+.player-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.player-title .now{font-size:1.2rem;font-weight:700;letter-spacing:-.01em}
+.phase{font-size:.6rem;letter-spacing:.18em;text-transform:uppercase;padding:5px 9px;border:1px solid var(--line-dark);color:var(--mid);font-weight:600}
+.player-frame{overflow:hidden;margin-top:14px;background:var(--panel);position:relative;border:1px solid var(--line)}
+.player-frame iframe{display:block}
+.play-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.55);z-index:5}
+.play-overlay button{border:1px solid var(--ink);background:var(--ink);color:#fff;padding:14px 24px;font-weight:600;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase}
+.play-overlay button:hover{background:#000}
+.seek-blocker{display:none}
+.player-controls{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center;margin-top:16px}
+.listen-meta{display:flex;justify-content:space-between;font-size:.66rem;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.listen-meter{height:4px;background:var(--line);margin-top:8px;overflow:hidden}
+.listen-meter i{display:block;height:100%;width:0;background:var(--ink);transition:width .2s linear}
+.player-status{margin-top:10px;font-size:.74rem;color:var(--mid);min-height:1.2em}
+#aztPlayToggle{min-width:120px;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:11px 16px;font-weight:600;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase}
+#aztPlayToggle:hover{background:#000}
+#aztPlayToggle.is-playing{background:#fff;color:var(--ink)}
+.play-helper{font-size:.7rem;color:var(--muted)}
+.player-actions,.song-actions{display:flex;gap:5px;flex-wrap:wrap;margin-top:13px}
+.song-action{border:1px solid var(--line-dark);background:#fff;color:var(--mid);padding:8px 11px;font-weight:600;font-size:.72rem}
+.song-action:hover:not(:disabled){border-color:var(--ink);color:var(--ink)}
+.song-action.active{background:var(--ink);border-color:var(--ink);color:#fff}
+.song-action.like-ready{border-color:var(--ink);color:var(--ink)}
+.song-action:disabled{background:var(--panel);color:var(--muted);cursor:not-allowed}
+.seq-nav{display:flex;gap:6px;margin-top:12px}
+.seq-nav button{flex:1;border:1px solid var(--line-dark);background:#fff;padding:10px;font-weight:600;font-size:.72rem;color:var(--mid)}
+.seq-nav button:hover:not(:disabled){border-color:var(--ink);color:var(--ink)}
+.seq-nav button:disabled{opacity:.4;cursor:not-allowed}
+.reason-box{margin-top:12px;padding:12px 13px;background:var(--panel);color:var(--mid);font-size:.74rem;border-left:2px solid var(--ink)}
+.song-list{display:grid;gap:8px}
+.song{background:#fff;border:1px solid var(--line);padding:14px}
+.song .top{display:flex;justify-content:space-between;gap:10px}
+.song .title{font-weight:700}
+.song .artist{color:var(--muted);font-size:.75rem}
+.song .score{font-size:.64rem;letter-spacing:.08em;color:var(--muted);flex:none;font-weight:600}
+.song .step{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;background:var(--ink);color:#fff;font-size:.68rem;margin-right:7px;font-weight:700}
+.reasons{display:grid;gap:4px;margin-top:9px}
+.reason{display:grid;grid-template-columns:80px 1fr;gap:8px;align-items:center;font-size:.66rem;color:var(--muted)}
+.bar{height:3px;background:var(--line);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--ink)}
+.spotify{display:inline-block;margin-top:9px;color:var(--ink);font-weight:600;font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;text-decoration:none;border-bottom:1px solid var(--ink)}
+.journey-card{margin-top:14px;background:#fff;border:1px solid var(--line);border-top:2px solid var(--ink);padding:16px}
+.journey-card h3{font-size:.86rem;font-weight:700;letter-spacing:.02em}
+.journey-card .plane-note{color:var(--muted)}
+.journey-card svg{display:block;width:100%;height:auto;margin-top:6px}
+.after-card{margin-top:14px;background:var(--panel-2);border:1px solid var(--line);padding:16px}
+.after-card h3{font-size:.86rem;font-weight:700}
+.stress-wrap{margin-top:10px}
+.stress-wrap input{width:100%;accent-color:#161616}
+.stress-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:.64rem;letter-spacing:.06em;margin-top:6px}
+.after-btn{margin-top:12px;border:1px solid var(--ink);background:var(--ink);color:#fff;padding:10px 16px;font-weight:600;font-size:.7rem;letter-spacing:.14em;text-transform:uppercase}
+.after-btn:hover{background:#000}
+.after-btn:disabled{background:var(--panel);border-color:var(--line-dark);color:var(--muted)}
 
-  .nl-wrap { display: flex; gap: 8px; margin-top: 12px; align-items: stretch; }
-  .nl-wrap textarea {
-    flex: 1; padding: 11px 12px; font-size: 0.9rem; resize: none;
-    font-family: inherit; color: var(--pine); line-height: 1.5;
-    border: 1.5px solid var(--haze); border-radius: 10px; background: #fff;
-  }
-  .nl-wrap textarea:focus-visible { outline: var(--focus-ring); }
-  .nl-wrap button {
-    padding: 0 16px; border: none; border-radius: 10px; white-space: nowrap;
-    background: var(--teal); color: #fff; font-weight: 600; font-size: 0.88rem;
-    cursor: pointer; font-family: inherit;
-  }
-  .nl-wrap button:hover { background: var(--teal-deep); }
-  .nl-wrap button:disabled { background: #a9beb7; cursor: not-allowed; }
-  .nl-wrap button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
+/* ── ME 개인방 ── */
+.my-scene .scene-inner{display:flex;justify-content:center}
+.my-room{width:min(1040px,100%);border-top:2px solid var(--ink);padding:28px}
+.my-room .section-head{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:0}
+.my-room h2{font-size:1.35rem;font-weight:700}
+.my-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.my-card{background:var(--panel-2);border:1px solid var(--line);padding:15px}
+.my-card h3{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mid);margin-bottom:10px;font-weight:700}
+.my-card p{font-size:.76rem;color:var(--mid)}
+.my-card.wall-card{grid-column:1 / -1;background:#fff;padding:0;border:1px solid var(--line)}
+.wall-card h3{padding:14px 16px 0}
+.wall-card>p{padding:0 16px}
+/* ── 포스트잇 벽: 붙인 곡이 메모지가 되어 벽을 채운다 ── */
+.wall{min-height:240px;margin-top:12px;padding:22px 18px 26px;background:var(--panel);
+  background-image:radial-gradient(rgba(22,22,22,.12) .7px,transparent .8px);background-size:16px 16px;
+  display:flex;flex-wrap:wrap;gap:18px;align-content:flex-start}
+.wall-empty{width:100%;align-self:center;border:1px dashed var(--line-dark);background:rgba(255,255,255,.6);
+  padding:34px 20px;text-align:center;color:var(--muted);font-size:.78rem}
+.note{position:relative;width:178px;background:#fff;border:1px solid var(--line-dark);
+  box-shadow:2px 3px 0 rgba(22,22,22,.08);padding:20px 12px 10px;
+  transform:rotate(var(--rot,0deg));transition:transform .18s ease}
+.note:hover{transform:rotate(0deg) translateY(-3px);z-index:5}
+.note .tape{position:absolute;top:-7px;left:50%;transform:translateX(-50%) rotate(var(--tape,0deg));
+  width:44px;height:14px;background:rgba(22,22,22,.14);border:1px solid rgba(22,22,22,.06)}
+.note b{display:block;font-size:.8rem;line-height:1.35;letter-spacing:-.01em}
+.note .note-artist{display:block;font-size:.66rem;color:var(--muted);margin-top:2px}
+.note .note-memo{width:100%;border:0;border-top:1px dashed var(--line);background:transparent;resize:none;
+  margin-top:9px;padding:7px 1px 2px;font-size:.72rem;line-height:1.5;color:var(--mid);min-height:44px}
+.note .note-memo:focus{outline:none;border-top-color:var(--ink);color:var(--ink)}
+.note .note-foot{display:flex;justify-content:space-between;align-items:center;margin-top:5px}
+.note .note-foot a{font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);
+  text-decoration:none;border-bottom:1px solid var(--ink);font-weight:600}
+.note .note-peel{border:0;background:transparent;color:var(--muted);font-size:.62rem;letter-spacing:.06em}
+.note .note-peel:hover{color:var(--ink)}
+#myHistory>p{border:1px dashed var(--line-dark);padding:16px;text-align:center;color:var(--muted)}
+.my-edit{display:grid;gap:8px}
+.my-edit-row{display:grid;grid-template-columns:110px 1fr;gap:8px;align-items:center}
+.my-edit-row label{font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--muted)}
+.my-edit-row input[type=text],.my-edit-row select{width:100%;border:1px solid var(--line-dark);padding:8px;background:#fff}
+.my-save{border:1px solid var(--ink);background:var(--ink);color:#fff;padding:9px 14px;font-weight:600;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase}
+.my-save:hover{background:#000}
+.playlist-row,.history-row{display:flex;justify-content:space-between;gap:8px;border-top:1px solid var(--line);padding:8px 0;font-size:.74rem}
+.playlist-row:first-child,.history-row:first-child{border-top:0}
+.mini-btn{border:1px solid var(--line-dark);background:#fff;color:var(--mid);padding:6px 10px;font-weight:600;font-size:.68rem;letter-spacing:.06em}
+.mini-btn:hover{border-color:var(--ink);color:var(--ink)}
+.danger-btn{color:var(--ink);border-color:var(--ink)}
+.danger-btn:hover{background:var(--ink);color:#fff}
+.privacy-note{margin-top:8px;font-size:.66rem;color:var(--muted)}
+.my-nav{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap}
 
-  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin: 2px 0 12px; }
-  .chips button {
-    padding: 8px 13px; border: 1.5px solid var(--haze); border-radius: 999px;
-    background: #fff; color: var(--pine); font-size: 0.85rem; font-weight: 500;
-    cursor: pointer; font-family: inherit;
-  }
-  .chips button:hover { border-color: var(--teal); color: var(--teal-deep); }
-  .chips button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
-  .chips-hint { font-size: 0.78rem; color: var(--pine-soft); margin: 10px 0 6px; }
-  /* 켜졌다 꺼지는 요소들의 높이를 예약해 레이아웃 점프 방지 */
-  #nlStatus { min-height: 1.35em; margin-top: 8px; }
-  #vaEcho { min-height: 2.6em; }
+/* ── 모달 ── */
+.modal-back{position:fixed;inset:0;z-index:200;background:rgba(22,22,22,.32);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-start;justify-content:center;padding:6vh 16px;overflow:auto}
+.modal{width:min(440px,100%);background:#fff;border:1px solid var(--ink);padding:28px;position:relative}
+.modal h2{font-size:1.15rem;font-weight:700}
+.modal .sub{font-size:.78rem;color:var(--muted);margin:5px 0 16px}
+.modal-x{position:absolute;right:12px;top:12px;border:0;background:transparent;font-size:1.05rem;color:var(--muted)}
+.modal-x:hover{color:var(--ink)}
+.modal label.f{display:block;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;font-weight:600;color:var(--mid);margin:14px 0 6px}
+.modal input[type=email],.modal input[type=password],.modal input[type=text]{width:100%;border:1px solid var(--line-dark);padding:11px;background:#fff}
+.auth-err{margin-top:10px;background:var(--panel);border-left:2px solid var(--ink);color:var(--ink);padding:10px;font-size:.76rem}
+.modal .go-btn{width:100%;margin-top:16px;border:1px solid var(--ink);padding:13px;background:var(--ink);color:#fff;font-weight:600;font-size:.72rem;letter-spacing:.16em;text-transform:uppercase}
+.modal .go-btn:hover{background:#000}
+.modal .alt-btn{width:100%;margin-top:8px;border:1px solid var(--line-dark);padding:12px;background:#fff;color:var(--mid);font-weight:600;font-size:.74rem;display:flex;align-items:center;justify-content:center;gap:8px}
+.modal .alt-btn:hover{border-color:var(--ink);color:var(--ink)}
+.modal .switch{text-align:center;font-size:.76rem;color:var(--muted);margin-top:14px}
+.modal .switch a{color:var(--ink);font-weight:600;text-decoration:underline;cursor:pointer}
+.ob-chips{display:flex;flex-wrap:wrap;gap:5px}
+.ob-chips button{border:1px solid var(--line-dark);background:#fff;padding:7px 11px;font-size:.76rem;color:var(--mid)}
+.ob-chips button[aria-pressed=true]{background:var(--ink);color:#fff;border-color:var(--ink)}
+.ob-hint{font-size:.68rem;color:var(--muted);margin-top:5px}
+.track-results{display:grid;gap:5px;margin-top:7px}
+.track-results button{border:1px solid var(--line);background:#fff;text-align:left;padding:9px;font-size:.8rem}
+.track-results button:hover{border-color:var(--ink)}
+.track-picked{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
+.track-picked span{display:inline-flex;align-items:center;gap:6px;background:var(--panel);padding:6px 9px;font-size:.74rem}
+.track-picked span button{border:0;background:transparent;color:var(--mid);padding:0 2px}
+.ob-foot{display:flex;justify-content:space-between;margin-top:14px;font-size:.72rem}
+.ob-foot a{cursor:pointer;text-decoration:underline;color:var(--muted)}
+.ob-foot a:hover{color:var(--ink)}
 
-  details.manual { margin-top: 14px; border: 1.5px solid var(--haze); border-radius: 12px; padding: 0; background: #fff; }
-  details.manual summary {
-    padding: 12px 14px; cursor: pointer; font-size: 0.88rem; font-weight: 600;
-    color: var(--pine); list-style: none; user-select: none;
-  }
-  details.manual summary::-webkit-details-marker { display: none; }
-  details.manual summary::before { content: "▸ "; color: var(--teal); }
-  details.manual[open] summary::before { content: "▾ "; }
-  details.manual .manual-body { padding: 4px 14px 14px; }
-  .linear-preview { margin-top: 12px; }
-  .linear-preview svg, .journey svg { width: 100%; height: auto; display: block; }
-
-  button#go {
-    width: 100%; margin-top: 4px; padding: 15px;
-    font-size: 1.02rem; font-weight: 700; font-family: inherit;
-    color: #fff; background: var(--teal); border: none; border-radius: 12px;
-    cursor: pointer; transition: background 0.12s;
-  }
-  button#go:hover { background: var(--teal-deep); }
-  button#go:disabled { background: #a9beb7; cursor: not-allowed; }
-  button#go:focus-visible { outline: var(--focus-ring); outline-offset: 3px; }
-
-  #results { margin-top: 40px; }
-  #results h2 {
-    font-family: "Hahmlet", serif; font-weight: 500; font-size: 1.3rem; margin-bottom: 6px;
-  }
-  #resultNote { font-size: 0.85rem; color: var(--pine-soft); margin-bottom: 18px; }
-
-  /* V/A 경로 시각화 */
-  .plane-card {
-    background: var(--card); border: 1px solid var(--haze); border-radius: 14px;
-    padding: 18px 18px 12px; margin-bottom: 18px;
-  }
-  .plane-card h3 { font-size: 0.95rem; font-weight: 700; margin-bottom: 10px; }
-  .plane-card svg { width: 100%; height: auto; display: block; }
-  .plane-note { font-size: 0.74rem; color: var(--pine-soft); margin-top: 8px; }
-  .va-input svg { width: 100%; height: auto; display: block; cursor: crosshair; touch-action: manipulation; border-radius: 10px; }
-  .va-input svg:focus-visible { outline: 3px solid var(--teal); outline-offset: 2px; }
-  .seq-nav { display: flex; gap: 8px; margin-top: 10px; }
-  .seq-nav button {
-    flex: 1; padding: 10px 0; border: 1.5px solid #cfe0d9; border-radius: 10px;
-    background: #ffffff; color: var(--teal-deep); font-weight: 600; font-size: 0.88rem;
-    cursor: pointer; font-family: inherit;
-  }
-  .seq-nav button:hover { border-color: var(--teal); }
-  .seq-nav button:disabled { color: #a9beb7; border-color: #e4ede9; cursor: not-allowed; }
-  .seq-nav button:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
-
-  .song {
-    background: var(--card); border: 1px solid var(--haze); border-radius: 14px;
-    padding: 18px 20px; margin-bottom: 14px;
-  }
-  .song .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-  .song .title { font-weight: 700; font-size: 1.02rem; }
-  .song .step {
-    display: inline-block; min-width: 22px; text-align: center;
-    font-family: "Hahmlet", serif; font-size: 0.85rem; color: #fff;
-    background: var(--teal); border-radius: 50%; margin-right: 8px;
-  }
-  .song .artist { color: var(--pine-soft); font-size: 0.88rem; font-weight: 500; }
-  .song .score { font-family: "Hahmlet", serif; color: var(--teal); font-size: 0.95rem; flex: none; }
-  .reasons { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
-  .reason { display: grid; grid-template-columns: 96px 1fr; align-items: center; gap: 10px; font-size: 0.8rem; color: var(--pine-soft); }
-  .bar { height: 6px; border-radius: 999px; background: var(--haze); overflow: hidden; }
-  .bar i { display: block; height: 100%; background: var(--teal); border-radius: 999px; }
-  .song a.spotify {
-    display: inline-block; margin-top: 14px; padding: 8px 14px;
-    font-size: 0.85rem; font-weight: 600; text-decoration: none;
-    color: var(--teal-deep); border: 1.5px solid var(--teal); border-radius: 999px;
-  }
-  .song a.spotify:hover { background: #e6f1ed; }
-  .song a.spotify:focus-visible { outline: var(--focus-ring); outline-offset: 2px; }
-
-  .after-btn {
-    margin-top: 14px; padding: 10px 18px;
-    font-size: 0.9rem; font-weight: 700; font-family: inherit;
-    color: #fff; background: var(--teal); border: none; border-radius: 10px;
-    cursor: pointer; transition: background 0.12s;
-  }
-  .after-btn:hover { background: var(--teal-deep); }
-  .after-btn:disabled { background: #a9beb7; cursor: default; }
-  .after-btn:focus-visible { outline: var(--focus-ring); outline-offset: 3px; }
-
-  footer { margin-top: 56px; font-size: 0.75rem; color: var(--pine-soft); }
+/* ── 반응형 ── */
+@media(max-width:900px){
+  .topbar{padding:13px 16px}
+  .topnav{display:none}
+  .scene{padding:92px 5vw 100px}
+  .ground .scene-inner,.input-layout,.results-wrap{grid-template-columns:1fr}
+  .ground .scene-inner{gap:30px}
+  .vinyl-panel{min-height:38vh;order:-1}
+  .cabin-floor,.my-room{padding:22px}
+  .my-grid{grid-template-columns:1fr}
+}
+@media(max-width:700px){
+  .scene{padding:86px 16px 96px}
+}
+@media(max-width:640px){
+  .scene-title{font-size:clamp(1.6rem,7.4vw,2.4rem)}
+  .cabin-floor,.my-room{padding:18px}
+  .cabin-player{padding:16px}
+  .nl-wrap{flex-direction:column}
+  .nl-wrap button{padding:11px}
+  .player-controls{grid-template-columns:1fr}
+  .my-edit-row{grid-template-columns:1fr}
+  .section-head{align-items:flex-start}
+  input,select,textarea{font-size:16px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*:before,*:after{transition:none!important;animation:none!important}
+  .scene{transition:none}
+  .vinyl .disc{animation:none}
+}
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <div class="brand">음치치 <small>Eumchichi · 데모 <span id="buildTag">v0.9.3</span></small></div>
-    <h1>지금 상태를 알려주면,<br /><em>맞는 음악</em>을 찾아드릴게요.</h1>
-    <div id="status"><span class="dot"></span><span id="statusText">연결 준비 중…</span></div>
+<div class="app">
+  <header class="topbar">
+    <div class="brandmark"><span class="leafdot"></span><span>AZT <small>나만의 아지트</small></span></div>
+    <nav class="topnav" aria-label="페이지 이동">
+      <button type="button" data-scene-nav="ground">홈</button>
+      <button type="button" data-scene-nav="stateRoom">오늘의 음악</button>
+      <button type="button" data-scene-nav="results">감상</button>
+      <button id="myAztBtn" type="button">내 방</button>
+    </nav>
     <div class="auth-row" id="authRow">
-      <div id="authButtons" hidden>
-        <button id="openLogin" class="auth-btn" type="button">로그인</button>
-        <button id="openSignup" class="auth-btn primary" type="button">회원가입</button>
-      </div>
-      <div class="auth-chip" id="authChip" hidden>
-        <img id="authPhoto" alt="" referrerpolicy="no-referrer" />
-        <span id="authName"></span>
-        <button class="out" id="logoutBtn" type="button">로그아웃</button>
-      </div>
+      <div id="authButtons" hidden><button id="openLogin" class="auth-btn" type="button">로그인</button><button id="openSignup" class="auth-btn" type="button">회원가입</button></div>
+      <div class="auth-chip" id="authChip" hidden><img id="authPhoto" alt="" referrerpolicy="no-referrer"/><span id="authName"></span><button class="out" id="logoutBtn" type="button">나가기</button></div>
     </div>
   </header>
 
-  <section class="card" aria-label="상태 입력">
-    <div class="field">
-      <span class="q" id="vaLabel"><span class="num">01</span>지금 어떤 상태인지, 어떻게 되고 싶은지 말해주세요</span>
-      <div class="nl-wrap">
-        <textarea id="nlText" rows="2" maxlength="200" aria-label="지금 상태와 원하는 상태를 자유롭게 설명"
-          placeholder="예: 시험이 코앞이라 너무 불안한데, 차분하게 가라앉히고 싶어"></textarea>
-        <button id="nlApply" type="button">AI로<br/>이해하기</button>
+  <nav class="pagebar" aria-label="페이지 이동">
+    <button type="button" data-scene-nav="ground">홈</button>
+    <button type="button" data-scene-nav="stateRoom">오늘의 음악</button>
+    <button type="button" data-scene-nav="results">감상</button>
+    <button type="button" data-scene-nav="myAzt">내 방</button>
+  </nav>
+
+  <section class="scene ground scene-active" id="ground" aria-label="홈">
+    <div class="scene-inner">
+      <div class="ground-copy">
+        <div class="scene-kicker">AZT · MY OWN HIDEOUT</div>
+        <h1 class="scene-title">내 마음, 알아서 잘<br/>딱 깔끔하게.<br/>나만의 아지트.</h1>
+        <p class="scene-copy">지금 나에게 딱 필요한 음악. 상황에 맞춰 변하는 공간에서 평안을 찾아보세요.</p>
+        <div class="state-ribbon"><span>지금의 마음</span><span>머무는 시간</span><span>좋아하는 소리</span></div>
+        <div class="ground-actions"><button class="primary" type="button" data-go-scene="stateRoom">아지트 들어가기</button><button class="ghost" type="button" data-go-scene="myAzt">내 방 보기</button></div>
+        <p class="disclaimer">AZT는 입력 기반 음악 추천 경험이며 의학적 진단이나 치료를 제공하지 않습니다.</p>
       </div>
-      <p class="plane-note" id="nlStatus" role="status"></p>
-      <div class="linear-preview" id="nlPreview"></div>
-
-      <details class="manual" id="manualBox">
-        <summary>직접 자세히 지정하기 <span style="font-weight:400;color:var(--pine-soft);">(선택)</span></summary>
-        <div class="manual-body">
-          <!-- 평면을 맨 위에 고정: 아래 칩·문구가 바뀌어도 탭하는 위치가 움직이지 않도록 -->
-          <div class="va-input" id="vaWrap" aria-describedby="vaEcho"></div>
-          <p class="plane-note" id="vaEcho">가로: 기분(안 좋음↔좋음) · 세로: 활력(나른함↔들뜸). 먼저 <b>지금 상태</b>를, 이어서 <b>목표 상태</b>를 골라주세요.</p>
-          <p class="chips-hint" id="chipHint">좌표를 직접 탭하거나, 아래 단어를 골라도 자동으로 찍혀요.</p>
-          <div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div>
-        </div>
-      </details>
+      <div class="vinyl-panel">
+        <svg viewBox="0 0 340 210" class="vinyl" role="img" aria-label="아직 비어 있는 턴테이블">
+          <g class="disc">
+            <circle cx="128" cy="105" r="52" fill="#161616"/>
+            <circle cx="128" cy="105" r="34" fill="none" stroke="#3a3a38" stroke-width="1"/>
+            <circle cx="128" cy="105" r="15" fill="#f4f4f3"/>
+            <circle cx="128" cy="105" r="4.5" fill="#161616"/>
+          </g>
+          <line x1="180" y1="105" x2="266" y2="105" stroke="#161616" stroke-width="2"/>
+          <circle cx="266" cy="105" r="3.5" fill="#161616"/>
+        </svg>
+        <p class="vinyl-note">지금은 비어 있는 레코드 — 오늘의 감정과 음악이 한 칸씩 채워집니다.</p>
+      </div>
     </div>
-
-    <div class="field">
-      <label class="q" for="lyric"><span class="num">02</span>가사는 어떤 게 좋나요? <span style="font-weight:400;color:var(--pine-soft);font-size:0.85rem;">(선택)</span></label>
-      <select id="lyric">
-        <option value="no_preference" selected>상관없어요</option>
-        <option value="prefer_instrumental">가사 적은 곡이 좋아요</option>
-        <option value="instrumental_only">가사 없는 곡만요</option>
-        <option value="prefer_vocal">가사 있는 곡이 좋아요</option>
-      </select>
-    </div>
-
-    <button id="go" disabled>추천 받기</button>
   </section>
 
-  <section id="results" aria-live="polite"></section>
+  <section class="scene" id="stateRoom" aria-label="오늘의 음악 만들기">
+    <div class="scene-inner">
+      <div class="cabin-floor">
+        <div class="floor-label">
+          <div><span class="floor-no">01</span><div><span class="room-tag">SESSION · MAKE</span><strong>오늘의 음악 만들기</strong></div></div>
+          <span>지금 → 목표, 두 상태만 알려주세요</span>
+        </div>
+        <div class="input-layout">
+          <div class="note-card">
+            <h3>01 · 지금 마음을 적어주세요</h3><p class="desc">한 문장으로 말해도 되고, 직접 감정 지도를 눌러도 괜찮아요.</p>
+            <div class="nl-wrap"><textarea id="nlText" rows="3" maxlength="600" aria-label="지금 상태와 원하는 상태를 자유롭게 설명" placeholder="예: 시험 때문에 마음이 조급해요. 조금 차분해지고 싶어요."></textarea><button id="nlApply" type="button">AI로<br/>읽기</button></div>
+            <p class="plane-note" id="nlStatus" role="status"></p><div class="linear-preview" id="nlPreview"></div>
+            <details class="manual" id="manualBox"><summary>직접 골라볼게요</summary><div class="manual-body"><div class="va-input" id="vaWrap" aria-describedby="vaEcho"></div><p class="plane-note" id="vaEcho">먼저 <b>지금</b>, 다음은 <b>목표</b>를 찍어주세요.</p><p class="plane-note" id="chipHint">단어를 골라도 자동으로 찍혀요.</p><div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div></div></details>
+          </div>
+          <div class="note-card">
+            <h3>02 · 오늘은 얼마나 머물까요?</h3><p class="desc">시간이 길수록 후반부의 안정된 음악을 더 오래 머물도록 구성합니다.</p>
+            <div class="setting-stack">
+              <div class="setting-card"><label for="listenTime">머무는 시간</label><select id="listenTime"><option value="10">10분</option><option value="30" selected>30분</option><option value="60">60분</option></select></div>
+              <div class="setting-card"><label>오늘 듣고 싶은 장르</label><div class="genre-chips" id="genreChips" role="group" aria-label="추천 장르 선택"></div></div>
+              <div class="setting-card"><label for="lyric">가사 취향</label><select id="lyric"><option value="no_preference" selected>상관없어요</option><option value="prefer_instrumental">가사 적은 곡이 좋아요</option><option value="instrumental_only">가사 없는 곡만요</option><option value="prefer_vocal">가사 있는 곡이 좋아요</option></select></div>
+            </div>
+            <div class="floor-meta"><span class="status-dot"></span><span id="statusText">연결 준비 중…</span></div>
+            <div class="go-wrap"><button id="go" class="primary" disabled>오늘의 음악 받기 →</button></div>
+          </div>
+        </div>
+        <div class="floor-meta"><span>현재 → 목표를 정하면 감상 페이지로 이동합니다.</span></div>
+      </div>
+    </div>
+  </section>
 
-  <footer>입력 기반 추정 추천이며, 의학적 진단이나 치료가 아닙니다. · 곡 정보와 링크는 Spotify 제공.</footer>
-</main>
+  <section class="scene" id="results" aria-live="polite" aria-label="감상">
+    <div class="scene-inner result-cabin">
+      <div class="result-placeholder"><b>오늘의 음악</b>에서 지금·목표 상태를 정하면 이곳에서 이어 듣습니다.</div>
+    </div>
+  </section>
+
+  <section class="scene my-scene" id="myAzt" aria-label="내 방">
+    <div class="scene-inner">
+      <div class="my-room">
+        <div class="section-head"><span class="floor-no">MY</span><div><span class="room-tag">MY ROOM</span><h2 style="margin-top:8px">내 방</h2><p class="scene-note">벽에 붙인 노래와 기록으로 채워지는, 나만의 아지트예요.</p></div><button id="closeMyAzt" class="mini-btn" type="button">홈으로</button></div>
+        <div class="my-grid">
+          <div class="my-card wall-card"><h3>나의 벽</h3><p>감상에서 「벽에 붙이기」를 누른 곡이 메모지가 되어 붙어요. 메모지를 눌러 한 줄 기록을 남길 수 있어요.</p><div id="myPlaylist"></div></div>
+          <div class="my-card"><h3>내 설정</h3><div class="my-edit"><div class="my-edit-row"><label for="myDisplayName">이름</label><input id="myDisplayName" type="text" maxlength="40" placeholder="내 이름"></div><div class="my-edit-row"><label for="myRecommendMinutes">머무는 시간</label><select id="myRecommendMinutes"><option value="10">10분</option><option value="30">30분</option><option value="60">60분</option></select></div><div class="my-edit-row"><label for="myLyric">가사 취향</label><select id="myLyric"><option value="no_preference">상관없어요</option><option value="prefer_instrumental">가사 적은 곡</option><option value="instrumental_only">가사 없는 곡</option><option value="prefer_vocal">가사 있는 곡</option></select></div><div><label style="display:block;font-size:.7rem;font-weight:900;margin-bottom:6px">선호 장르</label><div id="myGenreEdit" class="my-genre-edit"></div></div><button id="saveMyPrefs" class="my-save" type="button">설정 저장하기</button><p id="myEditStatus" class="plane-note"></p></div></div>
+          <div class="my-card"><h3>내 상태 설정</h3><p id="myStateSummary">아직 오늘의 상태가 없어요.</p><div class="my-nav"><button class="mini-btn" type="button" data-go-scene="stateRoom">오늘의 음악 다시 만들기</button></div></div>
+          <div class="my-card"><h3>추천 피드백</h3><p id="myFeedbackSummary">좋아요·싫어요·저장 행동이 다음 추천에 반영돼요.</p></div>
+          <div class="my-card"><h3>최근 청취 기록</h3><div id="myHistory"><p>아직 기록이 없어요.</p></div></div>
+          <div class="my-card"><h3>계정 / 데이터</h3><button id="deleteMyData" class="mini-btn danger-btn" type="button">내 데이터 및 계정 삭제</button><p class="privacy-note">삭제는 되돌릴 수 없어요. AZT는 의학적 진단이나 치료를 제공하지 않습니다.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
 
 <!-- ── 로그인 / 회원가입 / 온보딩 모달 ── -->
 <div class="modal-back" id="authModal" hidden>
@@ -490,7 +499,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 
 <script>
 /* =====================================================================
@@ -590,7 +598,8 @@ const WAYPOINT_START = 0.0;           // 첫 경유지 = 현재 상태 그 자�
 const SCORE_W = 0.3;                  // 시퀀스 cost에서 태그 적합도 비중 (0.2~0.5 사이 튜닝)
 const TEMPO_W = 0.08;                 // 템포↔각성도 정합 보조 가중치 (0이면 미사용)
 const MAX_STEP_JUMP = 0.45;           // 인접 곡 간 V/A 최대 이동거리 (급점프 방지)
-const ALGO_VERSION = "v0.9-personalized";  // 피드백 로그 분석용 버전 표식
+const AFTER_UNLOCK_SECONDS = 60;   // 이만큼 실제로 들어야 청취 후 변화 기록이 열린다
+const ALGO_VERSION = "v1.1-fb-r1r2r6";  // 피드백 로그 분석용 버전 표식 (R1 축소·R2 이중계상 해소·R6 정렬 적용)
 
 /* ── 개인화 가중치 — 여기만 조정하면 됩니다 ──
    설계: 개인 피드백 > 취향(온보딩) > 가수·장르 일치 > 전체 사용자 피드백.
@@ -599,6 +608,11 @@ const TASTE_W        = 0.12;  // 취향 벡터(선호곡 태그 평균)와의 �
 const ARTIST_BONUS   = 0.06;  // 선호 가수 일치 가점
 const GENRE_BONUS    = 0.04;  // 선호 장르 일치 가점 (songs 문서에 genres 필드가 있을 때만)
 const PERSONAL_FB_W  = 0.10;  // 본인 피드백 (완청·클릭·전후 변화) — 개인 신호 중 최우선
+/* R1 신뢰도 축소: 반영값 = 원점수 × n/(n+k). n=그 곡의 피드백 관측 건수.
+   k=절반을 믿기까지 필요한 건수 — 1건이면 1/(1+k)만 반영되고 쌓일수록 원점수에 수렴.
+   회의 결정으로 조정: 키우면 보수적(개인화 느림), 줄이면 공격적. */
+const PERSONAL_K = 3;   // 내 피드백은 빨리 신뢰
+const GLOBAL_K   = 10;  // 전체 사용자 데이터는 천천히 신뢰
 const GLOBAL_FB_W    = 0.03;  // 전체 사용자 피드백 (song_stats 집계) — 약하게만
 const FAVORITE_GENRES = ["K-pop","발라드","힙합","R&B","인디","록","팝","재즈","클래식","lo-fi","EDM","OST","시티팝","뉴에이지"];
 const INSTRUMENTAL_ONLY_MIN = 0.6;
@@ -625,13 +639,28 @@ const TAG_LABELS = {
 
 /* ===================== 이하 앱 로직 ===================== */
 const $ = (id) => document.getElementById(id);
-const statusBox = $("status"), statusText = $("statusText");
+const statusBox = null, statusText = $("statusText");
 let SONGS = [];
+const GENRE_OPTIONS = ["K-pop","발라드","힙합","R&B","인디","록","팝","재즈","클래식","lo-fi","EDM","OST","시티팝","뉴에이지"];
+let SELECTED_GENRES = [];
+let RECOMMEND_MINUTES = 30;
+let LIKED_SONGS = new Set();
+let DISLIKED_SONGS = new Set();
+let PLAYLIST_SONGS = new Set();
+let PLAYLIST_NOTES = {};   // song_id → 벽 메모 한 줄 (users.playlistNotes)
+let LISTEN_HISTORY = [];
+let TRACK_METRICS = {};
+let ACTIVE_METRIC_ID = null;
+let LAST_PLAYBACK_POSITION = null;
+let LAST_PLAYBACK_TS = 0;
+let AFTER_UNLOCKED = false;   // 청취 후 변화 슬라이더 잠금 상태
+const LOCAL_KEY = "azt:v1:personal";
+
 let fallbackUsed = false;
 
 function setStatus(kind, msg) {
-  statusBox.className = kind;
-  statusText.textContent = msg;
+  if(statusBox) statusBox.className = kind;
+  if(statusText) statusText.textContent = msg;
 }
 
 $("lyric").addEventListener("change", clearPath);
@@ -684,6 +713,7 @@ async function init() {
         title: d.title || doc.id,
         artist: d.artist || "",
         tags, va, tempo, trackId, genres,
+        durationSec: Number(pr.duration_ms || d.duration_ms || d.duration_seconds || 0) / (pr.duration_ms || d.duration_ms ? 1000 : 1),
         spotifyUrl: d.spotify_url || (trackId ? "https://open.spotify.com/track/" + trackId : null)
       });
     });
@@ -694,6 +724,7 @@ async function init() {
     }
     setStatus("ok", "연결 완료 — " + SONGS.length + "곡 준비됨" + (fallbackUsed ? " (일부 곡은 검수 전 태그 사용)" : ""));
     SONGS_READY = true;
+    loadLocalPersonal();
     loadGlobalStats();   // 전체 사용자 피드백 통계 (비동기, 실패해도 무관)
     updateGo();   // 지금·목표가 이미 탭돼 있으면 즉시 활성화
   } catch (err) {
@@ -717,7 +748,8 @@ async function init() {
 
 let USER_PROFILE = null;   // users/{uid} 문서 내용
 let TASTE_VECTOR = null;   // 선호곡 태그 평균 (없으면 null)
-let PERSONAL_FB  = {};     // song_id → 본인 피드백 점수 (대략 -1 ~ +1)
+let PERSONAL_FB  = {};     // song_id → 본인 피드백 점수 합 (대략 -1 ~ +1)
+let PERSONAL_FB_N = {};    // song_id → 피드백 관측 건수 (R1 신뢰도 축소용)
 let GLOBAL_FB    = {};     // song_id → 전체 사용자 피드백 점수 (대략 -1 ~ +1)
 let AUTH_MODE = "login";   // 모달 1단계 모드: login | signup
 let OB_TRACKS = [];        // 온보딩에서 고른 선호곡 (SONGS 항목 참조)
@@ -874,7 +906,7 @@ async function handleUserChange(user, force) {
   const key = user ? user.uid + ":" + user.isAnonymous : "none";
   if (!force && key === LAST_HANDLED) return;
   LAST_HANDLED = key;
-  USER_PROFILE = null; TASTE_VECTOR = null; PERSONAL_FB = {};
+  USER_PROFILE = null; TASTE_VECTOR = null; PERSONAL_FB = {}; PERSONAL_FB_N = {};
   if (!user || user.isAnonymous) { updateAuthUI(user); return; }
   try {
     const doc = await firebase.firestore().collection("users").doc(user.uid).get();
@@ -898,9 +930,16 @@ async function handleUserChange(user, force) {
 }
 
 function applyProfile(p) {
-  USER_PROFILE = p;
-  TASTE_VECTOR = p.taste_vector || null;
-  if (p.lyric_preference_default) $("lyric").value = p.lyric_preference_default;  // 매번 안 물어봐도 되게 기본값 주입
+  USER_PROFILE = p || {};
+  TASTE_VECTOR = p && p.taste_vector || null;
+  LIKED_SONGS = new Set(Array.isArray(p && p.likedSongs) ? p.likedSongs : []);
+  DISLIKED_SONGS = new Set(Array.isArray(p && p.dislikedSongs) ? p.dislikedSongs : []);
+  PLAYLIST_SONGS = new Set(Array.isArray(p && p.playlists) ? p.playlists : []);
+  PLAYLIST_NOTES = (p && typeof p.playlistNotes === "object" && p.playlistNotes) || {};
+  if (p && Array.isArray(p.preferred_genres)) SELECTED_GENRES = [...p.preferred_genres];
+  if (p && p.recommend_minutes) RECOMMEND_MINUTES = Number(p.recommend_minutes) || 30;
+  if (p && p.lyric_preference_default) $("lyric").value = p.lyric_preference_default;
+  renderGenreChips();
 }
 
 /* ── 온보딩 취향 조사 ── */
@@ -1061,17 +1100,239 @@ async function saveOnboarding() {
 /* ── 피드백 환류 ──
    개인: 본인 로그(recommendations + context_events)에서 곡별 점수를 계산 (가장 큰 가중치)
    전체: song_stats 집계 문서(이벤트 발생 시 increment로 갱신)에서 약하게 반영 */
+
+function readLocalPersonal() {
+  try { return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}"); } catch (_) { return {}; }
+}
+function writeLocalPersonal(data) {
+  try { localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); } catch (_) {}
+}
+function songById(id) { return SONGS.find(s => s.id === id); }
+
+function renderGenreChips() {
+  const box = $("genreChips");
+  if (!box) return;
+  box.innerHTML = GENRE_OPTIONS.map(g =>
+    "<button type='button' aria-pressed='" + SELECTED_GENRES.includes(g) + "' data-genre='" + esc(g) + "'>" + esc(g) + "</button>"
+  ).join("");
+  box.querySelectorAll("button").forEach(b => b.addEventListener("click", () => {
+    const g = b.dataset.genre;
+    if (SELECTED_GENRES.includes(g)) SELECTED_GENRES = SELECTED_GENRES.filter(x => x !== g);
+    else SELECTED_GENRES = [...SELECTED_GENRES, g];
+    b.setAttribute("aria-pressed", String(SELECTED_GENRES.includes(g)));
+  }));
+}
+async function persistPreferencePatch(patch) {
+  const user = firebase.auth().currentUser;
+  if (user) {
+    try {
+      await firebase.firestore().collection("users").doc(user.uid).set({
+        ...patch, updated_at: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+      USER_PROFILE = { ...(USER_PROFILE || {}), ...patch };
+      return true;
+    } catch (e) { console.warn("선호 설정 저장 실패:", e); }
+  }
+  const local = readLocalPersonal();
+  writeLocalPersonal({ ...local, ...patch });
+  return false;
+}
+function loadLocalPersonal() {
+  const p = readLocalPersonal();
+  if (!firebase.auth().currentUser || firebase.auth().currentUser.isAnonymous) {
+    LIKED_SONGS = new Set(Array.isArray(p.likedSongs) ? p.likedSongs : []);
+    DISLIKED_SONGS = new Set(Array.isArray(p.dislikedSongs) ? p.dislikedSongs : []);
+    PLAYLIST_SONGS = new Set(Array.isArray(p.playlists) ? p.playlists : []);
+    PLAYLIST_NOTES = (typeof p.playlistNotes === "object" && p.playlistNotes) || {};
+    LISTEN_HISTORY = Array.isArray(p.listeningHistory) ? p.listeningHistory : [];
+    if (Array.isArray(p.preferred_genres)) SELECTED_GENRES = [...p.preferred_genres];
+    if (p.recommend_minutes) RECOMMEND_MINUTES = Number(p.recommend_minutes) || 30;
+  }
+  renderGenreChips();
+}
+async function setSongFeedback(songId, kind) {
+  if (!songId) return;
+  if (kind === "like") {
+    if (LIKED_SONGS.has(songId)) LIKED_SONGS.delete(songId); else { LIKED_SONGS.add(songId); DISLIKED_SONGS.delete(songId); }
+  } else if (kind === "dislike") {
+    if (DISLIKED_SONGS.has(songId)) DISLIKED_SONGS.delete(songId); else { DISLIKED_SONGS.add(songId); LIKED_SONGS.delete(songId); }
+  } else if (kind === "playlist") {
+    if (PLAYLIST_SONGS.has(songId)) { PLAYLIST_SONGS.delete(songId); delete PLAYLIST_NOTES[songId]; }
+    else PLAYLIST_SONGS.add(songId);
+  }
+  const patch = {
+    likedSongs: [...LIKED_SONGS], dislikedSongs: [...DISLIKED_SONGS], playlists: [...PLAYLIST_SONGS],
+    playlistNotes: PLAYLIST_NOTES
+  };
+  await persistPreferencePatch(patch);
+  const local = readLocalPersonal(); writeLocalPersonal({ ...local, ...patch });
+  if (firebase.auth().currentUser && !firebase.auth().currentUser.isAnonymous) {
+    logEvent(kind === "like" ? "like" : kind === "dislike" ? "dislike" : "playlist_add", { song_id: songId });
+  }
+  renderMyAzt();
+  refreshSongActions(songId);
+}
+function refreshSongActions(songId) {
+  const cards = document.querySelectorAll("[data-song-card='" + CSS.escape(songId) + "']");
+  if (!cards.length) return;
+  const metric = TRACK_METRICS[songId];
+  const ready = !!(metric && metric.listenedSeconds >= 10);
+  cards.forEach(card => {
+    const like = card.querySelector("[data-action='like']");
+    const dislike = card.querySelector("[data-action='dislike']");
+    const pl = card.querySelector("[data-action='playlist']");
+    if (like) {
+      like.classList.toggle("active", LIKED_SONGS.has(songId));
+      like.classList.toggle("like-ready", ready && !LIKED_SONGS.has(songId));
+      like.disabled = !ready;
+      like.title = ready ? "좋아요를 남길 수 있어요." : "이 곡을 실제로 10초 이상 들으면 좋아요가 열려요.";
+      like.textContent = LIKED_SONGS.has(songId) ? "♥ 좋아요" : ready ? "♡ 좋아요" : "10초 후 좋아요";
+    }
+    if (dislike) { dislike.classList.toggle("active", DISLIKED_SONGS.has(songId)); dislike.textContent = DISLIKED_SONGS.has(songId) ? "싫어요 취소" : "싫어요"; }
+    if (pl) { pl.classList.toggle("active", PLAYLIST_SONGS.has(songId)); pl.textContent = PLAYLIST_SONGS.has(songId) ? "✓ 벽에 붙어 있음" : "＋ 벽에 붙이기"; }
+  });
+}
+
+async function saveListeningRecord(songId, metric, reason) {
+  if (!songId || !metric) return;
+  const duration = Number(metric.durationSec) || 0;
+  const listened = Math.max(0, Number(metric.listenedSeconds) || 0);
+  const completion = duration ? Math.min(1, listened / duration) : 0;
+  const row = {
+    songId, listenedSeconds: Number(listened.toFixed(2)), durationSeconds: duration,
+    completionRate: Number(completion.toFixed(3)), skipped: !!metric.skipped,
+    seekEvents: Number(metric.seekEvents || 0), liked: LIKED_SONGS.has(songId),
+    disliked: DISLIKED_SONGS.has(songId), addedToPlaylist: PLAYLIST_SONGS.has(songId),
+    reason: reason || "checkpoint", at: new Date().toISOString()
+  };
+  LISTEN_HISTORY = [row, ...LISTEN_HISTORY.filter(x => !(x.songId === songId && x.at === row.at))].slice(0, 100);
+  const user = firebase.auth().currentUser;
+  if (user) {
+    try {
+      await firebase.firestore().collection("users").doc(user.uid).collection("listeningHistory").add({
+        ...row, created_at: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    } catch (e) { console.warn("청취 기록 저장 실패:", e); }
+  }
+  const local = readLocalPersonal();
+  writeLocalPersonal({ ...local, listeningHistory: LISTEN_HISTORY });
+}
+function flushActiveMetric(reason) {
+  if (!ACTIVE_METRIC_ID) return;
+  const id = ACTIVE_METRIC_ID, m = TRACK_METRICS[id];
+  ACTIVE_METRIC_ID = null;
+  LAST_PLAYBACK_POSITION = null; LAST_PLAYBACK_TS = 0;
+  if (m) saveListeningRecord(id, m, reason);
+}
+function ensureMetric(songId, durationSec) {
+  if (!TRACK_METRICS[songId]) TRACK_METRICS[songId] = {
+    listenedSeconds:0, durationSec:Number(durationSec)||0, seekEvents:0, startedAt:Date.now(), lastCounted:0
+  };
+  if (durationSec) TRACK_METRICS[songId].durationSec = Number(durationSec);
+  ACTIVE_METRIC_ID = songId;
+  return TRACK_METRICS[songId];
+}
+function totalListenedSeconds() {
+  return Object.values(TRACK_METRICS).reduce((a, m) => a + (m.listenedSeconds || 0), 0);
+}
+/* 실청취 누적이 기준을 넘으면 '청취 후 변화' 입력을 연다 (재생 중 주기적으로 호출됨) */
+function updateAfterGate() {
+  if (AFTER_UNLOCKED) return;
+  const t = totalListenedSeconds();
+  const slider = $("afterChange"), btn = $("afterSubmit"), gate = $("afterGate");
+  if (!slider) return;
+  if (t >= AFTER_UNLOCK_SECONDS) {
+    AFTER_UNLOCKED = true;
+    slider.disabled = false; if (btn) btn.disabled = false;
+    if (gate) gate.textContent = "충분히 들었어요. 나가기 전에 지금 상태를 남겨주세요.";
+    logEvent("after_unlock", { listened_seconds: Math.round(t) });
+  } else if (gate) {
+    gate.textContent = "음악을 실제로 " + Math.ceil(AFTER_UNLOCK_SECONDS - t) + "초 더 들으면 기록을 남길 수 있어요.";
+  }
+}
+function listeningPct(songId) {
+  const m = TRACK_METRICS[songId];
+  return m && m.durationSec ? Math.min(1, m.listenedSeconds / m.durationSec) : 0;
+}
+function renderMyAzt() {
+  const sec = $("myAzt"); if (!sec || sec.hidden) return;
+  const nameInput=$("myDisplayName"); if(nameInput) nameInput.value=(USER_PROFILE&&USER_PROFILE.display_name)||firebase.auth().currentUser?.displayName||"";
+  const minInput=$("myRecommendMinutes"); if(minInput) minInput.value=String(RECOMMEND_MINUTES);
+  const lyricInput=$("myLyric"); if(lyricInput) lyricInput.value=$("lyric")?.value||USER_PROFILE?.lyric_preference_default||"no_preference";
+  const ge=$("myGenreEdit"); if(ge){ ge.innerHTML=GENRE_OPTIONS.map(g=>"<button type='button' aria-pressed='"+SELECTED_GENRES.includes(g)+"' data-my-genre='"+esc(g)+"'>"+esc(g)+"</button>").join(""); ge.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{const g=b.dataset.myGenre;if(SELECTED_GENRES.includes(g))SELECTED_GENRES=SELECTED_GENRES.filter(x=>x!==g);else SELECTED_GENRES=[...SELECTED_GENRES,g];b.setAttribute("aria-pressed",String(SELECTED_GENRES.includes(g)));renderGenreChips();})); }
+  const state=$("myStateSummary"); if(state) state.textContent=CUR_VA&&TGT_VA ? "지금: "+vaWord(CUR_VA)+" → 목표: "+vaWord(TGT_VA) : "아직 오늘의 상태가 없어요.";
+  const pl = $("myPlaylist");
+  const ps = [...PLAYLIST_SONGS].map(songById).filter(Boolean);
+  /* 포스트잇 벽: 곡 id 해시로 기울기를 정해 렌더마다 같은 자리에 같은 각도로 붙어 있게 한다 */
+  const tilt = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) % 997;
+                         return { rot: ((h % 50) / 10 - 2.5).toFixed(1), tape: ((h % 17) - 8) }; };
+  if (!ps.length) {
+    pl.innerHTML = "<div class='wall'><div class='wall-empty'>아직 비어 있는 벽이에요.<br/>감상 페이지에서 마음에 드는 곡에 「벽에 붙이기」를 누르면 첫 메모지가 붙습니다.</div></div>";
+  } else {
+    pl.innerHTML = "<div class='wall'>" + ps.map(s => {
+      const t = tilt(s.id), memo = PLAYLIST_NOTES[s.id] || "";
+      return "<article class='note' style='--rot:" + t.rot + "deg;--tape:" + t.tape + "deg'>"
+        + "<span class='tape' aria-hidden='true'></span>"
+        + "<b>" + esc(s.title) + "</b><span class='note-artist'>" + esc(s.artist) + "</span>"
+        + "<textarea class='note-memo' maxlength='80' data-note-memo='" + esc(s.id) + "' placeholder='이 곡의 한 줄 기록…' aria-label='" + esc(s.title) + " 메모'>" + esc(memo) + "</textarea>"
+        + "<div class='note-foot'>" + (s.spotifyUrl ? "<a class='spotify' data-song-id='" + esc(s.id) + "' href='" + s.spotifyUrl + "' target='_blank' rel='noopener'>듣기</a>" : "<span></span>")
+        + "<button class='note-peel' type='button' data-remove-play='" + esc(s.id) + "'>떼어내기</button></div></article>";
+    }).join("") + "</div>";
+  }
+  pl.querySelectorAll("[data-remove-play]").forEach(b => b.addEventListener("click", () => setSongFeedback(b.dataset.removePlay, "playlist")));
+  pl.querySelectorAll("[data-note-memo]").forEach(ta => ta.addEventListener("blur", async () => {
+    const id = ta.dataset.noteMemo, text = ta.value.trim();
+    if ((PLAYLIST_NOTES[id] || "") === text) return;
+    if (text) PLAYLIST_NOTES[id] = text; else delete PLAYLIST_NOTES[id];
+    await persistPreferencePatch({ playlistNotes: PLAYLIST_NOTES });
+    const local = readLocalPersonal(); writeLocalPersonal({ ...local, playlistNotes: PLAYLIST_NOTES });
+  }));
+  const hi = $("myHistory");
+  hi.innerHTML = LISTEN_HISTORY.slice(0,6).map(h => { const s=songById(h.songId); return "<div class='history-row'><span>"+(s?esc(s.title):esc(h.songId))+"</span><span>"+Math.round((h.completionRate||0)*100)+"%</span></div>"; }).join("") || "<p>아직 기록이 없어요.</p>";
+  $("myFeedbackSummary").textContent = "좋아요 " + LIKED_SONGS.size + "곡 · 싫어요 " + DISLIKED_SONGS.size + "곡 · 벽에 " + PLAYLIST_SONGS.size + "곡";
+}
+async function saveMyPrefs(){
+  const name=$("myDisplayName")?.value.trim()||"";
+  const minutes=Number($("myRecommendMinutes")?.value||30);
+  const lyric=$("myLyric")?.value||"no_preference";
+  const patch={display_name:name,recommend_minutes:minutes,lyric_preference_default:lyric,preferred_genres:[...SELECTED_GENRES]};
+  RECOMMEND_MINUTES=minutes; $("listenTime").value=String(minutes); $("lyric").value=lyric; renderGenreChips();
+  const ok=await persistPreferencePatch(patch); const local=readLocalPersonal(); writeLocalPersonal({...local,...patch});
+  $("myEditStatus").textContent=ok?"저장했어요. 다음 추천부터 반영됩니다.":"이 기기에서 저장했어요. 로그인하면 계정에도 이어집니다.";
+  updateAuthUI(firebase.auth().currentUser); renderMyAzt();
+}
+async function openMyAzt() {
+  const sec = $("myAzt"); if (!sec) return;
+  sec.hidden = false; renderMyAzt(); goScene("myAzt");
+}
+
 async function loadPersonalFeedback(uid) {
-  PERSONAL_FB = {};
-  const add = (id, v) => { PERSONAL_FB[id] = (PERSONAL_FB[id] || 0) + v; };
+  PERSONAL_FB = {}; PERSONAL_FB_N = {};
+  const add = (id, v) => { PERSONAL_FB[id] = (PERSONAL_FB[id] || 0) + v;
+                           PERSONAL_FB_N[id] = (PERSONAL_FB_N[id] || 0) + 1; };
   try {
     const db = firebase.firestore();
-    const recSnap = await db.collection("recommendations").where("user_id", "==", uid).limit(100).get();
+    /* R6: 최신순 정렬로 '최근 N건'을 보장. where+orderBy 조합은 Firestore 복합 색인이
+       필요하다 — 색인이 없으면 콘솔 오류의 생성 링크로 한 번 만들면 되고,
+       그 전까지는 정렬 없이 폴백해 기능이 멈추지 않게 한다. */
+    const queryRecent = async (col, lim) => {
+      try {
+        return await db.collection(col).where("user_id", "==", uid)
+          .orderBy("created_at", "desc").limit(lim).get();
+      } catch (e) {
+        if (e.code === "failed-precondition") {
+          console.warn("[R6] " + col + " 복합 색인 필요 — 이 오류 메시지의 링크로 색인을 만들면 최근 " + lim + "건이 보장됩니다. 임시로 정렬 없이 로드합니다.", e.message);
+          return await db.collection(col).where("user_id", "==", uid).limit(lim).get();
+        }
+        throw e;
+      }
+    };
+    const recSnap = await queryRecent("recommendations", 100);
     const recSongs = {};
     recSnap.forEach(d => {
       recSongs[d.id] = (d.data().sequence || []).filter(r => r.role === "path").map(r => r.song_id);
     });
-    const evSnap = await db.collection("context_events").where("user_id", "==", uid).limit(400).get();
+    const evSnap = await queryRecent("context_events", 400);
     evSnap.forEach(d => {
       const e = d.data();
       if (e.type === "track_complete" && e.payload && e.payload.song_id) add(e.payload.song_id, 0.3);
@@ -1094,8 +1355,12 @@ async function loadGlobalStats() {
       const s = d.data();
       let g = 0;
       if (s.n_change) g += Math.max(-1, Math.min(1, (s.sum_change / s.n_change) / 2)) * 0.8;  // 평균 전후 변화 (-2~+2 → -1~+1)
-      if (s.completes) g += Math.min(0.2, s.completes * 0.02);                                 // 완청 누적, 약한 상한
-      GLOBAL_FB[d.id] = g;
+      if (s.completes) g += Math.min(0.2, s.completes * 0.02);
+      if (s.likes) g += Math.min(0.4, s.likes * 0.04);
+      if (s.dislikes) g -= Math.min(0.4, s.dislikes * 0.05);
+      /* R1: 이 곡에 대한 전체 관측 건수가 적을수록 통계를 덜 믿는다 */
+      const gn = (s.n_change||0)+(s.likes||0)+(s.dislikes||0)+(s.completes||0)+(s.clicks||0)+(s.playlistAdds||0);
+      GLOBAL_FB[d.id] = g * (gn / (gn + GLOBAL_K));
     });
   } catch (e) {
     console.warn("전체 피드백 통계 로드 실패(song_stats 규칙 필요):", e);
@@ -1122,7 +1387,17 @@ function personalBonus(s) {
     if (s.genres && s.genres.length && gs.length &&
         gs.some(g => s.genres.some(x => String(x).toLowerCase().includes(g.toLowerCase())))) b += GENRE_BONUS;
   }
-  if (PERSONAL_FB[s.id]) b += PERSONAL_FB_W * Math.max(-1, Math.min(1, PERSONAL_FB[s.id]));
+  if (LIKED_SONGS.has(s.id)) b += 0.18;
+  if (PLAYLIST_SONGS.has(s.id)) b += 0.10;
+  if (DISLIKED_SONGS.has(s.id)) b -= 0.35;
+  if (SELECTED_GENRES.length && s.genres && s.genres.length) {
+    const hits = s.genres.filter(g => SELECTED_GENRES.some(x => String(g).toLowerCase().includes(String(x).toLowerCase()))).length;
+    b += Math.min(0.10, hits * 0.04);
+  }
+  if (PERSONAL_FB[s.id]) {
+    const pn = PERSONAL_FB_N[s.id] || 1;
+    b += PERSONAL_FB_W * (pn / (pn + PERSONAL_K)) * Math.max(-1, Math.min(1, PERSONAL_FB[s.id]));   // R1
+  }
   if (GLOBAL_FB[s.id])   b += GLOBAL_FB_W   * Math.max(-1, Math.min(1, GLOBAL_FB[s.id]));
   return b;
 }
@@ -1175,6 +1450,8 @@ async function logRecommendation(input, seq, extras) {
       algorithm_version: ALGO_VERSION,
       input: {
         lyric_preference: input.lyric,
+        genres: input.genres || [],
+        recommend_minutes: input.minutes || 30,
         current_va: LAST_CUR_VA,   // 사용자가 좌표에 직접 탭한 지금 상태
         target_va: LAST_TGT_VA,    // 사용자가 좌표에 직접 탭한 목표 상태
         input_mode: { current: CUR_MODE, target: TGT_MODE },   // 점별 입력 방식: tap | chip | nl
@@ -1193,13 +1470,20 @@ async function logEvent(type, payload) {
   /* 전체 사용자 통계(song_stats)와 이 세션의 개인 피드백을 함께 갱신 —
      다음 추천부터 바로 반영된다. */
   const inc = firebase.firestore.FieldValue.increment;
-  const addLocal = (id, v) => { PERSONAL_FB[id] = (PERSONAL_FB[id] || 0) + v; };
+  const addLocal = (id, v) => { PERSONAL_FB[id] = (PERSONAL_FB[id] || 0) + v;
+                                PERSONAL_FB_N[id] = (PERSONAL_FB_N[id] || 0) + 1; };
   if (type === "spotify_click" && payload.song_id) {
     bumpStats(payload.song_id, { clicks: inc(1) });
     addLocal(payload.song_id, 0.15);
   } else if (type === "track_complete" && payload.song_id) {
     bumpStats(payload.song_id, { completes: inc(1) });
     addLocal(payload.song_id, 0.3);
+  } else if (type === "like" && payload.song_id) {
+    bumpStats(payload.song_id, { likes: inc(1) });        // R2: 개인 점수는 상태 보너스(+0.18)로만 — 이벤트 적립 제거
+  } else if (type === "dislike" && payload.song_id) {
+    bumpStats(payload.song_id, { dislikes: inc(1) });     // R2: 상태(−0.35 + 풀 제외)로만
+  } else if (type === "playlist_add" && payload.song_id) {
+    bumpStats(payload.song_id, { playlistAdds: inc(1) }); // R2: 상태(+0.10)로만
   } else if (type === "post_change" && typeof payload.change === "number") {
     LAST_PATH_IDS.forEach(id => {
       bumpStats(id, { sum_change: inc(payload.change), n_change: inc(1) });
@@ -1241,93 +1525,115 @@ function nowPlayingText() {
 function setupPlayer(seq) {
   QUEUE = seq.filter(s => s.trackId);
   QUEUE_IDX = 0;
+  TRACK_METRICS = {};
+  ACTIVE_METRIC_ID = null;
+  LAST_PLAYBACK_POSITION = null;
+  AFTER_UNLOCKED = false;
   const mount = () => {
     const host = $("embedHost");
     if (!host || QUEUE.length === 0) return;
     try { if (EMBED_CTRL) EMBED_CTRL.destroy(); } catch (e) {}
     EMBED_CTRL = null;
+    const syncPlayerUI = () => {
+      const song = QUEUE[QUEUE_IDX], m = song && TRACK_METRICS[song.id];
+      const pct = m && m.durationSec ? Math.min(100, m.listenedSeconds/m.durationSec*100) : 0;
+      const bar = $("listenMetricBar"); if (bar) bar.style.width = pct + "%";
+      const txt = $("listenMetricText"); if (txt) txt.textContent = "실제 청취 " + Math.round(pct) + "%";
+      const sec = $("listenSecondsText"); if (sec) sec.textContent = Math.floor(m?.listenedSeconds || 0) + "초";
+      updateAfterGate();
+      const songTitle=$("nowPlayingTitle"), artist=$("nowPlayingArtist"); if(songTitle) songTitle.textContent=song?.title||""; if(artist) artist.textContent=song?.artist||"";
+      const currentCard=document.querySelector(".current-song-card");
+      if(currentCard && song){ currentCard.setAttribute("data-song-card",song.id); currentCard.querySelectorAll("[data-song-id]").forEach(b=>b.dataset.songId=song.id); }
+      refreshSongActions(song?.id);
+    };
     SpotifyIFrameAPI.createController(host, {
-      uri: "spotify:track:" + QUEUE[0].trackId,
-      width: "100%", height: 152
-    }, (ctrl) => {
+      uri:"spotify:track:"+QUEUE[0].trackId, width:"100%", height:152
+    }, ctrl => {
       EMBED_CTRL = ctrl;
-      let started = false;    // 이번 곡에서 재생이 실제로 시작됐는지
-      let advancing = false;  // 곡 전환 중 중복 감지 방지
-      let fired = {};         // 이번 곡에서 이미 기록한 마일스톤 (25/50/75)
-      const setNow = () => { const el = $("nowPlaying"); if (el) el.textContent = nowPlayingText(); };
+      let started = false, advancing = false, fired = {};
+      const setNow = () => { const el=$("nowPlaying"); if(el) el.textContent=nowPlayingText(); };
       const setNavState = () => {
-        const pv = $("prevTrack"), nx = $("nextTrack");
-        if (pv) pv.disabled = QUEUE_IDX <= 0;
-        if (nx) nx.disabled = QUEUE_IDX >= QUEUE.length - 1;
+        const pv=$("prevTrack"), nx=$("nextTrack");
+        if(pv) pv.disabled=QUEUE_IDX<=0; if(nx) nx.disabled=QUEUE_IDX>=QUEUE.length-1;
       };
-      // 지정 곡으로 이동 (자동 이어재생과 수동 넘기기가 공용)
-      const goTo = (idx) => {
-        QUEUE_IDX = idx;
-        ctrl.loadUri("spotify:track:" + QUEUE[idx].trackId);
-        ctrl.play();
-        setNow(); setNavState();
-        started = false;
-        fired = {};   // 새 곡의 마일스톤은 처음부터 다시
-        setTimeout(() => { advancing = false; }, 1500);
+      const goTo = idx => {
+        if (!QUEUE[idx]) return;
+        flushActiveMetric("track_switch");
+        const keepPlaying = started;
+        QUEUE_IDX=idx; LAST_PLAYBACK_POSITION=null; fired={}; started=false;
+        ctrl.loadUri("spotify:track:"+QUEUE[idx].trackId);
+        if(keepPlaying) setTimeout(()=>{try{ctrl.play();}catch(e){console.warn("Spotify 다음 곡 자동재생 실패",e)}},220);
+        ensureMetric(QUEUE[idx].id, 0); setNow(); setNavState(); syncPlayerUI(); setPlayUI(keepPlaying);
+        setTimeout(()=>{advancing=false;},1200);
       };
-      setNow(); setNavState();
+      ensureMetric(QUEUE[0].id, 0); setNow(); setNavState(); syncPlayerUI(); const ov=$("playOverlay"); if(ov) ov.hidden=false;
 
-      // 곡 넘기기 버튼: 수동 이동은 track_skip으로 기록 (이탈 신호로 활용)
-      const pv = $("prevTrack"), nx = $("nextTrack");
-      const manualJump = (dir) => {
-        const to = QUEUE_IDX + dir;
-        if (to < 0 || to >= QUEUE.length || advancing) return;
-        advancing = true;
-        logEvent("track_skip", {
-          song_id: QUEUE[QUEUE_IDX].id, position: QUEUE_IDX + 1,
-          direction: dir > 0 ? "next" : "prev"
-        });
+      const startBtn=$("playerStart"), overlay=$("playOverlay"), playToggle=$("aztPlayToggle");
+      let uiPlaying = false;
+      const setPlayUI = (playing) => {
+        uiPlaying = !!playing;
+        if (playToggle) {
+          playToggle.textContent = uiPlaying ? "Ⅱ 일시정지" : "▶ 재생";
+          playToggle.classList.toggle("is-playing", uiPlaying);
+          playToggle.setAttribute("aria-label", uiPlaying ? "음악 일시정지" : "음악 재생");
+        }
+        if (overlay) overlay.hidden = uiPlaying;
+      };
+      const startPlayback=()=>{ try { ctrl.play(); setPlayUI(true); const t=$("playerFeedbackToast"); if(t) t.textContent="음악이 시작됐어요. 천천히 들어보세요."; } catch(e){ console.warn("Spotify 재생 시작 실패",e); if(overlay) overlay.hidden=false; } };
+      const togglePlayback=()=>{ try { if(uiPlaying){ ctrl.pause(); setPlayUI(false); } else { ctrl.play(); setPlayUI(true); } } catch(e){ console.warn("Spotify 재생/일시정지 실패",e); } };
+      setPlayUI(false);
+      if(startBtn) startBtn.addEventListener("click",startPlayback);
+      if(playToggle) playToggle.addEventListener("click",togglePlayback);
+      const pv=$("prevTrack"), nx=$("nextTrack");
+      const manualJump=dir=>{
+        const to=QUEUE_IDX+dir;
+        if(to<0||to>=QUEUE.length||advancing)return;
+        advancing=true;
+        if (QUEUE[QUEUE_IDX]) { const m=ensureMetric(QUEUE[QUEUE_IDX].id, TRACK_METRICS[QUEUE[QUEUE_IDX].id]?.durationSec); m.skipped=true; }
+        logEvent("track_skip",{song_id:QUEUE[QUEUE_IDX].id,position:QUEUE_IDX+1,direction:dir>0?"next":"prev"});
         goTo(to);
       };
-      if (pv) pv.addEventListener("click", () => manualJump(-1));
-      if (nx) nx.addEventListener("click", () => manualJump(1));
+      if(pv) pv.addEventListener("click",()=>manualJump(-1));
+      if(nx) nx.addEventListener("click",()=>manualJump(1));
 
-      ctrl.addListener("playback_update", (e) => {
-        const d = e.data || {};
-        if (advancing) return;
-        if (!started && !d.isPaused && d.position > 1000) {
-          started = true;
-          if (QUEUE_IDX === 0) logEvent("sequence_play_start", { song_id: QUEUE[0].id });
-        }
-        // §부분 청취: 재생 위치가 25/50/75%를 넘을 때마다 마일스톤 1건씩 기록.
-        // duration_ms를 같이 저장해 미리듣기(약 30초)와 전곡을 분석 시 구분한다.
-        if (started && d.duration > 0) {
-          const pct = (d.position / d.duration) * 100;
-          for (const m of [25, 50, 75]) {
-            if (!fired[m] && pct >= m) {
-              fired[m] = true;
-              logEvent("track_milestone", {
-                song_id: QUEUE[QUEUE_IDX].id, position: QUEUE_IDX + 1,
-                milestone: m, duration_ms: Math.round(d.duration)
-              });
-            }
+      ctrl.addListener("playback_update", e=>{
+        const d=e.data||{}, song=QUEUE[QUEUE_IDX]; if(!song||advancing)return;
+        setPlayUI(!d.isPaused && Number(d.position||0)>0);
+        const pos=Math.max(0,Number(d.position)||0)/1000, dur=Math.max(0,Number(d.duration)||0)/1000;
+        const m=ensureMetric(song.id,dur);
+        const now=performance.now();
+        const wasPlaying=!!m._wasPlaying;
+        if(!d.isPaused && pos>0.2 && !started){ started=true; if(QUEUE_IDX===0) logEvent("sequence_play_start",{song_id:song.id}); }
+        if(!d.isPaused){
+          if(wasPlaying && m._lastSampleTs>0){
+            const positionDelta=pos-m._lastSamplePos;
+            const wallDelta=Math.max(0,(now-m._lastSampleTs)/1000);
+            if(positionDelta>0 && positionDelta <= wallDelta+1.25) m.listenedSeconds += Math.min(positionDelta,wallDelta+1.25);
+            else if(positionDelta>1.25){ m.seekEvents++; logEvent("seek",{song_id:song.id,position:QUEUE_IDX+1,from_seconds:Math.round(m._lastSamplePos),to_seconds:Math.round(pos)}); }
           }
+          m._lastSamplePos=pos; m._lastSampleTs=now; m._wasPlaying=true;
+        } else { m._wasPlaying=false; m._lastSamplePos=pos; m._lastSampleTs=now; }
+        LAST_PLAYBACK_POSITION=pos; LAST_PLAYBACK_TS=now;
+        if(dur>0){
+          m.durationSec=dur;
+          const pct=m.listenedSeconds/dur;
+          m._fired=m._fired||{};
+          for(const mark of [25,50,75]) if(!m._fired[mark] && pct>=mark/100){m._fired[mark]=true;logEvent("track_milestone",{song_id:song.id,position:QUEUE_IDX+1,milestone:mark,duration_ms:Math.round(d.duration)});}
         }
-        // 곡 종료 감지: 끝 지점 도달 또는 (재생됐던 곡이) 0초로 되돌아가 멈춘 경우
-        const ended = d.duration > 0 &&
-          (d.position >= d.duration - 400 || (started && d.isPaused && d.position === 0));
-        if (!ended) return;
-        advancing = true;
-        logEvent("track_complete", { song_id: QUEUE[QUEUE_IDX].id, position: QUEUE_IDX + 1 });
-        if (QUEUE_IDX + 1 < QUEUE.length) {
-          goTo(QUEUE_IDX + 1);
-        } else {
-          logEvent("sequence_complete", {});
-          const el = $("nowPlaying");
-          if (el) el.textContent = "시퀀스 재생 완료 — 아래에서 지금 상태를 기록해 주시면 큰 도움이 돼요.";
+        syncPlayerUI();
+        const toast=$("playerFeedbackToast");
+        if(toast) toast.textContent = m.listenedSeconds < 10 ? "실제로 " + Math.ceil(10-m.listenedSeconds) + "초만 더 들으면 좋아요가 열려요." : "좋아요가 열렸어요. 끝까지 들으면 다음 곡으로 이어집니다.";
+        if(dur>0 && pos>=dur-0.45){
+          advancing=true; saveListeningRecord(song.id,m,"complete");
+          logEvent("track_complete",{song_id:song.id,position:QUEUE_IDX+1,completion_rate:Math.min(1,m.listenedSeconds/m.durationSec)});
+          if(QUEUE_IDX+1<QUEUE.length) goTo(QUEUE_IDX+1);
+          else { logEvent("sequence_complete",{minutes:RECOMMEND_MINUTES}); flushActiveMetric("sequence_complete"); }
         }
       });
     });
   };
-  if (SpotifyIFrameAPI) mount();
-  else PENDING_MOUNT = mount;
+  if(SpotifyIFrameAPI) mount(); else PENDING_MOUNT=mount;
 }
-
 function songVA(s) {
   if (s.va) return s.va;
   return { v: 0.5, e: (typeof s.tags.energizing_suitability === "number" ? s.tags.energizing_suitability : 0.5) };
@@ -1346,7 +1652,7 @@ let SONGS_READY = false;
 const PLANE = { W: 560, H: 380, PAD: 44 };
 const PX = v => PLANE.PAD + v * (PLANE.W - 2 * PLANE.PAD);
 const PY = e => (PLANE.H - PLANE.PAD) - e * (PLANE.H - 2 * PLANE.PAD);
-const svgLab = (x,y,t,size,fill,weight) => '<text x="'+x+'" y="'+y+'" font-size="'+(size||12)+'" fill="'+(fill||"#47635b")+'"'+(weight?' font-weight="'+weight+'"':'')+' text-anchor="middle" font-family="Pretendard Variable, sans-serif">'+t+'</text>';
+const svgLab = (x,y,t,size,fill,weight) => '<text x="'+x+'" y="'+y+'" font-size="'+(size||12)+'" fill="'+(fill||"#6f6f6d")+'"'+(weight?' font-weight="'+weight+'"':'')+' text-anchor="middle" font-family="Pretendard Variable, sans-serif">'+t+'</text>';
 
 function initPlane() {
   const { W, H, PAD } = PLANE;
@@ -1355,37 +1661,20 @@ function initPlane() {
     + ' aria-label="상태 좌표 입력. 첫 탭은 지금 상태, 둘째 탭은 목표 상태입니다. 화살표 키로 마지막 지정 위치를 조정할 수 있어요.">';
   // 연속 색 지형: 네 꼭짓점에서 색이 퍼져나와 중앙에서 자연스럽게 섞인다.
   // 경계선 없는 그라디언트 — 감정이 구역으로 나뉘지 않고 연속임을 시각화.
-  const RAD = Math.hypot(W - 2*PAD, H - 2*PAD) * 0.72;
-  const corner = (id, x, y, color) =>
-    '<radialGradient id="' + id + '" gradientUnits="userSpaceOnUse" cx="' + x + '" cy="' + y + '" r="' + RAD + '">'
-    + '<stop offset="0" stop-color="' + color + '" stop-opacity="0.40"/>'
-    + '<stop offset="0.55" stop-color="' + color + '" stop-opacity="0.13"/>'
-    + '<stop offset="1" stop-color="' + color + '" stop-opacity="0"/></radialGradient>';
-  s += '<defs>'
-    + '<clipPath id="planeClip"><rect x="' + PAD + '" y="' + PAD + '" width="' + (W-2*PAD) + '" height="' + (H-2*PAD) + '" rx="10"/></clipPath>'
-    + corner("cTL", PAD, PAD, "#d95d4e")
-    + corner("cTR", W-PAD, PAD, "#e0a23f")
-    + corner("cBL", PAD, H-PAD, "#6f89a6")
-    + corner("cBR", W-PAD, H-PAD, "#4f9e6e")
-    + '</defs>';
-  s += '<rect x="' + PAD + '" y="' + PAD + '" width="' + (W-2*PAD) + '" height="' + (H-2*PAD) + '" fill="#ffffff" stroke="#dfe9e4" rx="10"/>';
-  const field = '<rect x="' + PAD + '" y="' + PAD + '" width="' + (W-2*PAD) + '" height="' + (H-2*PAD) + '"';
-  s += '<g clip-path="url(#planeClip)">'
-    + field + ' fill="url(#cTL)"/>' + field + ' fill="url(#cTR)"/>'
-    + field + ' fill="url(#cBL)"/>' + field + ' fill="url(#cBR)"/>'
-    + '</g>';
-  // 좌표 읽기 보조선 — 구역 경계가 아니라 눈금이므로 아주 옅게
-  s += '<line x1="' + cx + '" y1="' + PAD + '" x2="' + cx + '" y2="' + (H-PAD) + '" stroke="#ffffff" stroke-opacity="0.55" stroke-dasharray="3 7"/>';
-  s += '<line x1="' + PAD + '" y1="' + cy + '" x2="' + (W-PAD) + '" y2="' + cy + '" stroke="#ffffff" stroke-opacity="0.55" stroke-dasharray="3 7"/>';
+  /* 모노크롬: 감정 구역을 색이 아니라 라벨과 위치로만 표현한다.
+     흰 면 + 1px 테두리 + 옅은 회색 점선 눈금. */
+  s += '<rect x="' + PAD + '" y="' + PAD + '" width="' + (W-2*PAD) + '" height="' + (H-2*PAD) + '" fill="#ffffff" stroke="#d8d8d6"/>';
+  s += '<line x1="' + cx + '" y1="' + PAD + '" x2="' + cx + '" y2="' + (H-PAD) + '" stroke="#e4e4e2" stroke-dasharray="3 6"/>';
+  s += '<line x1="' + PAD + '" y1="' + cy + '" x2="' + (W-PAD) + '" y2="' + cy + '" stroke="#e4e4e2" stroke-dasharray="3 6"/>';
   s += svgLab(cx, 20, "깨어있음·들뜸");
   s += svgLab(cx, H-10, "나른함·차분");
   s += svgLab(26, cy+4, "기분 ↓");
   s += svgLab(W-26, cy+4, "기분 ↑");
-  s += svgLab(PX(0.25), PY(0.88), "긴장되는 쪽", 11.5, "#a34537", 600);
-  s += svgLab(PX(0.75), PY(0.88), "신나는 쪽", 11.5, "#96692a", 600);
-  s += svgLab(PX(0.25), PY(0.10), "처지는 쪽", 11.5, "#4a617c", 600);
-  s += svgLab(PX(0.75), PY(0.10), "편안한 쪽", 11.5, "#2f6b49", 600);
-  s += svgLab(cx + 24, cy - 8, "보통", 10, "#9fb5ad");
+  s += svgLab(PX(0.25), PY(0.88), "긴장되는 쪽", 11, "#4a4a48", 600);
+  s += svgLab(PX(0.75), PY(0.88), "신나는 쪽", 11, "#4a4a48", 600);
+  s += svgLab(PX(0.25), PY(0.10), "처지는 쪽", 11, "#4a4a48", 600);
+  s += svgLab(PX(0.75), PY(0.10), "편안한 쪽", 11, "#4a4a48", 600);
+  s += svgLab(cx + 24, cy - 8, "보통", 10, "#b5b5b3");
   s += '<g id="pathLayer"></g><g id="markerLayer"></g>';
   s += '</svg>';
   $("vaWrap").innerHTML = s;
@@ -1434,13 +1723,13 @@ function updatePlaneUI() {
   if (!layer) return;
   let s = "";
   if (CUR_VA) {
-    s += '<circle cx="' + PX(CUR_VA.v) + '" cy="' + PY(CUR_VA.e) + '" r="9" fill="#c96f5a"/>'
-      + svgLab(PX(CUR_VA.v), PY(CUR_VA.e) + 26, "지금", 12, "#47635b", 600);
+    s += '<circle cx="' + PX(CUR_VA.v) + '" cy="' + PY(CUR_VA.e) + '" r="8" fill="#161616"/>'
+      + svgLab(PX(CUR_VA.v), PY(CUR_VA.e) + 26, "지금", 12, "#3a3a38", 600);
   }
   if (TGT_VA) {
-    s += '<circle cx="' + PX(TGT_VA.v) + '" cy="' + PY(TGT_VA.e) + '" r="10" fill="none" stroke="#0e6b5b" stroke-width="2.5"/>'
-      + '<circle cx="' + PX(TGT_VA.v) + '" cy="' + PY(TGT_VA.e) + '" r="3.5" fill="#0e6b5b"/>'
-      + svgLab(PX(TGT_VA.v), PY(TGT_VA.e) - 16, "목표", 12, "#47635b", 600);
+    s += '<circle cx="' + PX(TGT_VA.v) + '" cy="' + PY(TGT_VA.e) + '" r="10" fill="none" stroke="#161616" stroke-width="2"/>'
+      + '<circle cx="' + PX(TGT_VA.v) + '" cy="' + PY(TGT_VA.e) + '" r="3.5" fill="#161616"/>'
+      + svgLab(PX(TGT_VA.v), PY(TGT_VA.e) - 16, "목표", 12, "#3a3a38", 600);
   }
   layer.innerHTML = s;
 
@@ -1459,16 +1748,12 @@ function updatePlaneUI() {
   updateGo();
 }
 
-/* 좌표 → 정서 색: 사분면 꼭짓점 색을 이중선형 보간. 연속 공간임을 색으로 표현 */
-const CORNER_RGB = { TL:[217,93,78], TR:[224,162,63], BL:[111,137,166], BR:[79,158,110] };
+/* 좌표 → 흑백 농도: 각성도(활력)가 높을수록 진한 잉크, 낮을수록 옅은 회색.
+   차분해지는 여정은 톤이 점점 옅어지고, 활력 여정은 점점 짙어진다 —
+   색 없이도 ISO 이동을 농도 변화로 읽을 수 있게 한다. */
 function vaColor(p) {
-  const v = p.v, e = p.e, m = [];
-  for (let i = 0; i < 3; i++) {
-    m[i] = Math.round(
-      (1-v)*(1-e)*CORNER_RGB.BL[i] + v*(1-e)*CORNER_RGB.BR[i]
-      + (1-v)*e*CORNER_RGB.TL[i]   + v*e*CORNER_RGB.TR[i]);
-  }
-  return "rgb(" + m.join(",") + ")";
+  const l = Math.round(205 - p.e * 165);   // e=0 → 205(옅음), e=1 → 40(짙음)
+  return "rgb(" + l + "," + l + "," + l + ")";
 }
 
 /* 입력 화면의 선형 미리보기: 지금 ──→ 목표 를 한 줄로 (사분면 없이 흐름만) */
@@ -1480,30 +1765,30 @@ function renderLinearPreview() {
   if (!CUR_VA) {
     /* 아직 미선택: 같은 크기의 자리표시자를 그려 높이를 고정 (나타났다 사라지며 화면이 튀는 것 방지) */
     let ph = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="지금과 목표를 고르면 흐름이 표시됩니다">';
-    ph += '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '" stroke="#dfe9e4" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 9"/>';
-    ph += '<circle cx="' + x1 + '" cy="' + y + '" r="10" fill="none" stroke="#c9d8d2" stroke-width="2" stroke-dasharray="3 4"/>';
-    ph += svgLab(x1, y + 26, "지금은?", 11, "#9fb5ad");
-    ph += '<circle cx="' + x2 + '" cy="' + y + '" r="11" fill="none" stroke="#c9d8d2" stroke-width="2" stroke-dasharray="3 4"/>';
-    ph += svgLab(x2, y + 26, "목표는?", 11, "#9fb5ad");
+    ph += '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '" stroke="#e2e2e0" stroke-width="7" stroke-linecap="round" stroke-dasharray="2 9"/>';
+    ph += '<circle cx="' + x1 + '" cy="' + y + '" r="10" fill="none" stroke="#c8c8c6" stroke-width="2" stroke-dasharray="3 4"/>';
+    ph += svgLab(x1, y + 26, "지금은?", 11, "#b0b0ae");
+    ph += '<circle cx="' + x2 + '" cy="' + y + '" r="11" fill="none" stroke="#c8c8c6" stroke-width="2" stroke-dasharray="3 4"/>';
+    ph += svgLab(x2, y + 26, "목표는?", 11, "#b0b0ae");
     ph += '</svg>';
     box.innerHTML = ph; box.hidden = false; return;
   }
-  const c1 = vaColor(CUR_VA), c2 = TGT_VA ? vaColor(TGT_VA) : "#dfe9e4";
+  const c1 = vaColor(CUR_VA), c2 = TGT_VA ? vaColor(TGT_VA) : "#e2e2e0";
   let s = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="지금에서 목표로 가는 흐름 미리보기">';
   s += '<defs><linearGradient id="pvG" x1="0" y1="0" x2="1" y2="0">'
     + '<stop offset="0" stop-color="' + c1 + '"/><stop offset="1" stop-color="' + c2 + '"/></linearGradient></defs>';
   s += '<line x1="' + x1 + '" y1="' + y + '" x2="' + x2 + '" y2="' + y + '" stroke="url(#pvG)" stroke-width="7" stroke-linecap="round"' + (TGT_VA ? '' : ' stroke-dasharray="2 9"') + '/>';
   s += '<circle cx="' + x1 + '" cy="' + y + '" r="10" fill="' + c1 + '"/>';
-  s += svgLab(x1, y + 26, "지금", 11.5, "#47635b", 600);
-  s += svgLab(x1, y - 16, vaWord(CUR_VA), 10, "#7d938b");
+  s += svgLab(x1, y + 26, "지금", 11.5, "#3a3a38", 600);
+  s += svgLab(x1, y - 16, vaWord(CUR_VA), 10, "#9a9a97");
   if (TGT_VA) {
     s += '<circle cx="' + x2 + '" cy="' + y + '" r="11" fill="none" stroke="' + c2 + '" stroke-width="3"/>'
       + '<circle cx="' + x2 + '" cy="' + y + '" r="4" fill="' + c2 + '"/>';
-    s += svgLab(x2, y + 26, "목표", 11.5, "#47635b", 600);
-    s += svgLab(x2, y - 16, vaWord(TGT_VA), 10, "#7d938b");
+    s += svgLab(x2, y + 26, "목표", 11.5, "#3a3a38", 600);
+    s += svgLab(x2, y - 16, vaWord(TGT_VA), 10, "#9a9a97");
   } else {
-    s += '<circle cx="' + x2 + '" cy="' + y + '" r="11" fill="none" stroke="#c9d8d2" stroke-width="2" stroke-dasharray="3 4"/>';
-    s += svgLab(x2, y + 26, "목표는?", 11, "#9fb5ad");
+    s += '<circle cx="' + x2 + '" cy="' + y + '" r="11" fill="none" stroke="#c8c8c6" stroke-width="2" stroke-dasharray="3 4"/>';
+    s += svgLab(x2, y + 26, "목표는?", 11, "#b0b0ae");
   }
   s += '</svg>';
   box.innerHTML = s;
@@ -1531,18 +1816,19 @@ function journeySVG(cur, tgt, seq) {
     const col = vaColor(n.p), x = xs[i];
     if (i === 0) {
       s += '<circle cx="' + x + '" cy="' + y + '" r="11" fill="' + col + '"/>';
-      s += svgLab(x, y + 30, "지금", 11.5, "#47635b", 600);
-      s += svgLab(x, y - 20, n.sub, 9.5, "#7d938b");
+      s += svgLab(x, y + 30, "지금", 11.5, "#3a3a38", 600);
+      s += svgLab(x, y - 20, n.sub, 9.5, "#9a9a97");
     } else if (i === nodes.length - 1) {
       s += '<circle cx="' + x + '" cy="' + y + '" r="12" fill="#ffffff" stroke="' + col + '" stroke-width="3"/>'
         + '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="' + col + '"/>';
-      s += svgLab(x, y + 30, "목표", 11.5, "#47635b", 600);
-      s += svgLab(x, y - 20, n.sub, 9.5, "#7d938b");
+      s += svgLab(x, y + 30, "목표", 11.5, "#3a3a38", 600);
+      s += svgLab(x, y - 20, n.sub, 9.5, "#9a9a97");
     } else {
-      s += '<circle cx="' + x + '" cy="' + y + '" r="13" fill="' + col + '"/>';
-      s += '<text x="' + x + '" y="' + (y + 4.5) + '" font-size="12.5" fill="#ffffff" text-anchor="middle" font-family="Hahmlet, serif">' + n.label + '</text>';
+      s += '<circle cx="' + x + '" cy="' + y + '" r="13" fill="' + col + '" stroke="#161616" stroke-width="1"/>';
+      const lum = Number((col.match(/\d+/) || [0])[0]);   // 흑백이므로 첫 채널 = 밝기
+      s += '<text x="' + x + '" y="' + (y + 4.5) + '" font-size="12.5" fill="' + (lum > 130 ? "#161616" : "#ffffff") + '" text-anchor="middle" font-family="Pretendard Variable, sans-serif">' + n.label + '</text>';
       const t = n.title.length > 11 ? n.title.slice(0, 10) + "…" : n.title;
-      s += svgLab(x, y + 30, esc(t), 10, "#47635b");
+      s += svgLab(x, y + 30, esc(t), 10, "#3a3a38");
     }
   });
   s += '</svg>';
@@ -1586,10 +1872,10 @@ function drawPath(cur, tgt, seq) {
   if (!layer) return;
   let s = "";
   const pts = [[PX(cur.v), PY(cur.e)], ...seq.map(o => [PX(o._p.v), PY(o._p.e)]), [PX(tgt.v), PY(tgt.e)]];
-  s += '<polyline points="' + pts.map(p => p.join(",")).join(" ") + '" fill="none" stroke="#0e6b5b" stroke-width="2.5" stroke-dasharray="7 6" stroke-linecap="round" opacity="0.75"/>';
+  s += '<polyline points="' + pts.map(p => p.join(",")).join(" ") + '" fill="none" stroke="#161616" stroke-width="1.5" stroke-dasharray="6 6" stroke-linecap="round" opacity="0.8"/>';
   seq.forEach((o, i) => {
-    s += '<circle cx="' + PX(o._p.v) + '" cy="' + PY(o._p.e) + '" r="12" fill="#0e6b5b"/>';
-    s += '<text x="' + PX(o._p.v) + '" y="' + (PY(o._p.e)+4.5) + '" font-size="12" fill="#ffffff" text-anchor="middle" font-family="Hahmlet, serif">' + (i+1) + '</text>';
+    s += '<circle cx="' + PX(o._p.v) + '" cy="' + PY(o._p.e) + '" r="12" fill="#161616"/>';
+    s += '<text x="' + PX(o._p.v) + '" y="' + (PY(o._p.e)+4.5) + '" font-size="12" fill="#ffffff" text-anchor="middle" font-family="Pretendard Variable, sans-serif">' + (i+1) + '</text>';
   });
   layer.innerHTML = s;
   updatePlaneUI();  // 지금/목표 마커가 경로 위에 오도록 다시 그림
@@ -1609,7 +1895,7 @@ function nlStatusMsg(msg, isErr) {
   const el = $("nlStatus");
   if (!el) return;
   el.textContent = msg || "";   /* 빈 문구여도 한 줄 높이를 유지해 화면이 튀지 않게 한다 */
-  el.style.color = isErr ? "#a34537" : "";
+  el.style.color = isErr ? "#161616" : ""; el.style.fontWeight = isErr ? "700" : "";
 }
 
 const validPt = (p) =>
@@ -1724,11 +2010,16 @@ async function initNL() {
 }
 
 function recommend() {
-  if (!CUR_VA || !TGT_VA) return;      // 지금·목표 둘 다 탭해야 활성화되지만 이중 방어
+  if (!CUR_VA || !TGT_VA) return;
   const lyric = $("lyric").value;
-  const target = blendTarget(TGT_VA);  // 목표 좌표 → 6종 태그 목표 (코너 보간)
-
+  RECOMMEND_MINUTES = Number($("listenTime").value) || 30;
+  SELECTED_GENRES = [...SELECTED_GENRES];
+  const target = blendTarget(TGT_VA);
   let pool = SONGS;
+  if (SELECTED_GENRES.length) {
+    const genrePool = pool.filter(s => s.genres && s.genres.some(g => SELECTED_GENRES.some(x => String(g).toLowerCase().includes(String(x).toLowerCase()))));
+    if (genrePool.length >= Math.min(3, pool.length)) pool = genrePool;
+  }
   if (lyric === "instrumental_only")
     pool = pool.filter(s => (s.tags.instrumental_probability ?? 0) >= INSTRUMENTAL_ONLY_MIN);
   else if (lyric === "prefer_instrumental")
@@ -1736,123 +2027,98 @@ function recommend() {
   else if (lyric === "prefer_vocal")
     pool = pool.filter(s => (s.tags.instrumental_probability ?? 1) <= 0.7);
 
-  const ranked = pool
-    .map(s => ({ ...s, score: weightedFit(s.tags, target) + personalBonus(s) }))  // 취향·피드백 보정 포함
-    .sort((a, b) => b.score - a.score);
-
-  // ISO 시퀀스: 목표 기준으로 후보를 미리 자르지 않고, (가사 필터를 통과한)
-  // 전체 pool에서 경유지마다 곡을 고른다. 첫 경유지 t=0 → 현재 상태와 동조.
-  // 245곡 × 경유지 3개 전수 탐색이라 성능 문제 없음.
-  const cur = CUR_VA, tgt = TGT_VA;   // 둘 다 사용자가 좌표에 직접 탭한 값
-  const n = Math.min(PATH_SONGS, ranked.length);
-  const used = new Set();
-  const seq = [];
-  for (let i = 0; i < n; i++) {
-    const t = (n === 1) ? 1 : WAYPOINT_START + (1 - WAYPOINT_START) * (i / (n - 1));
-    const wp = { v: cur.v + (tgt.v - cur.v) * t, e: cur.e + (tgt.e - cur.e) * t };
-    const prev = seq.length ? seq[seq.length - 1]._p : { v: cur.v, e: cur.e };
-    const pick = (limitJump) => {
-      let best = null, bestCost = Infinity;
-      for (const c of ranked) {
-        if (used.has(c.id)) continue;
-        const pva = songVA(c);
-        // 급점프 방지: 직전 곡(또는 현재 상태)에서 너무 먼 곡은 1차 탐색에서 제외
-        if (limitJump && Math.hypot(pva.v - prev.v, pva.e - prev.e) > MAX_STEP_JUMP) continue;
-        let cost = Math.hypot(pva.v - wp.v, pva.e - wp.e) - c.score * SCORE_W;
-        // §4 템포 보조: 경유지 각성도가 낮을수록 느린 곡 선호 (50~180BPM → 0~1 근사)
-        if (TEMPO_W > 0 && c.tempo) {
-          const tn = Math.min(1, Math.max(0, (c.tempo - 50) / 130));
-          cost += Math.abs(tn - wp.e) * TEMPO_W;
-        }
-        if (cost < bestCost) { bestCost = cost; best = c; }
-      }
-      return best;
-    };
-    const best = pick(true) || pick(false); // 상한 안에 곡이 없으면 제한 해제 재탐색
-    if (best) { used.add(best.id); seq.push({ ...best, _p: songVA(best) }); }
-  }
-
-  // 시퀀스 외 추가 추천(목표 상태에 맞는 곡)
-  const extras = ranked.filter(s => !used.has(s.id)).slice(0, Math.max(0, TOP_K - seq.length));
-  const list = [...seq, ...extras];
-  const stepOf = {};
-  seq.forEach((s, i) => stepOf[s.id] = i + 1);
-
-  drawPath(cur, tgt, seq);   // 경로를 별도 차트가 아니라 01번 입력 좌표 위에 그림
-  logRecommendation({ lyric, cur, tgt }, seq, extras);   // §5-1 피드백 로그 (비동기, 실패해도 UI 영향 없음)
-  renderResults(list, seq, cur, tgt, target, pool.length, stepOf);
-}
-
-function renderResults(list, seq, cur, tgt, target, poolSize, stepOf) {
-  const box = $("results");
-  if (list.length === 0) {
-    box.innerHTML = "<h2>추천 결과</h2><p id='resultNote'>조건에 맞는 곡이 없어요. 가사 조건을 '상관없어요'로 바꿔서 다시 시도해 보세요.</p>";
+  if (!pool.length) {
+    $("results").innerHTML = "<div class='scene-inner result-cabin'><div class='result-placeholder'><h2>맞는 곡이 충분하지 않아요</h2><p>장르나 가사 조건을 조금 넓혀서 다시 만들어 볼까요?</p><button class='ghost' type='button' data-go-scene='stateRoom'>오늘의 음악 다시 만들기</button></div></div>";
     return;
   }
-  let html = "<h2>지금의 당신에게, " + list.length + "곡</h2>"
-    + "<p id='resultNote'>" + vaWord(cur) + " → " + vaWord(tgt) + " · 후보 " + poolSize + "곡 · ①→③은 들을 순서, 나머지는 목표 상태에 어울리는 추가 곡</p>";
 
-  // ISO 여정: 지금 → ①②③ → 목표. 각 곡이 자기 정서 색으로 칠해져
-  // 색이 목표 쪽으로 점차 물들어가는 것이 ISO 원리의 시각적 증거.
-  html += "<div class='plane-card journey'><h3>추천 경로 — 음악을 따라 목표 상태로</h3>"
-    + journeySVG(cur, tgt, seq)
-    + "<p class='plane-note'>첫 곡은 <b>지금 상태와 비슷한 곡</b>에서 시작해(동조), 번호 순서대로 들을수록 <b>목표 상태의 곡으로 점진적으로 이동</b>합니다 — 음악치료의 ISO 원리를 적용한 순서예요. 색이 지금의 정서에서 목표의 정서로 물들어가는 게 보이시나요?</p></div>";
+  const ranked = pool.map(s => ({ ...s, score: weightedFit(s.tags, target) + personalBonus(s) }))
+    .filter(s => !DISLIKED_SONGS.has(s.id))
+    .sort((a, b) => b.score - a.score);
 
-  // 연속재생 플레이어: 곡이 끝나면 다음 곡을 자동으로 이어서 재생, 버튼으로 건너뛰기 가능
-  const hasPlayable = seq.some(s => s.trackId);
-  if (hasPlayable) {
-    html += "<div class='plane-card'><h3>이어서 듣기 — 시퀀스 연속재생</h3>"
-      + "<div id='embedHost'></div>"
-      + "<div class='seq-nav'>"
-      + "<button id='prevTrack' type='button' aria-label='이전 곡'>◀ 이전 곡</button>"
-      + "<button id='nextTrack' type='button' aria-label='다음 곡'>다음 곡 ▶</button>"
-      + "</div>"
-      + "<p class='plane-note' id='nowPlaying'></p>"
-      + "<p class='plane-note'>재생을 누르면 ①번 곡부터 순서대로 자동으로 이어져요. 이 브라우저에 Spotify 로그인이 되어 있으면 전곡이, 아니면 30초 미리듣기가 재생됩니다.</p></div>";
+  const estimated = s => Math.max(60, Number(s.durationSec) || 180);
+  const totalTargetSec = RECOMMEND_MINUTES * 60;
+  const approxCount = Math.max(3, Math.min(ranked.length, Math.ceil(totalTargetSec / 180)));
+  const pathCount = RECOMMEND_MINUTES <= 10 ? 3 : RECOMMEND_MINUTES <= 30 ? 5 : 8;
+  const n = Math.min(pathCount, approxCount, ranked.length);
+  const used = new Set(), seq = [];
+  const cur = CUR_VA, tgt = TGT_VA;
+
+  for (let i = 0; i < n; i++) {
+    const t = (n === 1) ? 1 : (i / (n - 1));
+    const wp = { v: cur.v + (tgt.v - cur.v) * t, e: cur.e + (tgt.e - cur.e) * t };
+    const prev = seq.length ? seq[seq.length - 1]._p : { v:cur.v, e:cur.e };
+    let best = null, bestCost = Infinity;
+    for (const c of ranked) {
+      if (used.has(c.id)) continue;
+      const pva = songVA(c);
+      const jump = Math.hypot(pva.v-prev.v, pva.e-prev.e);
+      if (jump > MAX_STEP_JUMP && i < n-1) continue;
+      let cost = Math.hypot(pva.v-wp.v, pva.e-wp.e) - c.score*SCORE_W;
+      if (TEMPO_W > 0 && c.tempo) {
+        const tn = Math.min(1, Math.max(0, (c.tempo-50)/130));
+        cost += Math.abs(tn-wp.e)*TEMPO_W;
+      }
+      if (cost < bestCost) { bestCost = cost; best = c; }
+    }
+    if (!best) {
+      best = ranked.find(c => !used.has(c.id));
+    }
+    if (best) { used.add(best.id); seq.push({...best, _p:songVA(best)}); }
   }
 
-  for (const s of list) {
-    const reasons = TAG_KEYS
-      .map(k => ({ k, tv: target[k] ?? 0, sv: (typeof s.tags[k] === "number" ? s.tags[k] : 0.5) }))
-      .sort((a, b) => (b.tv * b.sv) - (a.tv * a.sv))
-      .slice(0, 3);
-
-    html += "<article class='song'>"
-      + "<div class='top'><div>"
-      + (stepOf[s.id] ? "<span class='step'>" + stepOf[s.id] + "</span>" : "")
-      + "<span class='title'>" + esc(s.title) + "</span>"
-      + " <span class='artist'>" + esc(s.artist) + "</span></div>"
-      + "<span class='score'>" + s.score.toFixed(3) + "</span></div>"
-      + "<div class='reasons'>";
-    for (const r of reasons) {
-      html += "<div class='reason'><span>" + TAG_LABELS[r.k] + " " + r.sv.toFixed(2) + "</span>"
-        + "<span class='bar'><i style='width:" + Math.round(r.sv * 100) + "%'></i></span></div>";
-    }
-    html += "</div>";
-    if (s.spotifyUrl)
-      html += "<a class='spotify' data-song-id='" + esc(s.id) + "' href='" + s.spotifyUrl + "' target='_blank' rel='noopener'>Spotify에서 듣기 ↗</a>";
+  let total = seq.reduce((a,s)=>a+estimated(s),0);
+  const extras = [];
+  for (const c of ranked) {
+    if (used.has(c.id)) continue;
+    if (extras.length >= Math.max(0, approxCount - seq.length)) break;
+    extras.push(c); used.add(c.id); total += estimated(c);
+    if (total >= totalTargetSec * 0.85) break;
+  }
+  /* 10/30/60분의 차이는 고정 곡 수가 아니라 목표 총 청취시간을 기준으로 만든다.
+     짧은 세션은 전환을 압축하고, 긴 세션은 목표 상태 구간을 충분히 유지한다. */
+  const list = [...seq, ...extras];
+  const stepOf = {}; seq.forEach((s,i)=>stepOf[s.id]=i+1);
+  drawPath(cur, tgt, seq);
+  persistPreferencePatch({
+    preferred_genres: SELECTED_GENRES,
+    recommend_minutes: RECOMMEND_MINUTES,
+    lyric_preference_default: lyric
+  });
+  logRecommendation({ lyric, cur, tgt, genres:SELECTED_GENRES, minutes:RECOMMEND_MINUTES }, seq, extras);
+  renderResults(list, seq, cur, tgt, target, pool.length, stepOf);
+}
+function renderResults(list, seq, cur, tgt, target, poolSize, stepOf) {
+  const box = $("results");
+  if (!list.length) { box.innerHTML = "<div class='scene-inner result-cabin'><div class='result-placeholder'><h2>오늘은 맞는 곡을 찾지 못했어요</h2><p>장르나 가사 조건을 조금 넓혀서 다시 찾아볼까요?</p></div></div>"; return; }
+  const playable = seq.filter(s=>s.trackId);
+  let html = "<div class='section-shell'><div class='section-head'><div><span class='room-tag'>NOW PLAYING</span><h2 style='margin-top:9px'>오늘의 음악</h2><p>"+esc(vaWord(cur))+" → "+esc(vaWord(tgt))+" · "+RECOMMEND_MINUTES+"분의 여정</p></div><span class='phase'>ON AIR</span></div><div class='results-wrap'>";
+  if(playable.length){
+    const first=playable[0];
+    html += "<div class='cabin-player current-song-card' data-song-card='"+esc(first.id)+"'><div class='player-title'><div><div class='phase'>NOW IN AZT</div><div class='now' id='nowPlayingTitle'>"+esc(first.title)+"</div><div class='plane-note' id='nowPlayingArtist'>"+esc(first.artist||"")+"</div></div><span class='phase' id='playerPhase'>첫 곡 · 지금과 가까운 음악</span></div><div class='player-frame'><div id='embedHost'></div><div id='playOverlay' class='play-overlay'><button id='playerStart' type='button'>▶ 이 방의 음악 켜기</button></div></div><div class='player-controls'><div><div class='listen-meta'><span id='listenMetricText'>실제 청취 0%</span><span>좋아요는 실제 10초 후</span></div><div class='listen-meter'><i id='listenMetricBar'></i></div><div class='player-status' id='playerFeedbackToast'>재생 버튼을 누르면 음악이 시작돼요.</div><div style='display:flex;align-items:center;gap:10px;margin-top:10px'><button id='aztPlayToggle' type='button'>▶ 재생</button><span class='play-helper'>Spotify 플레이어와 같은 재생 상태를 조작해요.</span></div></div><div class='phase' id='listenSecondsText'>0초</div></div><div class='player-actions'><button type='button' class='song-action' data-action='like' data-song-id='"+esc(first.id)+"' disabled>10초 후 좋아요</button><button type='button' class='song-action dislike' data-action='dislike' data-song-id='"+esc(first.id)+"'>싫어요</button><button type='button' class='song-action' data-action='playlist' data-song-id='"+esc(first.id)+"'>＋ 벽에 붙이기</button></div><div class='seq-nav'><button id='prevTrack' type='button'>← 이전 곡</button><button id='nextTrack' type='button'>다음 곡 →</button></div><div class='reason-box'>현재 상태와 가까운 음악에서 시작해요. 충분히 들은 뒤 점점 목표 상태 쪽으로 이동합니다.</div></div>";
+  }
+  html += "<div class='song-list'>";
+  for(const s of list){
+    const reasons=TAG_KEYS.map(k=>({k,tv:target[k]??0,sv:(typeof s.tags[k]==='number'?s.tags[k]:0.5)})).sort((a,b)=>(b.tv*b.sv)-(a.tv*a.sv)).slice(0,3);
+    const metric=TRACK_METRICS[s.id], ready=!!(metric&&metric.listenedSeconds>=10);
+    html += "<article class='song' data-song-card='"+esc(s.id)+"'><div class='top'><div>"+(stepOf[s.id]?"<span class='step'>"+stepOf[s.id]+"</span>":"")+"<span class='title'>"+esc(s.title)+"</span> <span class='artist'>"+esc(s.artist)+"</span></div><span class='score'>AZT "+(typeof s.score==='number'?s.score.toFixed(2):"")+"</span></div><div class='reasons'>";
+    for(const r of reasons) html += "<div class='reason'><span>"+TAG_LABELS[r.k]+"</span><span class='bar'><i style='width:"+Math.round(r.sv*100)+"%'></i></span></div>";
+    html += "</div><div class='song-actions'><button type='button' class='song-action' data-action='like' data-song-id='"+esc(s.id)+"' disabled>"+(LIKED_SONGS.has(s.id)?"♥ 좋아요":ready?"♡ 좋아요":"10초 후 좋아요")+"</button><button type='button' class='song-action dislike' data-action='dislike' data-song-id='"+esc(s.id)+"'>"+(DISLIKED_SONGS.has(s.id)?"싫어요 취소":"싫어요")+"</button><button type='button' class='song-action' data-action='playlist' data-song-id='"+esc(s.id)+"'>"+(PLAYLIST_SONGS.has(s.id)?"✓ 벽에 붙어 있음":"＋ 벽에 붙이기")+"</button></div>";
+    if(s.spotifyUrl) html += "<a class='spotify' data-song-id='"+esc(s.id)+"' href='"+s.spotifyUrl+"' target='_blank' rel='noopener'>Spotify에서 열기 ↗</a>";
     html += "</article>";
   }
-
-  // §5-2 청취 후 재입력 — 전후 비교의 직접 증거
-  // §5-2 청취 후 재입력 — 1차원 변화 자기보고 (듣기 전 대비 얼마나 달라졌나)
-  html += "<div class='plane-card' id='afterCard'><h3>들어보니 어떠셨나요?</h3>"
-    + "<p class='plane-note' style='margin:0 0 12px'>듣기 전과 비교해 지금 상태를 알려주시면, 추천이 실제로 도움이 됐는지 확인하는 데 쓰여요.</p>"
-    + "<div class='stress-wrap'>"
-    + "<input type='range' id='afterChange' min='-2' max='2' step='1' value='0' aria-describedby='afterEcho' aria-label='청취 전 대비 상태 변화' />"
-    + "<div class='stress-labels'><span>더 나빠졌어요</span><span>그대로예요</span><span>훨씬 나아졌어요</span></div>"
-    + "<div id='afterEcho' style='margin-top:12px;font-size:0.95rem;font-weight:600;'>선택: <b>그대로예요</b></div>"
-    + "</div>"
-    + "<button id='afterSubmit' class='after-btn'>기록하기</button>"
-    + "<p id='afterThanks' class='plane-note' hidden>기록됐어요. 감사합니다!</p></div>";
-
-  box.innerHTML = html;
-
-  setupPlayer(seq);   // 연속재생 플레이어 마운트 (trackId 있는 곡만 큐에 올라감)
-  setupAfterInput();  // 청취 후 변화 슬라이더 마운트
-
-  // 여정 스트립이 결과 안에 있으므로 결과로 스크롤
-  box.scrollIntoView({ behavior: "smooth", block: "start" });
+  html += "</div></div><div class='journey-card'><h3>음악의 길</h3>"+journeySVG(cur,tgt,seq)+"<p class='plane-note'>처음에는 지금의 감정과 가까운 곡으로 동조하고, 중간부터 천천히 분위기를 바꾸며, 마지막에는 목표 상태에 머물 수 있도록 구성했어요.</p></div></div>";
+  /* 청취 후 변화 기록: 실제로 듣지 않은 채 남기는 무의미한 응답을 막기 위해
+     재생 가능한 곡이 있으면 실청취 AFTER_UNLOCK_SECONDS초를 채워야 열린다.
+     (재생 불가 곡뿐이면 측정할 수 없으므로 처음부터 열어둔다) */
+  const gateAttr = playable.length ? " disabled" : "";
+  const gateMsg = playable.length ? "음악을 실제로 " + AFTER_UNLOCK_SECONDS + "초 이상 들으면 기록을 남길 수 있어요." : "";
+  html += "<div class='after-card' id='afterCard'><h3>듣고 난 뒤</h3><p class='plane-note'>듣기 전과 비교해 지금은 어떤가요? 이 답은 다음 AZT 여정의 재료가 됩니다.</p><div class='stress-wrap'><input type='range' id='afterChange' min='-2' max='2' step='1' value='0'"+gateAttr+" aria-describedby='afterEcho' aria-label='청취 전 대비 상태 변화'/><div class='stress-labels'><span>더 힘들어짐</span><span>그대로</span><span>한결 편안함</span></div><div id='afterEcho' style='margin-top:10px;font-weight:800'>선택: <b>그대로예요</b></div></div><button id='afterSubmit' class='after-btn'"+gateAttr+">기록하고 나가기</button><p id='afterGate' class='plane-note'>"+gateMsg+"</p><p id='afterThanks' class='plane-note' hidden>기록됐어요. 다음에 더 잘 맞춰볼게요.</p></div></div>";
+  box.innerHTML="<div class='scene-inner result-cabin'>"+html+"</div>";
+  box.classList.add("scene-active");
+  if(playable.length) setupPlayer(seq);
+  setupAfterInput();
+  requestAnimationFrame(()=>goScene("results"));
 }
 
 /* 청취 후 변화 자기보고: -2(훨씬 나빠짐) ~ +2(훨씬 나아짐).
@@ -1869,7 +2135,8 @@ function setupAfterInput() {
     logEvent("post_change", {
       change: Number(slider.value),   // -2 ~ +2
       va_before: LAST_CUR_VA,         // 추천 시점의 지금 좌표 (맥락)
-      va_target: LAST_TGT_VA          // 목표 좌표 (맥락)
+      va_target: LAST_TGT_VA,         // 목표 좌표 (맥락)
+      listened_seconds: Math.round(totalListenedSeconds())   // 이 응답의 근거가 된 실청취량
     });
     ab.disabled = true;
     ab.textContent = "기록 완료";
@@ -1881,6 +2148,24 @@ function setupAfterInput() {
 $("results").addEventListener("click", (e) => {
   const a = e.target.closest ? e.target.closest("a.spotify") : null;
   if (a && a.dataset.songId) logEvent("spotify_click", { song_id: a.dataset.songId });
+  const b = e.target.closest ? e.target.closest("[data-action][data-song-id]") : null;
+  if (b && b.dataset.action) setSongFeedback(b.dataset.songId, b.dataset.action);
+});
+$("myAztBtn").addEventListener("click", openMyAzt);
+$("closeMyAzt").addEventListener("click", () => { $("myAzt").hidden = true; goScene("ground"); });
+$("listenTime").addEventListener("change", () => { RECOMMEND_MINUTES=Number($("listenTime").value)||30; });
+$("deleteMyData").addEventListener("click", async () => {
+  const user=firebase.auth().currentUser;
+  if(!user || user.isAnonymous){ alert("로그인 계정이 없어요."); return; }
+  if(!confirm("AZT에 저장된 취향·좋아요·플레이리스트·청취 기록과 계정을 모두 삭제할까요?")) return;
+  try{
+    const ref=firebase.firestore().collection("users").doc(user.uid);
+    const hist=await ref.collection("listeningHistory").get();
+    const batch=firebase.firestore().batch(); hist.forEach(d=>batch.delete(d.ref)); batch.delete(ref);
+    await batch.commit(); await user.delete();
+    await firebase.auth().signInAnonymously();
+    goScene("ground"); setStatus("ok","데이터와 계정을 삭제했어요.");
+  }catch(e){ alert("삭제하지 못했어요. 다시 로그인한 뒤 시도해 주세요."); console.warn(e); }
 });
 
 function esc(t) {
@@ -1888,10 +2173,61 @@ function esc(t) {
     ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
 }
 
+$("saveMyPrefs")?.addEventListener("click", saveMyPrefs);
+
+/* =====================================================================
+   AZT v9 — 페이지 컨트롤러 (단일 구현)
+   층(트리하우스) 은유를 버리고 일반적인 페이지 구조로 전환했다.
+   - 페이지: 홈 → 오늘의 음악(만들기) → 감상 → 내 방
+   - 전환은 내비게이션·버튼 클릭으로만 일어난다 (휠/스와이프 하이재킹 없음
+     — 페이지 내부는 브라우저 기본 스크롤 그대로)
+   - 전환 연출: 페이드 + 살짝 떠오르는 라이즈
+   - 비활성 페이지는 inert 처리해 포커스·스크린리더가 새지 않게 한다
+   ===================================================================== */
+const sceneIds = ["ground", "stateRoom", "results", "myAzt"];
+let currentSceneIndex = 0;
+const visitedScenes = new Set([0]);   // 방문한 페이지 — 내비에 점이 채워진다
+
+function applyScenes() {
+  sceneIds.forEach((id, i) => {
+    const el = $(id); if (!el) return;
+    el.hidden = false;
+    el.classList.toggle("scene-active", i === currentSceneIndex);
+    if (i === currentSceneIndex) { el.removeAttribute("inert"); el.removeAttribute("aria-hidden"); el.scrollTop = 0; }
+    else { el.setAttribute("inert", ""); el.setAttribute("aria-hidden", "true"); }
+  });
+  document.querySelectorAll("[data-scene-nav]").forEach(b => {
+    const idx = sceneIds.indexOf(b.dataset.sceneNav);
+    b.classList.toggle("active", idx === currentSceneIndex);
+    b.classList.toggle("visited", visitedScenes.has(idx));
+  });
+  const myBtn = $("myAztBtn");
+  if (myBtn) myBtn.classList.toggle("active", sceneIds[currentSceneIndex] === "myAzt");
+}
+
+function goScene(id) {
+  const i = sceneIds.indexOf(id);
+  if (i < 0) return;
+  currentSceneIndex = i;
+  visitedScenes.add(i);
+  applyScenes();
+  if (id === "myAzt" && typeof renderMyAzt === "function") renderMyAzt();
+}
+
+/* 페이지 이동 버튼 — 단 한 번만 바인딩 */
+document.querySelectorAll("[data-scene-nav],[data-go-scene]").forEach(b =>
+  b.addEventListener("click", () => goScene(b.dataset.sceneNav || b.dataset.goScene)));
+
+/* 초기 페이지: 홈 */
+applyScenes();
+
+/* 앱 초기화 */
 $("go").addEventListener("click", recommend);
-initPlane();   // 01번 사분면 입력 그리기 (네트워크와 무관하게 즉시)
-initNL();      // 자연어 입력 활성화 (서버에 키 없으면 자동 숨김)
+renderGenreChips();
+initPlane();   // 감정 좌표 입력 (네트워크와 무관하게 즉시)
+initNL();      // 자연어 입력 (서버에 키 없으면 자동 숨김)
 init();
 </script>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
 </body>
 </html>
