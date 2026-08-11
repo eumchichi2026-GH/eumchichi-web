@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <title>AZT — 나만의 아지트</title>
 <link rel="preconnect" href="https://cdn.jsdelivr.net" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
@@ -74,8 +74,9 @@ img{max-width:100%}
 @media(max-width:900px){
   .pagebar{position:fixed;z-index:90;left:0;right:0;bottom:0;display:flex;
     background:rgba(255,255,255,.96);border-top:1px solid var(--line);backdrop-filter:blur(10px)}
+  .pagebar{padding-bottom:env(safe-area-inset-bottom)}
   .pagebar button{position:relative;flex:1;border:0;background:transparent;color:var(--muted);
-    padding:12px 4px 14px;font-size:.66rem;font-weight:600;letter-spacing:.06em}
+    padding:13px 4px 14px;font-size:.7rem;font-weight:600;letter-spacing:.06em}
   .pagebar button.active{color:var(--ink);font-weight:700}
   .pagebar button.active:before{content:"";position:absolute;top:0;left:22%;right:22%;height:2px;background:var(--ink)}
   .pagebar button.visited:after{content:"";position:absolute;bottom:6px;left:50%;transform:translateX(-50%);
@@ -93,10 +94,6 @@ img{max-width:100%}
 
 /* ── 0F 입구 ── */
 .ground .scene-inner{display:grid;grid-template-columns:1fr 1.05fr;align-items:center;gap:6vw}
-.state-ribbon{display:flex;gap:18px;margin-top:22px}
-.state-ribbon span{font-size:.62rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:600;
-  padding-left:12px;position:relative}
-.state-ribbon span:before{content:"";position:absolute;left:0;top:50%;transform:translateY(-50%);width:5px;height:5px;border:1px solid var(--ink)}
 .ground-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
 .disclaimer{font-size:.66rem;color:var(--muted);margin-top:28px}
 .vinyl-panel{background:var(--panel);min-height:52vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:34px}
@@ -196,6 +193,13 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:#fff}
 .reason-box{margin-top:12px;padding:12px 13px;background:var(--panel);color:var(--mid);font-size:.74rem;border-left:2px solid var(--ink)}
 .song-list{display:grid;gap:8px}
 .song{background:#fff;border:1px solid var(--line);padding:14px}
+.song.in-queue{cursor:pointer}
+.song.in-queue:hover{border-color:var(--ink)}
+.song.playing{border-color:var(--ink);box-shadow:inset 3px 0 0 var(--ink)}
+#songListMore{display:grid;gap:8px}
+.list-toggle{border:1px dashed var(--line-dark);background:#fff;color:var(--mid);padding:12px;
+  font-size:.66rem;letter-spacing:.16em;text-transform:uppercase;font-weight:600}
+.list-toggle:hover{border-color:var(--ink);color:var(--ink)}
 .song .top{display:flex;justify-content:space-between;gap:10px}
 .song .title{font-weight:700}
 .song .artist{color:var(--muted);font-size:.75rem}
@@ -221,6 +225,8 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:#fff}
 
 /* ── ME 개인방 ── */
 .my-scene .scene-inner{display:flex;justify-content:center}
+.my-guest{margin-top:28px;padding:44px 24px;border:1px dashed var(--line-dark);text-align:center}
+.my-guest p{color:var(--mid);font-size:.86rem;line-height:1.8;margin-bottom:20px}
 .my-room{width:min(1040px,100%);border-top:2px solid var(--ink);padding:28px}
 .my-room .section-head{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:0}
 .my-room h2{font-size:1.35rem;font-weight:700}
@@ -315,14 +321,28 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:#fff}
   .scene{padding:86px 16px 96px}
 }
 @media(max-width:640px){
-  .scene-title{font-size:clamp(1.6rem,7.4vw,2.4rem)}
-  .cabin-floor,.my-room{padding:18px}
-  .cabin-player{padding:16px}
+  .scene{padding:78px 14px 92px}
+  .scene-title{font-size:clamp(1.55rem,7.2vw,2.3rem)}
+  .scene-copy{font-size:.86rem}
+  .cabin-floor,.my-room{padding:16px;border-top-width:2px}
+  .cabin-player{padding:14px}
+  .note-card,.setting-card,.my-card{padding:12px}
+  .floor-label{padding-bottom:12px;margin-bottom:14px}
   .nl-wrap{flex-direction:column}
-  .nl-wrap button{padding:11px}
-  .player-controls{grid-template-columns:1fr}
-  .my-edit-row{grid-template-columns:1fr}
-  .section-head{align-items:flex-start}
+  .nl-wrap button{padding:12px}
+  .nl-wrap textarea{min-height:84px}
+  .player-controls{grid-template-columns:1fr;gap:8px}
+  #aztPlayToggle{width:100%}
+  .my-edit-row{grid-template-columns:1fr;gap:4px}
+  .section-head{align-items:flex-start;flex-wrap:wrap;gap:10px}
+  .go-wrap #go{width:100%;min-width:0}
+  .primary,.ghost{padding:14px 18px}
+  .song-action{padding:10px 12px}
+  .seq-nav button{padding:12px}
+  .wall{padding:16px 12px 20px;gap:12px}
+  .note{width:calc(50% - 6px);padding:16px 10px 8px}
+  .vinyl-panel{min-height:32vh;padding:22px}
+  .my-guest{padding:34px 16px}
   input,select,textarea{font-size:16px}
 }
 @media(prefers-reduced-motion:reduce){
@@ -360,10 +380,9 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:#fff}
       <div class="ground-copy">
         <div class="scene-kicker">AZT · MY OWN HIDEOUT</div>
         <h1 class="scene-title">내 마음, 알아서 잘<br/>딱 깔끔하게.<br/>나만의 아지트.</h1>
-        <p class="scene-copy">지금 나에게 딱 필요한 음악. 상황에 맞춰 변하는 공간에서 평안을 찾아보세요.</p>
-        <div class="state-ribbon"><span>지금의 마음</span><span>머무는 시간</span><span>좋아하는 소리</span></div>
+        <p class="scene-copy">지금 나에게 딱 필요한 음악. 당신의 상황에 딱 맞춰 추천해드릴게요.</p>
         <div class="ground-actions"><button class="primary" type="button" data-go-scene="stateRoom">아지트 들어가기</button><button class="ghost" type="button" data-go-scene="myAzt">내 방 보기</button></div>
-        <p class="disclaimer">AZT는 입력 기반 음악 추천 경험이며 의학적 진단이나 치료를 제공하지 않습니다.</p>
+        <p class="disclaimer">AZT는 의학적 진단·치료를 제공하지 않습니다.</p>
       </div>
       <div class="vinyl-panel">
         <svg viewBox="0 0 340 210" class="vinyl" role="img" aria-label="아직 비어 있는 턴테이블">
@@ -376,7 +395,7 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:#fff}
           <line x1="180" y1="105" x2="266" y2="105" stroke="#161616" stroke-width="2"/>
           <circle cx="266" cy="105" r="3.5" fill="#161616"/>
         </svg>
-        <p class="vinyl-note">지금은 비어 있는 레코드 — 오늘의 감정과 음악이 한 칸씩 채워집니다.</p>
+        <p class="vinyl-note">비어 있는 레코드 — 오늘의 음악으로 채워집니다.</p>
       </div>
     </div>
   </section>
@@ -385,49 +404,50 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:#fff}
     <div class="scene-inner">
       <div class="cabin-floor">
         <div class="floor-label">
-          <div><span class="floor-no">01</span><div><span class="room-tag">SESSION · MAKE</span><strong>오늘의 음악 만들기</strong></div></div>
-          <span>지금 → 목표, 두 상태만 알려주세요</span>
+          <div><span class="room-tag">SESSION</span><strong>오늘의 음악</strong></div>
         </div>
         <div class="input-layout">
           <div class="note-card">
-            <h3>01 · 지금 마음을 적어주세요</h3><p class="desc">한 문장으로 말해도 되고, 직접 감정 지도를 눌러도 괜찮아요.</p>
-            <div class="nl-wrap"><textarea id="nlText" rows="3" maxlength="600" aria-label="지금 상태와 원하는 상태를 자유롭게 설명" placeholder="예: 시험 때문에 마음이 조급해요. 조금 차분해지고 싶어요."></textarea><button id="nlApply" type="button">AI로<br/>읽기</button></div>
+            <h3>지금 마음</h3><p class="desc">한 문장이면 충분해요.</p>
+            <div class="nl-wrap"><textarea id="nlText" rows="3" maxlength="600" aria-label="지금 상태와 원하는 상태를 자유롭게 설명" placeholder="예: 마음이 조급해요. 차분해지고 싶어요."></textarea><button id="nlApply" type="button">AI로<br/>읽기</button></div>
             <p class="plane-note" id="nlStatus" role="status"></p><div class="linear-preview" id="nlPreview"></div>
-            <details class="manual" id="manualBox"><summary>직접 골라볼게요</summary><div class="manual-body"><div class="va-input" id="vaWrap" aria-describedby="vaEcho"></div><p class="plane-note" id="vaEcho">먼저 <b>지금</b>, 다음은 <b>목표</b>를 찍어주세요.</p><p class="plane-note" id="chipHint">단어를 골라도 자동으로 찍혀요.</p><div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div></div></details>
+            <details class="manual" id="manualBox"><summary>직접 골라볼게요</summary><div class="manual-body"><div class="va-input" id="vaWrap" aria-describedby="vaEcho"></div><p class="plane-note" id="vaEcho"><b>지금</b> → <b>목표</b> 순서로 찍어주세요.</p><p class="plane-note" id="chipHint"></p><div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div></div></details>
           </div>
           <div class="note-card">
-            <h3>02 · 오늘은 얼마나 머물까요?</h3><p class="desc">시간이 길수록 후반부의 안정된 음악을 더 오래 머물도록 구성합니다.</p>
+            <h3>설정</h3>
             <div class="setting-stack">
-              <div class="setting-card"><label for="listenTime">머무는 시간</label><select id="listenTime"><option value="10">10분</option><option value="30" selected>30분</option><option value="60">60분</option></select></div>
-              <div class="setting-card"><label>오늘 듣고 싶은 장르</label><div class="genre-chips" id="genreChips" role="group" aria-label="추천 장르 선택"></div></div>
-              <div class="setting-card"><label for="lyric">가사 취향</label><select id="lyric"><option value="no_preference" selected>상관없어요</option><option value="prefer_instrumental">가사 적은 곡이 좋아요</option><option value="instrumental_only">가사 없는 곡만요</option><option value="prefer_vocal">가사 있는 곡이 좋아요</option></select></div>
+              <div class="setting-card"><label for="listenTime">시간</label><select id="listenTime"><option value="10">10분</option><option value="30" selected>30분</option><option value="60">60분</option></select></div>
+              <div class="setting-card"><label>장르</label><div class="genre-chips" id="genreChips" role="group" aria-label="추천 장르 선택"></div></div>
+              <div class="setting-card"><label for="lyric">가사</label><select id="lyric"><option value="no_preference" selected>상관없어요</option><option value="prefer_instrumental">가사 적은 곡</option><option value="instrumental_only">가사 없는 곡</option><option value="prefer_vocal">가사 있는 곡</option></select></div>
             </div>
             <div class="floor-meta"><span class="status-dot"></span><span id="statusText">연결 준비 중…</span></div>
             <div class="go-wrap"><button id="go" class="primary" disabled>오늘의 음악 받기 →</button></div>
           </div>
         </div>
-        <div class="floor-meta"><span>현재 → 목표를 정하면 감상 페이지로 이동합니다.</span></div>
       </div>
     </div>
   </section>
 
   <section class="scene" id="results" aria-live="polite" aria-label="감상">
     <div class="scene-inner result-cabin">
-      <div class="result-placeholder"><b>오늘의 음악</b>에서 지금·목표 상태를 정하면 이곳에서 이어 듣습니다.</div>
+      <div class="result-placeholder"><b>오늘의 음악</b>을 만들면 여기서 이어 들어요.</div>
     </div>
   </section>
 
   <section class="scene my-scene" id="myAzt" aria-label="내 방">
     <div class="scene-inner">
       <div class="my-room">
-        <div class="section-head"><span class="floor-no">MY</span><div><span class="room-tag">MY ROOM</span><h2 style="margin-top:8px">내 방</h2><p class="scene-note">벽에 붙인 노래와 기록으로 채워지는, 나만의 아지트예요.</p></div><button id="closeMyAzt" class="mini-btn" type="button">홈으로</button></div>
-        <div class="my-grid">
-          <div class="my-card wall-card"><h3>나의 벽</h3><p>감상에서 「벽에 붙이기」를 누른 곡이 메모지가 되어 붙어요. 메모지를 눌러 한 줄 기록을 남길 수 있어요.</p><div id="myPlaylist"></div></div>
-          <div class="my-card"><h3>내 설정</h3><div class="my-edit"><div class="my-edit-row"><label for="myDisplayName">이름</label><input id="myDisplayName" type="text" maxlength="40" placeholder="내 이름"></div><div class="my-edit-row"><label for="myRecommendMinutes">머무는 시간</label><select id="myRecommendMinutes"><option value="10">10분</option><option value="30">30분</option><option value="60">60분</option></select></div><div class="my-edit-row"><label for="myLyric">가사 취향</label><select id="myLyric"><option value="no_preference">상관없어요</option><option value="prefer_instrumental">가사 적은 곡</option><option value="instrumental_only">가사 없는 곡</option><option value="prefer_vocal">가사 있는 곡</option></select></div><div><label style="display:block;font-size:.7rem;font-weight:900;margin-bottom:6px">선호 장르</label><div id="myGenreEdit" class="my-genre-edit"></div></div><button id="saveMyPrefs" class="my-save" type="button">설정 저장하기</button><p id="myEditStatus" class="plane-note"></p></div></div>
-          <div class="my-card"><h3>내 상태 설정</h3><p id="myStateSummary">아직 오늘의 상태가 없어요.</p><div class="my-nav"><button class="mini-btn" type="button" data-go-scene="stateRoom">오늘의 음악 다시 만들기</button></div></div>
-          <div class="my-card"><h3>추천 피드백</h3><p id="myFeedbackSummary">좋아요·싫어요·저장 행동이 다음 추천에 반영돼요.</p></div>
-          <div class="my-card"><h3>최근 청취 기록</h3><div id="myHistory"><p>아직 기록이 없어요.</p></div></div>
-          <div class="my-card"><h3>계정 / 데이터</h3><button id="deleteMyData" class="mini-btn danger-btn" type="button">내 데이터 및 계정 삭제</button><p class="privacy-note">삭제는 되돌릴 수 없어요. AZT는 의학적 진단이나 치료를 제공하지 않습니다.</p></div>
+        <div class="section-head"><div><span class="room-tag">MY ROOM</span><h2 style="margin-top:8px">내 방</h2></div><button id="closeMyAzt" class="mini-btn" type="button">홈으로</button></div>
+        <!-- 비로그인: 벽·설정 대신 로그인 안내만 -->
+        <div id="myGuest" class="my-guest" hidden>
+          <p>로그인하면 나만의 벽이 생겨요.<br/>붙인 곡과 메모, 설정이 계정에 저장됩니다.</p>
+          <button class="primary" type="button" id="myGuestLogin">로그인</button>
+        </div>
+        <div id="myOwn" class="my-grid">
+          <div class="my-card wall-card"><h3>나의 벽</h3><p>붙인 곡이 메모지로 남아요. 눌러서 한 줄을 적어보세요.</p><div id="myPlaylist"></div></div>
+          <div class="my-card"><h3>설정</h3><div class="my-edit"><div class="my-edit-row"><label for="myDisplayName">이름</label><input id="myDisplayName" type="text" maxlength="40" placeholder="내 이름"></div><div class="my-edit-row"><label for="myRecommendMinutes">시간</label><select id="myRecommendMinutes"><option value="10">10분</option><option value="30">30분</option><option value="60">60분</option></select></div><div class="my-edit-row"><label for="myLyric">가사</label><select id="myLyric"><option value="no_preference">상관없어요</option><option value="prefer_instrumental">가사 적은 곡</option><option value="instrumental_only">가사 없는 곡</option><option value="prefer_vocal">가사 있는 곡</option></select></div><div><label style="display:block;font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--muted);margin-bottom:6px">장르</label><div id="myGenreEdit" class="my-genre-edit"></div></div><button id="saveMyPrefs" class="my-save" type="button">저장</button><p id="myEditStatus" class="plane-note"></p></div></div>
+          <div class="my-card"><h3>기록</h3><p id="myFeedbackSummary"></p><div id="myHistory" style="margin-top:8px"><p>아직 기록이 없어요.</p></div></div>
+          <div class="my-card"><h3>계정</h3><button id="deleteMyData" class="mini-btn danger-btn" type="button">데이터·계정 삭제</button><p class="privacy-note">삭제는 되돌릴 수 없어요. AZT는 의학적 진단·치료를 제공하지 않습니다.</p></div>
         </div>
       </div>
     </div>
@@ -599,7 +619,7 @@ const SCORE_W = 0.3;                  // 시퀀스 cost에서 태그 적합도 �
 const TEMPO_W = 0.08;                 // 템포↔각성도 정합 보조 가중치 (0이면 미사용)
 const MAX_STEP_JUMP = 0.45;           // 인접 곡 간 V/A 최대 이동거리 (급점프 방지)
 const AFTER_UNLOCK_SECONDS = 60;   // 이만큼 실제로 들어야 청취 후 변화 기록이 열린다
-const ALGO_VERSION = "v1.1-fb-r1r2r6";  // 피드백 로그 분석용 버전 표식 (R1 축소·R2 이중계상 해소·R6 정렬 적용)
+const ALGO_VERSION = "v1.2-fb-skipclear";  // R1·R2·R6 + 재청취 시 skipped 해제 (이 버전부터 skipped=true는 "그 방문이 스킵으로 끝남"을 뜻함)
 
 /* ── 개인화 가중치 — 여기만 조정하면 됩니다 ──
    설계: 개인 피드백 > 취향(온보딩) > 가수·장르 일치 > 전체 사용자 피드백.
@@ -607,6 +627,10 @@ const ALGO_VERSION = "v1.1-fb-r1r2r6";  // 피드백 로그 분석용 버전 표
 const TASTE_W        = 0.12;  // 취향 벡터(선호곡 태그 평균)와의 적합도
 const ARTIST_BONUS   = 0.06;  // 선호 가수 일치 가점
 const GENRE_BONUS    = 0.04;  // 선호 장르 일치 가점 (songs 문서에 genres 필드가 있을 때만)
+/* 오늘 선택한 장르는 '가점'이 아니라 '최우선 조건':
+   ① 장르 일치 곡이 시퀀스를 채울 만큼 있으면 후보 풀 자체를 장르로 제한
+   ② 부족할 때만 다른 장르로 보충하되, 순위·경로 선택 모두에서 장르 일치가 항상 앞선다 */
+const GENRE_FIRST_PENALTY = 0.5;   // 부족 보충 시, 장르 불일치 곡의 경로 선택 비용 가산
 const PERSONAL_FB_W  = 0.10;  // 본인 피드백 (완청·클릭·전후 변화) — 개인 신호 중 최우선
 /* R1 신뢰도 축소: 반영값 = 원점수 × n/(n+k). n=그 곡의 피드백 관측 건수.
    k=절반을 믿기까지 필요한 건수 — 1건이면 1/(1+k)만 반영되고 쌓일수록 원점수에 수렴.
@@ -907,7 +931,15 @@ async function handleUserChange(user, force) {
   if (!force && key === LAST_HANDLED) return;
   LAST_HANDLED = key;
   USER_PROFILE = null; TASTE_VECTOR = null; PERSONAL_FB = {}; PERSONAL_FB_N = {};
-  if (!user || user.isAnonymous) { updateAuthUI(user); return; }
+  if (!user || user.isAnonymous) {
+    /* 로그아웃: 개인화 상태를 비워 다른 사람 데이터가 남지 않게 하고, 내 방을 게스트 화면으로 전환 */
+    LIKED_SONGS = new Set(); DISLIKED_SONGS = new Set(); PLAYLIST_SONGS = new Set(); PLAYLIST_NOTES = {};
+    LISTEN_HISTORY = [];
+    updateAuthUI(user);
+    if (typeof renderMyAzt === "function") renderMyAzt();
+    if (typeof applyMemberGate === "function") applyMemberGate();
+    return;
+  }
   try {
     const doc = await firebase.firestore().collection("users").doc(user.uid).get();
     if (doc.exists) {
@@ -927,6 +959,8 @@ async function handleUserChange(user, force) {
   }
   updateAuthUI(user);
   loadPersonalFeedback(user.uid);   // 비동기 — 실패해도 앱 동작에는 영향 없음
+  if (typeof renderMyAzt === "function") renderMyAzt();   // 내 방이 열려 있으면 게스트↔개인 화면 즉시 전환
+  if (typeof applyMemberGate === "function") applyMemberGate();   // 로그인/로그아웃 즉시 곡 액션 버튼 상태 반영
 }
 
 function applyProfile(p) {
@@ -1140,18 +1174,35 @@ async function persistPreferencePatch(patch) {
 function loadLocalPersonal() {
   const p = readLocalPersonal();
   if (!firebase.auth().currentUser || firebase.auth().currentUser.isAnonymous) {
-    LIKED_SONGS = new Set(Array.isArray(p.likedSongs) ? p.likedSongs : []);
-    DISLIKED_SONGS = new Set(Array.isArray(p.dislikedSongs) ? p.dislikedSongs : []);
-    PLAYLIST_SONGS = new Set(Array.isArray(p.playlists) ? p.playlists : []);
-    PLAYLIST_NOTES = (typeof p.playlistNotes === "object" && p.playlistNotes) || {};
-    LISTEN_HISTORY = Array.isArray(p.listeningHistory) ? p.listeningHistory : [];
+    /* 비로그인: 좋아요·벽 같은 개인화 데이터는 계정 전용이므로 복원하지 않는다
+       (예전 버전이 남긴 로컬 데이터가 있어도 무시). 편의 설정만 이어받는다. */
     if (Array.isArray(p.preferred_genres)) SELECTED_GENRES = [...p.preferred_genres];
     if (p.recommend_minutes) RECOMMEND_MINUTES = Number(p.recommend_minutes) || 30;
   }
   renderGenreChips();
 }
+/* 개인화 액션(좋아요·싫어요·벽에 붙이기)은 계정에 저장되는 데이터이므로 회원 로그인 필수.
+   주의: 앱은 Firestore 접근을 위해 항상 익명 세션을 유지하므로,
+   currentUser 존재 여부가 아니라 isAnonymous까지 봐야 진짜 로그인 여부를 알 수 있다. */
+const isMember = () => { const u = firebase.auth().currentUser; return !!u && !u.isAnonymous; };
+function requireLogin(actionLabel) {
+  if (isMember()) return true;
+  openAuthModal("login");
+  const sub = $("authSub");
+  if (sub) sub.textContent = (actionLabel || "이 기능") + "는 로그인하면 내 계정에 저장돼요.";
+  return false;
+}
+/* 화면의 모든 곡 액션 버튼을 현재 로그인 상태에 맞게 갱신 (렌더 직후·로그인 상태 변경 시 호출) */
+function applyMemberGate() {
+  const ids = new Set();
+  document.querySelectorAll("[data-song-card]").forEach(c => { if (c.dataset.songCard) ids.add(c.dataset.songCard); });
+  ids.forEach(id => refreshSongActions(id));
+  const mn = $("memberNote"); if (mn) mn.hidden = isMember();
+}
 async function setSongFeedback(songId, kind) {
   if (!songId) return;
+  const label = kind === "like" ? "좋아요" : kind === "dislike" ? "싫어요" : "벽에 붙이기";
+  if (!requireLogin(label)) return;
   if (kind === "like") {
     if (LIKED_SONGS.has(songId)) LIKED_SONGS.delete(songId); else { LIKED_SONGS.add(songId); DISLIKED_SONGS.delete(songId); }
   } else if (kind === "dislike") {
@@ -1181,15 +1232,26 @@ function refreshSongActions(songId) {
     const like = card.querySelector("[data-action='like']");
     const dislike = card.querySelector("[data-action='dislike']");
     const pl = card.querySelector("[data-action='playlist']");
+    const member = isMember();
     if (like) {
-      like.classList.toggle("active", LIKED_SONGS.has(songId));
-      like.classList.toggle("like-ready", ready && !LIKED_SONGS.has(songId));
-      like.disabled = !ready;
-      like.title = ready ? "좋아요를 남길 수 있어요." : "이 곡을 실제로 10초 이상 들으면 좋아요가 열려요.";
-      like.textContent = LIKED_SONGS.has(songId) ? "♥ 좋아요" : ready ? "♡ 좋아요" : "10초 후 좋아요";
+      like.classList.toggle("active", member && LIKED_SONGS.has(songId));
+      like.classList.toggle("like-ready", member && ready && !LIKED_SONGS.has(songId));
+      like.disabled = !member || !ready;
+      like.title = !member ? "로그인하면 쓸 수 있어요." : ready ? "좋아요를 남길 수 있어요." : "이 곡을 실제로 10초 이상 들으면 좋아요가 열려요.";
+      like.textContent = !member ? "♡ 좋아요" : LIKED_SONGS.has(songId) ? "♥ 좋아요" : ready ? "♡ 좋아요" : "10초 후 좋아요";
     }
-    if (dislike) { dislike.classList.toggle("active", DISLIKED_SONGS.has(songId)); dislike.textContent = DISLIKED_SONGS.has(songId) ? "싫어요 취소" : "싫어요"; }
-    if (pl) { pl.classList.toggle("active", PLAYLIST_SONGS.has(songId)); pl.textContent = PLAYLIST_SONGS.has(songId) ? "✓ 벽에 붙어 있음" : "＋ 벽에 붙이기"; }
+    if (dislike) {
+      dislike.disabled = !member;
+      dislike.title = member ? "" : "로그인하면 쓸 수 있어요.";
+      dislike.classList.toggle("active", member && DISLIKED_SONGS.has(songId));
+      dislike.textContent = member && DISLIKED_SONGS.has(songId) ? "싫어요 취소" : "싫어요";
+    }
+    if (pl) {
+      pl.disabled = !member;
+      pl.title = member ? "" : "로그인하면 쓸 수 있어요.";
+      pl.classList.toggle("active", member && PLAYLIST_SONGS.has(songId));
+      pl.textContent = member && PLAYLIST_SONGS.has(songId) ? "✓ 벽에 붙어 있음" : "＋ 벽에 붙이기";
+    }
   });
 }
 
@@ -1244,7 +1306,7 @@ function updateAfterGate() {
   if (t >= AFTER_UNLOCK_SECONDS) {
     AFTER_UNLOCKED = true;
     slider.disabled = false; if (btn) btn.disabled = false;
-    if (gate) gate.textContent = "충분히 들었어요. 나가기 전에 지금 상태를 남겨주세요.";
+    if (gate) gate.textContent = "이제 지금 상태를 남길 수 있어요.";
     logEvent("after_unlock", { listened_seconds: Math.round(t) });
   } else if (gate) {
     gate.textContent = "음악을 실제로 " + Math.ceil(AFTER_UNLOCK_SECONDS - t) + "초 더 들으면 기록을 남길 수 있어요.";
@@ -1256,18 +1318,22 @@ function listeningPct(songId) {
 }
 function renderMyAzt() {
   const sec = $("myAzt"); if (!sec || sec.hidden) return;
+  const guest = !firebase.auth().currentUser;
+  const gEl = $("myGuest"), oEl = $("myOwn");
+  if (gEl) gEl.hidden = !guest;
+  if (oEl) oEl.hidden = guest;
+  if (guest) return;   // 비로그인: 안내만 보여주고 개인 데이터 렌더 생략
   const nameInput=$("myDisplayName"); if(nameInput) nameInput.value=(USER_PROFILE&&USER_PROFILE.display_name)||firebase.auth().currentUser?.displayName||"";
   const minInput=$("myRecommendMinutes"); if(minInput) minInput.value=String(RECOMMEND_MINUTES);
   const lyricInput=$("myLyric"); if(lyricInput) lyricInput.value=$("lyric")?.value||USER_PROFILE?.lyric_preference_default||"no_preference";
   const ge=$("myGenreEdit"); if(ge){ ge.innerHTML=GENRE_OPTIONS.map(g=>"<button type='button' aria-pressed='"+SELECTED_GENRES.includes(g)+"' data-my-genre='"+esc(g)+"'>"+esc(g)+"</button>").join(""); ge.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{const g=b.dataset.myGenre;if(SELECTED_GENRES.includes(g))SELECTED_GENRES=SELECTED_GENRES.filter(x=>x!==g);else SELECTED_GENRES=[...SELECTED_GENRES,g];b.setAttribute("aria-pressed",String(SELECTED_GENRES.includes(g)));renderGenreChips();})); }
-  const state=$("myStateSummary"); if(state) state.textContent=CUR_VA&&TGT_VA ? "지금: "+vaWord(CUR_VA)+" → 목표: "+vaWord(TGT_VA) : "아직 오늘의 상태가 없어요.";
   const pl = $("myPlaylist");
   const ps = [...PLAYLIST_SONGS].map(songById).filter(Boolean);
   /* 포스트잇 벽: 곡 id 해시로 기울기를 정해 렌더마다 같은 자리에 같은 각도로 붙어 있게 한다 */
   const tilt = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) % 997;
                          return { rot: ((h % 50) / 10 - 2.5).toFixed(1), tape: ((h % 17) - 8) }; };
   if (!ps.length) {
-    pl.innerHTML = "<div class='wall'><div class='wall-empty'>아직 비어 있는 벽이에요.<br/>감상 페이지에서 마음에 드는 곡에 「벽에 붙이기」를 누르면 첫 메모지가 붙습니다.</div></div>";
+    pl.innerHTML = "<div class='wall'><div class='wall-empty'>아직 비어 있는 벽이에요.<br/>감상에서 「벽에 붙이기」로 첫 메모지를 붙여보세요.</div></div>";
   } else {
     pl.innerHTML = "<div class='wall'>" + ps.map(s => {
       const t = tilt(s.id), memo = PLAYLIST_NOTES[s.id] || "";
@@ -1289,7 +1355,7 @@ function renderMyAzt() {
   }));
   const hi = $("myHistory");
   hi.innerHTML = LISTEN_HISTORY.slice(0,6).map(h => { const s=songById(h.songId); return "<div class='history-row'><span>"+(s?esc(s.title):esc(h.songId))+"</span><span>"+Math.round((h.completionRate||0)*100)+"%</span></div>"; }).join("") || "<p>아직 기록이 없어요.</p>";
-  $("myFeedbackSummary").textContent = "좋아요 " + LIKED_SONGS.size + "곡 · 싫어요 " + DISLIKED_SONGS.size + "곡 · 벽에 " + PLAYLIST_SONGS.size + "곡";
+  const fs=$("myFeedbackSummary"); if(fs) fs.textContent = "좋아요 " + LIKED_SONGS.size + " · 싫어요 " + DISLIKED_SONGS.size + " · 벽 " + PLAYLIST_SONGS.size;
 }
 async function saveMyPrefs(){
   const name=$("myDisplayName")?.value.trim()||"";
@@ -1509,6 +1575,7 @@ let SpotifyIFrameAPI = null;
 let PENDING_MOUNT = null;
 let EMBED_CTRL = null;
 let QUEUE = [], QUEUE_IDX = 0;
+let JUMP_TO_SONG = null;   // 목록에서 곡을 눌러 해당 곡으로 이동 (플레이어 준비 후 바인딩)
 
 window.onSpotifyIframeApiReady = (api) => {
   SpotifyIFrameAPI = api;
@@ -1545,6 +1612,8 @@ function setupPlayer(seq) {
       const currentCard=document.querySelector(".current-song-card");
       if(currentCard && song){ currentCard.setAttribute("data-song-card",song.id); currentCard.querySelectorAll("[data-song-id]").forEach(b=>b.dataset.songId=song.id); }
       refreshSongActions(song?.id);
+      document.querySelectorAll("[data-jump-song]").forEach(el =>
+        el.classList.toggle("playing", !!song && el.dataset.jumpSong === song.id));
     };
     SpotifyIFrameAPI.createController(host, {
       uri:"spotify:track:"+QUEUE[0].trackId, width:"100%", height:152
@@ -1563,7 +1632,9 @@ function setupPlayer(seq) {
         QUEUE_IDX=idx; LAST_PLAYBACK_POSITION=null; fired={}; started=false;
         ctrl.loadUri("spotify:track:"+QUEUE[idx].trackId);
         if(keepPlaying) setTimeout(()=>{try{ctrl.play();}catch(e){console.warn("Spotify 다음 곡 자동재생 실패",e)}},220);
-        ensureMetric(QUEUE[idx].id, 0); setNow(); setNavState(); syncPlayerUI(); setPlayUI(keepPlaying);
+        ensureMetric(QUEUE[idx].id, 0);
+        if (TRACK_METRICS[QUEUE[idx].id]) TRACK_METRICS[QUEUE[idx].id]._completed = false;   // 재청취 시 완주 자동전환 다시 허용
+        setNow(); setNavState(); syncPlayerUI(); setPlayUI(keepPlaying);
         setTimeout(()=>{advancing=false;},1200);
       };
       ensureMetric(QUEUE[0].id, 0); setNow(); setNavState(); syncPlayerUI(); const ov=$("playOverlay"); if(ov) ov.hidden=false;
@@ -1595,6 +1666,14 @@ function setupPlayer(seq) {
       };
       if(pv) pv.addEventListener("click",()=>manualJump(-1));
       if(nx) nx.addEventListener("click",()=>manualJump(1));
+      JUMP_TO_SONG = (songId) => {
+        const to = QUEUE.findIndex(s => s.id === songId);
+        if (to < 0 || to === QUEUE_IDX || advancing) return;
+        advancing = true;
+        if (QUEUE[QUEUE_IDX]) { const m=ensureMetric(QUEUE[QUEUE_IDX].id, TRACK_METRICS[QUEUE[QUEUE_IDX].id]?.durationSec); m.skipped=true; }
+        logEvent("track_skip",{song_id:QUEUE[QUEUE_IDX].id,position:QUEUE_IDX+1,direction:"jump",to_song_id:songId});
+        goTo(to);
+      };
 
       ctrl.addListener("playback_update", e=>{
         const d=e.data||{}, song=QUEUE[QUEUE_IDX]; if(!song||advancing)return;
@@ -1604,6 +1683,7 @@ function setupPlayer(seq) {
         const now=performance.now();
         const wasPlaying=!!m._wasPlaying;
         if(!d.isPaused && pos>0.2 && !started){ started=true; if(QUEUE_IDX===0) logEvent("sequence_play_start",{song_id:song.id}); }
+        if(!d.isPaused && pos>0.2 && m.skipped){ m.skipped=false; }   // 돌아와서 다시 듣기 시작 → 스킵 상태 해제 (이후 저장 행이 깨끗해짐)
         if(!d.isPaused){
           if(wasPlaying && m._lastSampleTs>0){
             const positionDelta=pos-m._lastSamplePos;
@@ -1623,11 +1703,15 @@ function setupPlayer(seq) {
         syncPlayerUI();
         const toast=$("playerFeedbackToast");
         if(toast) toast.textContent = m.listenedSeconds < 10 ? "실제로 " + Math.ceil(10-m.listenedSeconds) + "초만 더 들으면 좋아요가 열려요." : "좋아요가 열렸어요. 끝까지 들으면 다음 곡으로 이어집니다.";
-        if(dur>0 && pos>=dur-0.45){
+        if(dur>0 && pos>=dur-0.45 && !m._completed){
+          m._completed=true;   // 곡당 1회 — 종료 위치에서 업데이트가 반복 와도 중복 로그/전환 방지
           advancing=true; saveListeningRecord(song.id,m,"complete");
           logEvent("track_complete",{song_id:song.id,position:QUEUE_IDX+1,completion_rate:Math.min(1,m.listenedSeconds/m.durationSec)});
           if(QUEUE_IDX+1<QUEUE.length) goTo(QUEUE_IDX+1);
-          else { logEvent("sequence_complete",{minutes:RECOMMEND_MINUTES}); flushActiveMetric("sequence_complete"); }
+          else {
+            logEvent("sequence_complete",{minutes:RECOMMEND_MINUTES}); flushActiveMetric("sequence_complete");
+            advancing=false; setPlayUI(false);   // 시퀀스 끝: 잠금을 풀어 이전 곡 버튼이 다시 눌리게
+          }
         }
       });
     });
@@ -1977,7 +2061,7 @@ async function nlToVA(isRetry) {
     LAST_NL_TEXT = text;
     clearPath();
     updatePlaneUI();
-    if (!tgt) { const mb = $("manualBox"); if (mb) mb.open = true; }  // 목표만 마저 고르게 펼침
+    const mb = $("manualBox"); if (mb) mb.open = true;   // 해석 결과를 사분면에서 바로 확인·수정할 수 있게 항상 펼침
     nlStatusMsg("해석: " + (parsed.reason || "완료")
       + (tgt ? " — 아래 흐름이 어색하면 '직접 자세히 지정하기'에서 고칠 수 있어요."
              : " — 어떤 상태가 되고 싶은지도 문장에 적거나, 아래에서 목표를 골라주세요."));
@@ -2015,31 +2099,38 @@ function recommend() {
   RECOMMEND_MINUTES = Number($("listenTime").value) || 30;
   SELECTED_GENRES = [...SELECTED_GENRES];
   const target = blendTarget(TGT_VA);
+  const matchesGenre = s => !!(s.genres && s.genres.length &&
+    s.genres.some(g => SELECTED_GENRES.some(x => String(g).toLowerCase().includes(String(x).toLowerCase()))));
   let pool = SONGS;
-  if (SELECTED_GENRES.length) {
-    const genrePool = pool.filter(s => s.genres && s.genres.some(g => SELECTED_GENRES.some(x => String(g).toLowerCase().includes(String(x).toLowerCase()))));
-    if (genrePool.length >= Math.min(3, pool.length)) pool = genrePool;
-  }
+  /* 가사 조건을 먼저 거른 뒤 장르를 판단해야, 장르 풀이 충분한지 정확히 알 수 있다 */
   if (lyric === "instrumental_only")
     pool = pool.filter(s => (s.tags.instrumental_probability ?? 0) >= INSTRUMENTAL_ONLY_MIN);
   else if (lyric === "prefer_instrumental")
     pool = pool.filter(s => (s.tags.instrumental_probability ?? 0) >= PREFER_INSTRUMENTAL_MIN);
   else if (lyric === "prefer_vocal")
     pool = pool.filter(s => (s.tags.instrumental_probability ?? 1) <= 0.7);
+  /* 장르 최우선: 시퀀스 곡 수를 채울 만큼 있으면 장르 곡만 사용 */
+  const needCount = RECOMMEND_MINUTES <= 10 ? 3 : RECOMMEND_MINUTES <= 30 ? 5 : 8;
+  if (SELECTED_GENRES.length) {
+    const genrePool = pool.filter(matchesGenre);
+    if (genrePool.length >= needCount) pool = genrePool;
+    // 부족하면 전체 풀을 유지하되, 아래 정렬·경로 선택에서 장르 일치가 항상 앞선다
+  }
 
   if (!pool.length) {
     $("results").innerHTML = "<div class='scene-inner result-cabin'><div class='result-placeholder'><h2>맞는 곡이 충분하지 않아요</h2><p>장르나 가사 조건을 조금 넓혀서 다시 만들어 볼까요?</p><button class='ghost' type='button' data-go-scene='stateRoom'>오늘의 음악 다시 만들기</button></div></div>";
     return;
   }
 
-  const ranked = pool.map(s => ({ ...s, score: weightedFit(s.tags, target) + personalBonus(s) }))
+  const ranked = pool.map(s => ({ ...s, _gm: (!SELECTED_GENRES.length || matchesGenre(s)) ? 1 : 0,
+                                       score: weightedFit(s.tags, target) + personalBonus(s) }))
     .filter(s => !DISLIKED_SONGS.has(s.id))
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => (b._gm - a._gm) || (b.score - a.score));   // 장르 일치가 1차 기준, 적합도는 2차
 
   const estimated = s => Math.max(60, Number(s.durationSec) || 180);
   const totalTargetSec = RECOMMEND_MINUTES * 60;
   const approxCount = Math.max(3, Math.min(ranked.length, Math.ceil(totalTargetSec / 180)));
-  const pathCount = RECOMMEND_MINUTES <= 10 ? 3 : RECOMMEND_MINUTES <= 30 ? 5 : 8;
+  const pathCount = needCount;
   const n = Math.min(pathCount, approxCount, ranked.length);
   const used = new Set(), seq = [];
   const cur = CUR_VA, tgt = TGT_VA;
@@ -2059,6 +2150,7 @@ function recommend() {
         const tn = Math.min(1, Math.max(0, (c.tempo-50)/130));
         cost += Math.abs(tn-wp.e)*TEMPO_W;
       }
+      if (!c._gm) cost += GENRE_FIRST_PENALTY;   // 장르 불일치는 경로에서도 사실상 최후순위
       if (cost < bestCost) { bestCost = cost; best = c; }
     }
     if (!best) {
@@ -2095,27 +2187,42 @@ function renderResults(list, seq, cur, tgt, target, poolSize, stepOf) {
   let html = "<div class='section-shell'><div class='section-head'><div><span class='room-tag'>NOW PLAYING</span><h2 style='margin-top:9px'>오늘의 음악</h2><p>"+esc(vaWord(cur))+" → "+esc(vaWord(tgt))+" · "+RECOMMEND_MINUTES+"분의 여정</p></div><span class='phase'>ON AIR</span></div><div class='results-wrap'>";
   if(playable.length){
     const first=playable[0];
-    html += "<div class='cabin-player current-song-card' data-song-card='"+esc(first.id)+"'><div class='player-title'><div><div class='phase'>NOW IN AZT</div><div class='now' id='nowPlayingTitle'>"+esc(first.title)+"</div><div class='plane-note' id='nowPlayingArtist'>"+esc(first.artist||"")+"</div></div><span class='phase' id='playerPhase'>첫 곡 · 지금과 가까운 음악</span></div><div class='player-frame'><div id='embedHost'></div><div id='playOverlay' class='play-overlay'><button id='playerStart' type='button'>▶ 이 방의 음악 켜기</button></div></div><div class='player-controls'><div><div class='listen-meta'><span id='listenMetricText'>실제 청취 0%</span><span>좋아요는 실제 10초 후</span></div><div class='listen-meter'><i id='listenMetricBar'></i></div><div class='player-status' id='playerFeedbackToast'>재생 버튼을 누르면 음악이 시작돼요.</div><div style='display:flex;align-items:center;gap:10px;margin-top:10px'><button id='aztPlayToggle' type='button'>▶ 재생</button><span class='play-helper'>Spotify 플레이어와 같은 재생 상태를 조작해요.</span></div></div><div class='phase' id='listenSecondsText'>0초</div></div><div class='player-actions'><button type='button' class='song-action' data-action='like' data-song-id='"+esc(first.id)+"' disabled>10초 후 좋아요</button><button type='button' class='song-action dislike' data-action='dislike' data-song-id='"+esc(first.id)+"'>싫어요</button><button type='button' class='song-action' data-action='playlist' data-song-id='"+esc(first.id)+"'>＋ 벽에 붙이기</button></div><div class='seq-nav'><button id='prevTrack' type='button'>← 이전 곡</button><button id='nextTrack' type='button'>다음 곡 →</button></div><div class='reason-box'>현재 상태와 가까운 음악에서 시작해요. 충분히 들은 뒤 점점 목표 상태 쪽으로 이동합니다.</div></div>";
+    html += "<div class='cabin-player current-song-card' data-song-card='"+esc(first.id)+"'><div class='player-title'><div><div class='phase'>NOW IN AZT</div><div class='now' id='nowPlayingTitle'>"+esc(first.title)+"</div><div class='plane-note' id='nowPlayingArtist'>"+esc(first.artist||"")+"</div></div><span class='phase' id='playerPhase'>첫 곡 · 지금과 가까운 음악</span></div><div class='player-frame'><div id='embedHost'></div><div id='playOverlay' class='play-overlay'><button id='playerStart' type='button'>▶ 이 방의 음악 켜기</button></div></div><div class='player-controls'><div><div class='listen-meta'><span id='listenMetricText'>실제 청취 0%</span><span>좋아요는 실제 10초 후</span></div><div class='listen-meter'><i id='listenMetricBar'></i></div><div class='player-status' id='playerFeedbackToast'>재생 버튼을 누르면 음악이 시작돼요.</div><div style='display:flex;align-items:center;gap:10px;margin-top:10px'><button id='aztPlayToggle' type='button'>▶ 재생</button><span class='play-helper'>Spotify 플레이어와 같은 재생 상태를 조작해요.</span></div></div><div class='phase' id='listenSecondsText'>0초</div></div><div class='player-actions'><button type='button' class='song-action' data-action='like' data-song-id='"+esc(first.id)+"' disabled>10초 후 좋아요</button><button type='button' class='song-action dislike' data-action='dislike' data-song-id='"+esc(first.id)+"'>싫어요</button><button type='button' class='song-action' data-action='playlist' data-song-id='"+esc(first.id)+"'>＋ 벽에 붙이기</button></div><p class='plane-note' id='memberNote' hidden>로그인하면 좋아요·벽에 붙이기를 쓸 수 있어요.</p><div class='seq-nav'><button id='prevTrack' type='button'>← 이전 곡</button><button id='nextTrack' type='button'>다음 곡 →</button></div><div class='reason-box'>현재 상태와 가까운 음악에서 시작해요. 충분히 들은 뒤 점점 목표 상태 쪽으로 이동합니다.</div></div>";
   }
   html += "<div class='song-list'>";
+  let li = 0;
   for(const s of list){
+    if (li === 3) html += "<div id='songListMore' hidden>";   // 상위 3곡만 먼저, 나머지는 접어둔다
     const reasons=TAG_KEYS.map(k=>({k,tv:target[k]??0,sv:(typeof s.tags[k]==='number'?s.tags[k]:0.5)})).sort((a,b)=>(b.tv*b.sv)-(a.tv*a.sv)).slice(0,3);
     const metric=TRACK_METRICS[s.id], ready=!!(metric&&metric.listenedSeconds>=10);
-    html += "<article class='song' data-song-card='"+esc(s.id)+"'><div class='top'><div>"+(stepOf[s.id]?"<span class='step'>"+stepOf[s.id]+"</span>":"")+"<span class='title'>"+esc(s.title)+"</span> <span class='artist'>"+esc(s.artist)+"</span></div><span class='score'>AZT "+(typeof s.score==='number'?s.score.toFixed(2):"")+"</span></div><div class='reasons'>";
+    const jumpable = playable.some(p => p.id === s.id);   // 재생 큐에 있는 곡은 눌러서 바로 이동
+    html += "<article class='song"+(jumpable?" in-queue":"")+"' data-song-card='"+esc(s.id)+"'"+(jumpable?" data-jump-song='"+esc(s.id)+"' role='button' tabindex='0' aria-label='"+esc(s.title)+" 재생으로 이동'":"")+"><div class='top'><div>"+(stepOf[s.id]?"<span class='step'>"+stepOf[s.id]+"</span>":"")+"<span class='title'>"+esc(s.title)+"</span> <span class='artist'>"+esc(s.artist)+"</span></div><span class='score'>AZT "+(typeof s.score==='number'?s.score.toFixed(2):"")+"</span></div><div class='reasons'>";
     for(const r of reasons) html += "<div class='reason'><span>"+TAG_LABELS[r.k]+"</span><span class='bar'><i style='width:"+Math.round(r.sv*100)+"%'></i></span></div>";
     html += "</div><div class='song-actions'><button type='button' class='song-action' data-action='like' data-song-id='"+esc(s.id)+"' disabled>"+(LIKED_SONGS.has(s.id)?"♥ 좋아요":ready?"♡ 좋아요":"10초 후 좋아요")+"</button><button type='button' class='song-action dislike' data-action='dislike' data-song-id='"+esc(s.id)+"'>"+(DISLIKED_SONGS.has(s.id)?"싫어요 취소":"싫어요")+"</button><button type='button' class='song-action' data-action='playlist' data-song-id='"+esc(s.id)+"'>"+(PLAYLIST_SONGS.has(s.id)?"✓ 벽에 붙어 있음":"＋ 벽에 붙이기")+"</button></div>";
     if(s.spotifyUrl) html += "<a class='spotify' data-song-id='"+esc(s.id)+"' href='"+s.spotifyUrl+"' target='_blank' rel='noopener'>Spotify에서 열기 ↗</a>";
     html += "</article>";
+    li++;
   }
-  html += "</div></div><div class='journey-card'><h3>음악의 길</h3>"+journeySVG(cur,tgt,seq)+"<p class='plane-note'>처음에는 지금의 감정과 가까운 곡으로 동조하고, 중간부터 천천히 분위기를 바꾸며, 마지막에는 목표 상태에 머물 수 있도록 구성했어요.</p></div></div>";
+  if (list.length > 3) html += "</div><button id='songListToggle' class='list-toggle' type='button'>나머지 "+(list.length-3)+"곡 자세히 보기</button>";
+  html += "</div></div><div class='journey-card'><h3>음악의 길</h3>"+journeySVG(cur,tgt,seq)+"<p class='plane-note'>지금과 가까운 곡에서 시작해 목표 상태로 천천히 옮겨가요.</p></div></div>";
   /* 청취 후 변화 기록: 실제로 듣지 않은 채 남기는 무의미한 응답을 막기 위해
      재생 가능한 곡이 있으면 실청취 AFTER_UNLOCK_SECONDS초를 채워야 열린다.
      (재생 불가 곡뿐이면 측정할 수 없으므로 처음부터 열어둔다) */
   const gateAttr = playable.length ? " disabled" : "";
   const gateMsg = playable.length ? "음악을 실제로 " + AFTER_UNLOCK_SECONDS + "초 이상 들으면 기록을 남길 수 있어요." : "";
-  html += "<div class='after-card' id='afterCard'><h3>듣고 난 뒤</h3><p class='plane-note'>듣기 전과 비교해 지금은 어떤가요? 이 답은 다음 AZT 여정의 재료가 됩니다.</p><div class='stress-wrap'><input type='range' id='afterChange' min='-2' max='2' step='1' value='0'"+gateAttr+" aria-describedby='afterEcho' aria-label='청취 전 대비 상태 변화'/><div class='stress-labels'><span>더 힘들어짐</span><span>그대로</span><span>한결 편안함</span></div><div id='afterEcho' style='margin-top:10px;font-weight:800'>선택: <b>그대로예요</b></div></div><button id='afterSubmit' class='after-btn'"+gateAttr+">기록하고 나가기</button><p id='afterGate' class='plane-note'>"+gateMsg+"</p><p id='afterThanks' class='plane-note' hidden>기록됐어요. 다음에 더 잘 맞춰볼게요.</p></div></div>";
+  html += "<div class='after-card' id='afterCard'><h3>듣고 난 뒤</h3><p class='plane-note'>듣기 전과 비교해 지금은 어떤가요?</p><div class='stress-wrap'><input type='range' id='afterChange' min='-2' max='2' step='1' value='0'"+gateAttr+" aria-describedby='afterEcho' aria-label='청취 전 대비 상태 변화'/><div class='stress-labels'><span>더 힘들어짐</span><span>그대로</span><span>한결 편안함</span></div><div id='afterEcho' style='margin-top:10px;font-weight:800'>선택: <b>그대로예요</b></div></div><button id='afterSubmit' class='after-btn'"+gateAttr+">기록하고 나가기</button><p id='afterGate' class='plane-note'>"+gateMsg+"</p><p id='afterThanks' class='plane-note' hidden>기록됐어요. 다음에 더 잘 맞춰볼게요.</p></div></div>";
   box.innerHTML="<div class='scene-inner result-cabin'>"+html+"</div>";
   box.classList.add("scene-active");
+  const lt=$("songListToggle");
+  if(lt) lt.addEventListener("click",()=>{ const more=$("songListMore"); if(!more) return;
+    const opening=more.hidden; more.hidden=!opening;
+    lt.textContent = opening ? "접기" : "나머지 "+(list.length-3)+"곡 자세히 보기"; });
+  const jump = id => { if (typeof JUMP_TO_SONG === "function") JUMP_TO_SONG(id); };
+  box.querySelectorAll("[data-jump-song]").forEach(el=>{
+    el.addEventListener("click",(e)=>{ if (e.target.closest("button,a,input,textarea")) return; jump(el.dataset.jumpSong); });
+    el.addEventListener("keydown",(e)=>{ if ((e.key==="Enter"||e.key===" ") && e.target===el) { e.preventDefault(); jump(el.dataset.jumpSong); } });
+  });
+  applyMemberGate();   // 비회원이면 곡 액션 버튼 전체 비활성화
   if(playable.length) setupPlayer(seq);
   setupAfterInput();
   requestAnimationFrame(()=>goScene("results"));
@@ -2153,6 +2260,7 @@ $("results").addEventListener("click", (e) => {
 });
 $("myAztBtn").addEventListener("click", openMyAzt);
 $("closeMyAzt").addEventListener("click", () => { $("myAzt").hidden = true; goScene("ground"); });
+$("myGuestLogin")?.addEventListener("click", () => openAuthModal("login"));
 $("listenTime").addEventListener("change", () => { RECOMMEND_MINUTES=Number($("listenTime").value)||30; });
 $("deleteMyData").addEventListener("click", async () => {
   const user=firebase.auth().currentUser;
