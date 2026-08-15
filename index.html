@@ -766,12 +766,14 @@ async function init() {
       if (!tags) return;
       const pr = d.provider_raw || {};
       /* V/A 좌표는 데이터팀이 만든 v2 축을 먼저 쓴다.
-         v2_valence_selected — 가사 점수가 있는 곡은 가사 결합식(폭 맞춤), 나머지는 Spotify valence.
-           DB 에서 `v2_valence_lyric_blend_aligned ?? v2_valence_provider` 로 검산된다.
-           `v2_valence`(우리 파이프라인 축)와는 다른 값이니 헷갈리지 말 것.
+         v2_valence — 공식(Spotify 특징) + 골드셋 사람 라벨 299곡 + 가사 점수 1,374곡을
+           정밀도 가중으로 합친 뒤, 활력이 0.5 이상이면 0.20 을 빼고 미만이면 0.20 을 더한 값
+           (계단 보정). 2026-08-16 채택. 전 2,398곡에 있다.
+           ※ 활력 0.5 경계에서 기분값이 0.40 튄다 — 경계 근처 곡끼리 기분값을 비교하지 말 것.
+           옛 v2_valence_selected 는 2026-08-15 삭제됐다(가사만 반영, 골드셋 빠진 반쪽 축).
          v2_arousal — Spotify energy 그대로 (값은 provider_raw.energy 와 같다)
          두 필드가 없는 문서에서만 provider_raw 로 떨어진다. */
-      const v2v = normScale(d.v2_valence_selected), v2e = normScale(d.v2_arousal);
+      const v2v = normScale(d.v2_valence), v2e = normScale(d.v2_arousal);
       const nv = normScale(pr.valence), ne = normScale(pr.energy);
       const va = (v2v !== null && v2e !== null) ? { v: v2v, e: v2e }
                : (nv !== null && ne !== null) ? { v: nv, e: ne } : null;
