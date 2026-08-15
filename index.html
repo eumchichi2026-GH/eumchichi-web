@@ -780,7 +780,10 @@ async function init() {
       if (v2v === null || v2e === null) v2Missing++;
       const tempo = (typeof pr.tempo === "number" && pr.tempo > 0) ? pr.tempo : null;
       const trackId = d.spotify_track_id || d.source_track_id;
-      const genres = Array.isArray(d.genres) ? d.genres
+      /* 장르는 `genre`(단수, 배열)다 — `genres`(복수) 필드는 없다.
+         배열을 문자열로 받으려 해서 지금까지 장르 가점이 한 번도 안 걸렸다.
+         2,398곡 중 283곡(11.8%)은 null 이라 빈 배열로 떨어진다. */
+      const genres = Array.isArray(d.genre) ? d.genre
                    : (typeof d.genre === "string" && d.genre ? [d.genre] : []);
       SONGS.push({
         id: doc.id,
