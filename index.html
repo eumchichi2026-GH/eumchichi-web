@@ -73,8 +73,15 @@ img{max-width:100%}
   transition:opacity .42s ease,transform .42s cubic-bezier(.2,.7,.2,1),visibility 0s linear .42s}
 .scene.scene-active{opacity:1;transform:none;pointer-events:auto;z-index:20;visibility:visible;transition:opacity .42s ease,transform .42s cubic-bezier(.2,.7,.2,1),visibility 0s}
 .scene-inner{width:min(1160px,100%);margin:auto;position:relative}
-.scene::-webkit-scrollbar{width:8px}
-.scene::-webkit-scrollbar-thumb{background:var(--line-dark)}
+/* 커스텀 스크롤바는 마우스 환경에서만. 터치 기기에서 폭을 주면 오버레이가 아니라
+   레이아웃을 8px 잡아먹는 회색 막대가 되어 카드가 잘려 보인다. */
+@media (hover:hover) and (pointer:fine){
+  .scene::-webkit-scrollbar{width:8px}
+  .scene::-webkit-scrollbar-thumb{background:var(--line-dark)}
+}
+@media (pointer:coarse){
+  .scene::-webkit-scrollbar{width:0;height:0}
+}
 
 .scene-kicker{font-size:.64rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .scene-title{font-weight:600;letter-spacing:-.02em;font-size:clamp(1.9rem,3.8vw,3.4rem);line-height:1.28;margin-top:18px}
@@ -109,7 +116,7 @@ img{max-width:100%}
 .ghost:hover{border-color:var(--ink);color:var(--ink)}
 
 /* ── 0F 입구 ── */
-.ground .scene-inner{display:grid;grid-template-columns:1fr 1.05fr;align-items:center;gap:6vw}
+.ground .scene-inner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:center;gap:6vw}
 .ground-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
 .disclaimer{font-size:.66rem;color:var(--muted);margin-top:28px}
 .vinyl-panel{background:var(--panel);min-height:52vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:34px}
@@ -127,13 +134,16 @@ img{max-width:100%}
   background:var(--ink);color:var(--on-ink);font-size:.8rem;font-weight:700;letter-spacing:.06em}
 .floor-label strong{font-size:1.15rem;font-weight:700;display:block;margin-top:5px;letter-spacing:-.01em}
 .floor-label>span{font-size:.66rem;color:var(--muted);font-weight:600;text-align:right;letter-spacing:.06em}
-.input-layout{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
+/* 그리드 아이템은 기본 min-width:auto라 내용의 min-content 폭이 칸보다 넓으면
+   칸을 밀고 나간다. 기기 글자 크기를 키우면 카드가 테두리를 벗어나는 원인. */
+.input-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:16px}
+.input-layout>*{min-width:0}
 .note-card{background:var(--panel-2);border:1px solid var(--line);padding:18px}
 .note-card h3{font-size:.86rem;font-weight:700;letter-spacing:.02em}
 .note-card .desc{font-size:.76rem;color:var(--muted);margin:5px 0 13px}
 .nl-wrap{display:flex;gap:8px}
 .nl-wrap textarea{flex:1;min-height:104px;border:1px solid var(--line-dark);padding:12px;background:var(--paper);resize:vertical}
-.nl-wrap button{min-width:92px;border:1px solid var(--ink);background:var(--ink);color:var(--on-ink);font-weight:600;font-size:.72rem;letter-spacing:.1em}
+.nl-wrap button{min-width:92px;border:1px solid var(--ink);background:var(--ink);color:var(--on-ink);font-weight:600;font-size:.72rem;letter-spacing:.1em;white-space:nowrap}
 .nl-wrap button:hover{background:var(--ink-strong)}
 .nl-wrap button:disabled{background:var(--panel);border-color:var(--line-dark);color:var(--muted);cursor:wait}
 .setting-stack{display:grid;gap:10px}
@@ -177,6 +187,7 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:var(-
 .result-cabin .section-head p{color:var(--muted);font-size:.76rem;margin-top:3px}
 .section-head .phase{white-space:nowrap}
 .results-wrap{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:16px;align-items:start}
+.results-wrap>*{min-width:0}
 .cabin-player{border-top:2px solid var(--ink);padding:22px}
 .player-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .player-title .now{font-size:1.2rem;font-weight:700;letter-spacing:-.01em}
@@ -246,7 +257,8 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:var(-
 .my-room{width:min(1040px,100%);border-top:2px solid var(--ink);padding:28px}
 .my-room .section-head{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:0}
 .my-room h2{font-size:1.35rem;font-weight:700}
-.my-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.my-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:16px}
+.my-grid>*{min-width:0}
 .my-card{background:var(--panel-2);border:1px solid var(--line);padding:15px}
 .my-card h3{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mid);margin-bottom:10px;font-weight:700}
 .my-card p{font-size:.76rem;color:var(--mid)}
@@ -349,11 +361,11 @@ html[data-theme=dark] .time-out{color:var(--accent)}
   .topbar{padding:13px 16px}
   .topnav{display:none}
   .scene{padding:92px 5vw 100px}
-  .ground .scene-inner,.input-layout,.results-wrap{grid-template-columns:1fr}
+  .ground .scene-inner,.input-layout,.results-wrap{grid-template-columns:minmax(0,1fr)}
   .ground .scene-inner{gap:30px}
   .vinyl-panel{min-height:38vh;order:-1}
   .cabin-floor,.my-room{padding:22px}
-  .my-grid{grid-template-columns:1fr}
+  .my-grid{grid-template-columns:minmax(0,1fr)}
 }
 @media(max-width:700px){
   .scene{padding:86px 16px 96px}
@@ -447,7 +459,7 @@ html[data-theme=dark] .time-out{color:var(--accent)}
         <div class="input-layout">
           <div class="note-card">
             <h3>지금 마음</h3><p class="desc">한 문장이면 충분해요.</p>
-            <div class="nl-wrap"><textarea id="nlText" rows="3" maxlength="600" aria-label="지금 상태와 원하는 상태를 자유롭게 설명" placeholder="예: 마음이 조급해요. 차분해지고 싶어요."></textarea><button id="nlApply" type="button">AI로<br/>읽기</button></div>
+            <div class="nl-wrap"><textarea id="nlText" rows="3" maxlength="600" aria-label="지금 상태와 원하는 상태를 자유롭게 설명" placeholder="예: 마음이 조급해요. 차분해지고 싶어요."></textarea><button id="nlApply" type="button">AI로 읽기</button></div>
             <p class="plane-note" id="nlStatus" role="status"></p><div class="linear-preview" id="nlPreview"></div>
             <details class="manual" id="manualBox"><summary>직접 골라볼게요</summary><div class="manual-body"><div class="va-input" id="vaWrap" aria-describedby="vaEcho"></div><p class="plane-note" id="vaEcho"><b>지금</b> → <b>목표</b> 순서로 찍어주세요.</p><p class="plane-note" id="chipHint"></p><div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div></div></details>
           </div>
