@@ -719,6 +719,7 @@ let AFTER_UNLOCKED = false;   // 청취 후 변화 슬라이더 잠금 상태
 const LOCAL_KEY = "azt:v1:personal";
 
 let fallbackUsed = false;
+let v2Missing = 0;    // v2_valence/v2_arousal 이 없어 provider_raw 로 떨어진 곡 수
 
 function setStatus(kind, msg) {
   if(statusBox) statusBox.className = kind;
@@ -764,8 +765,17 @@ async function init() {
       }
       if (!tags) return;
       const pr = d.provider_raw || {};
+      /* V/A 좌표는 데이터팀이 만든 v2 축을 먼저 쓴다.
+         v2_valence_selected — 가사 점수가 있는 곡은 가사 결합식(폭 맞춤), 나머지는 Spotify valence.
+           DB 에서 `v2_valence_lyric_blend_aligned ?? v2_valence_provider` 로 검산된다.
+           `v2_valence`(우리 파이프라인 축)와는 다른 값이니 헷갈리지 말 것.
+         v2_arousal — Spotify energy 그대로 (값은 provider_raw.energy 와 같다)
+         두 필드가 없는 문서에서만 provider_raw 로 떨어진다. */
+      const v2v = normScale(d.v2_valence_selected), v2e = normScale(d.v2_arousal);
       const nv = normScale(pr.valence), ne = normScale(pr.energy);
-      const va = (nv !== null && ne !== null) ? { v: nv, e: ne } : null;
+      const va = (v2v !== null && v2e !== null) ? { v: v2v, e: v2e }
+               : (nv !== null && ne !== null) ? { v: nv, e: ne } : null;
+      if (v2v === null || v2e === null) v2Missing++;
       const tempo = (typeof pr.tempo === "number" && pr.tempo > 0) ? pr.tempo : null;
       const trackId = d.spotify_track_id || d.source_track_id;
       const genres = Array.isArray(d.genres) ? d.genres
@@ -784,6 +794,7 @@ async function init() {
       setStatus("err", "songs 컬렉션은 읽었지만 사용할 수 있는 곡이 없어요. final_tag가 업로드됐는지 확인해 주세요.");
       return;
     }
+    if (v2Missing) console.warn("v2 좌표가 없어 provider_raw 로 떨어진 곡 " + v2Missing + "개");
     setStatus("ok", "연결 완료 — " + SONGS.length + "곡 준비됨" + (fallbackUsed ? " (일부 곡은 검수 전 태그 사용)" : ""));
     SONGS_READY = true;
     loadLocalPersonal();
