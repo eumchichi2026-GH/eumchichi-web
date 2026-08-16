@@ -248,10 +248,12 @@ function waypoints(nowC, tgtC, n, at) {
 }
 
 // ── 탐색 ────────────────────────────────────────────────
-function stepCandidates(universe, state, ctx, wp, tgtC, term, rules, inputs, maxStep, band, nExpand,
+/* pool 은 recommend() 가 걸음당 한 번 계산해 넘긴다. 같은 걸음의 빔 상태들은 경유지가
+   같아 영역 풀도 같으므로, 상태마다 다시 거르면 카탈로그 전수 필터가 빔 폭(8)만큼
+   반복된다 — 2,398곡 × 8상태 × 최대 15걸음. 결과는 바뀌지 않는 순수 중복이었다. */
+function stepCandidates(pool, state, ctx, wp, tgtC, term, rules, inputs, maxStep, band, nExpand,
                        stepI = 0, seed = null, pbucket = 0) {
   const cap = Number(rules.diversity.max_per_artist);
-  const pool = regionPool(universe, ctx, wp, term, rules);
 
   let cands = [];
   for (const s of pool) {
@@ -341,9 +343,10 @@ export function recommend(catalog, rules, inputsIn) {
 
   for (let wi = 0; wi < wps.length; wi++) {
     const wp = wps[wi];
+    const pool = regionPool(universe, ctx, wp, term, rules);   // 걸음당 1회
     const next = [];
     for (const st of beam) {
-      const { cands, bandSize, relaxed } = stepCandidates(universe, st, ctx, wp, tgtC, term, rules, inputs, maxStep, band, nExpand, wi, seed, pbucket);
+      const { cands, bandSize, relaxed } = stepCandidates(pool, st, ctx, wp, tgtC, term, rules, inputs, maxStep, band, nExpand, wi, seed, pbucket);
       for (const c of cands) {
         const s = c.song;
         const ac = { ...st.artistCount };
