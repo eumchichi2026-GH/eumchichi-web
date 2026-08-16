@@ -2396,9 +2396,11 @@ async function recommend() {
   else if (lyric === "prefer_vocal")
     pool = pool.filter(s => (s.tags.vocal_load ?? 1) >= 0.3);
   /* 장르 최우선: 시퀀스 곡 수를 채울 만큼 있으면 장르 곡만 사용 */
-  /* 시간이 슬라이더(5~90분)로 연속값이 되면서 곡 수도 연속으로 계산:
-     평균 6분/곡 가정, 3~15곡 범위. (10→3곡, 30→5곡, 60→10곡, 90→15곡) */
-  const needCount = Math.max(3, Math.min(15, Math.ceil(RECOMMEND_MINUTES / 6)));
+  /* 곡 수 공식은 규칙 파일(iso.song_count)에서 읽는다 — 여기에 숫자를 다시 만들면
+     앱과 엔진이 서로 다른 곡 수를 가정하게 된다. (예전엔 '6분/곡, 3~15곡'이
+     하드코딩돼 있었는데, 실측 곡 길이는 3.73분이고 상한은 9곡이다.) */
+  const _sc = AZT_RULES.iso.song_count;
+  const needCount = Math.max(_sc.min, Math.min(_sc.max, Math.floor(RECOMMEND_MINUTES / _sc.per_minutes)));
   if (SELECTED_GENRES.length) {
     const genrePool = pool.filter(matchesGenre);
     if (genrePool.length >= needCount) pool = genrePool;
@@ -2459,7 +2461,14 @@ async function recommend() {
   const used = new Set(seq.map(s => s.id));
   let total = seq.reduce((a,s)=>a+estimated(s),0);
   const extras = [];
-  const extraPool = pool.filter(s => !used.has(s.id) && !DISLIKED_SONGS.has(s.id));
+  /* 경유 시퀀스는 '이동'이고, 그 뒤 곡들은 '도착한 상태를 유지'하는 역할이다.
+     지금·목표가 가깝거나 요청이 길면 경유가 짧아져 이쪽 비중이 커지므로,
+     카탈로그 순서가 아니라 목표 좌표에 가까운 순으로 채운다.
+     (엔진은 퍼센타일로 재지만 여기선 순서만 정하면 되므로 원좌표 거리로 충분하다) */
+  const extraPool = pool.filter(s => !used.has(s.id) && !DISLIKED_SONGS.has(s.id))
+    .map(s => { const p = songVA(s); return { s, d: Math.hypot(p.v - tgt.v, p.e - tgt.e) }; })
+    .sort((a, b) => a.d - b.d)
+    .map(x => x.s);
   for (const c of extraPool) {
     if (total >= totalTargetSec * 0.85) break;
     extras.push(c); used.add(c.id); total += estimated(c);

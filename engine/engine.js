@@ -312,7 +312,20 @@ export function recommend(catalog, rules, inputsIn) {
   const ctx = prepare(catalog, rules);
 
   const dur = inputsIn.duration_min ?? 30;
-  const n = songCount(rules, dur);
+  const nowC = toCoord(ctx, inputsIn.now), tgtC = toCoord(ctx, inputsIn.target);
+
+  /* 경유 곡 수는 두 가지로 정해진다.
+     ① 요청 시간 — songCount(). 곡 하나가 몇 분인지의 문제.
+     ② 여정 길이 — 지금과 목표가 가까운데 곡을 많이 끼워 넣으면 걸음이
+        preference.band 보다 잘게 쪼개진다. 그 폭 안의 곡들은 순위가 구분하지
+        못하므로 어느 곡이 뽑힐지는 선호·시드가 정하고, 경로가 선이 아니라
+        잡음이 된다. 그래서 걸음 하나가 최소 min_step_span 은 되도록 곡 수를 줄인다.
+     둘 중 작은 쪽을 쓰되 song_count.min 아래로는 내려가지 않는다. */
+  const nByTime = songCount(rules, dur);
+  const span = Number(rules.iso.min_step_span ?? 0);
+  const journey = dist(nowC, tgtC, term);
+  const nByJourney = span > 0 ? Math.floor(journey / span) + 1 : Infinity;
+  const n = Math.max(Number(rules.iso.song_count.min), Math.min(nByTime, nByJourney));
   const inputs = { ...inputsIn, _n_songs: n };
 
   let { maxStep, active } = applyModulators(rules, inputs);
@@ -327,7 +340,6 @@ export function recommend(catalog, rules, inputsIn) {
     return { rules_version: rules.rules_version, rules_hash: rules.rules_hash, baselines: baseOut, sequence: [] };
   }
 
-  const nowC = toCoord(ctx, inputs.now), tgtC = toCoord(ctx, inputs.target);
   const wps = waypoints(nowC, tgtC, n, transitionAt(rules, dur));
 
   const band = Number(rules.preference.band);
@@ -409,6 +421,13 @@ export function recommend(catalog, rules, inputsIn) {
     baselines: baseOut,
     genre_restricted: genreApplied,
     relaxed_steps: best.picks.filter((p) => p.relaxed).length,
+    /* 곡 수가 시간 때문에 줄었는지 여정이 짧아서 줄었는지 로그로 구분되게 남긴다 */
+    song_count: {
+      by_time: nByTime,
+      by_journey: Number.isFinite(nByJourney) ? nByJourney : null,
+      effective: n,
+      journey: R6(journey),
+    },
     sequence: out,
   };
 }
