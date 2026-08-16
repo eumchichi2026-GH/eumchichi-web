@@ -627,8 +627,7 @@ const firebaseConfig = {
    ===================================================================== */
 /* v1 의 6종 태그 목록은 표시용으로만 남깁니다. 점수 계산에는 쓰지 않습니다.
    (태그를 하나의 점수로 합치는 것이 v1 이 무너진 지점이었습니다.) */
-const TAG_KEYS = ["calmness","focus_suitability","relaxation_suitability",
-                  "energizing_suitability","lyric_distraction","instrumental_probability"];
+const TAG_KEYS = ["vocal_load","groove","tonality"];
 
 const TOP_K = 5;
 const AFTER_UNLOCK_SECONDS = 60;   // 이만큼 실제로 들어야 청취 후 변화 기록이 열린다
@@ -669,8 +668,15 @@ function deriveContextLoad() {
 
 async function loadEngine() {
   if (AZT_ENGINE && AZT_RULES) return;
-  AZT_ENGINE = await import("./engine/engine.js");
-  AZT_RULES  = await (await fetch("./rules/rules.compiled.json", { cache: "no-cache" })).json();
+  if (globalThis.__AZT_ENGINE__ && globalThis.__AZT_RULES__) {
+    AZT_ENGINE = globalThis.__AZT_ENGINE__;      // 단일 파일 빌드
+    AZT_RULES  = globalThis.__AZT_RULES__;
+  } else {
+    AZT_ENGINE = await import("./engine/engine.js");
+    const res = await fetch("./rules/rules.compiled.json", { cache: "no-cache" });
+    if (!res.ok) throw new Error("rules.compiled.json HTTP " + res.status);
+    AZT_RULES = await res.json();
+  }
   ALGO_VERSION = AZT_RULES.rules_version + "+" + AZT_RULES.rules_hash;
   console.info("[AZT] 엔진 로드", ALGO_VERSION);
 }
@@ -705,10 +711,7 @@ const GOAL_CHIPS = [
   ["신나고 싶어요", 0.80, 0.85], ["시원하게 털어버리고 싶어요", 0.78, 0.75]
 ];
 
-const TAG_LABELS = {
-  calmness:"차분함", focus_suitability:"집중 적합", relaxation_suitability:"이완 적합",
-  energizing_suitability:"활력", lyric_distraction:"가사 방해도", instrumental_probability:"기악 확률"
-};
+const TAG_LABELS = { vocal_load:"보컬 비중", groove:"그루브", tonality:"조성" };
 
 /* ===================== 이하 앱 로직 ===================== */
 const $ = (id) => document.getElementById(id);
@@ -763,19 +766,35 @@ async function init() {
     });
     if (!firstUser) await firebase.auth().signInAnonymously();
     setStatus("", "음악 데이터 불러오는 중…");
+    let v2Missing = 0;
     const snap = await firebase.firestore().collection("songs").get();
 
     snap.forEach(doc => {
       const d = doc.data();
       if (d.review_status === "reject_song") return;
-      let tags = d.final_tag;
+      let tags = d.v2_tags || d.final_tag;
       if (!tags || !TAG_KEYS.some(k => typeof tags[k] === "number")) {
         tags = d.ai_or_rule_tag;
         if (tags) fallbackUsed = true;
       }
       if (!tags) return;
       const pr = d.provider_raw || {};
-      const nv = normScale(pr.valence), ne = normScale(pr.energy);
+      /* ── V/A 좌표 소스 우선순위 (2026-08-16 수정) ──────────────────────────
+         파이프라인이 만든 v2_valence / v2_arousal 을 먼저 읽는다.
+         v2_valence = 3층 병합(수작업·가사결합·provider) → 골드셋 척도정렬 →
+                      정밀도 가중 결합 → 계단 보정 → 1/99 퍼센타일 정규화
+         이전 버전은 provider_raw.valence 만 읽어서, 파이프라인이 축을 고쳐도
+         사용자에게 전혀 도달하지 않고 있었다. (골드셋 249곡·가사 96곡 전부 무시됨)
+         v2 필드가 없는 곡만 provider_raw 로 폴백한다. */
+      let nv = normScale(d.v2_valence);
+      let ne = normScale(d.v2_arousal);
+      let vaSource = d.va_source || null;
+      if (nv === null || ne === null) {
+        if (nv === null) nv = normScale(pr.valence);
+        if (ne === null) ne = normScale(pr.energy);
+        vaSource = vaSource || "provider";
+        v2Missing++;
+      }
       const va = (nv !== null && ne !== null) ? { v: nv, e: ne } : null;
       const tempo = (typeof pr.tempo === "number" && pr.tempo > 0) ? pr.tempo : null;
       const trackId = d.spotify_track_id || d.source_track_id;
@@ -786,6 +805,8 @@ async function init() {
         title: d.title || doc.id,
         artist: d.artist || "",
         tags, va, tempo, trackId, genres,
+        va_source: vaSource,
+        popularity: Number(d.popularity ?? pr.popularity ?? 0),
         durationSec: Number(pr.duration_ms || d.duration_ms || d.duration_seconds || 0) / (pr.duration_ms || d.duration_ms ? 1000 : 1),
         spotifyUrl: d.spotify_url || (trackId ? "https://open.spotify.com/track/" + trackId : null)
       });
@@ -795,7 +816,11 @@ async function init() {
       setStatus("err", "songs 컬렉션은 읽었지만 사용할 수 있는 곡이 없어요. final_tag가 업로드됐는지 확인해 주세요.");
       return;
     }
-    setStatus("ok", "연결 완료 — " + SONGS.length + "곡 준비됨" + (fallbackUsed ? " (일부 곡은 검수 전 태그 사용)" : ""));
+    const v2Cov = SONGS.length ? Math.round((SONGS.length - v2Missing) / SONGS.length * 100) : 0;
+    console.info("[AZT] V/A 소스 — v2 파이프라인 " + (SONGS.length - v2Missing) + "곡 / provider 폴백 " + v2Missing + "곡 (" + v2Cov + "%)");
+    setStatus("ok", "연결 완료 — " + SONGS.length + "곡 준비됨"
+      + (v2Missing ? " (v2 좌표 " + v2Cov + "%, 나머지는 provider 폴백)" : "")
+      + (fallbackUsed ? " · 일부 곡은 검수 전 태그 사용" : ""));
     SONGS_READY = true;
     loadLocalPersonal();
     loadGlobalStats();   // 전체 사용자 피드백 통계 (비동기, 실패해도 무관)
@@ -1512,9 +1537,11 @@ function toContractSong(s) {
     V: va.v, A: va.e,
     va_source: s.va_source || "provider",
     // 말 비중: v1 에는 speechiness 가 없어 가사 방해도로 대체. 문턱 전용이라 안전.
+    /* v2 태그 기준: vocal_load = 0.5×speechiness + 0.5×(1−instrumentalness).
+       높을수록 목소리 비중이 큼 → 기악곡은 vocal_load 가 낮다. */
     spokenness: (typeof s.speechiness === "number") ? s.speechiness
-              : (typeof t.lyric_distraction === "number" ? t.lyric_distraction : 0),
-    instrumental: (t.instrumental_probability ?? 0) >= INSTRUMENTAL_ONLY_MIN,
+              : (typeof t.vocal_load === "number" ? t.vocal_load : 0),
+    instrumental: (typeof t.vocal_load === "number") && t.vocal_load <= (1 - INSTRUMENTAL_ONLY_MIN),
     genres: Array.isArray(s.genres) ? s.genres : [],
     popularity: Number(s.popularity || 0),
     duration_ms: Math.round((Number(s.durationSec) || 210) * 1000),
@@ -1828,7 +1855,7 @@ function setupPlayer(seq) {
 }
 function songVA(s) {
   if (s.va) return s.va;
-  return { v: 0.5, e: (typeof s.tags.energizing_suitability === "number" ? s.tags.energizing_suitability : 0.5) };
+  return { v: 0.5, e: 0.5 };   // v2_arousal·provider energy 둘 다 없을 때만 도달
 }
 
 /* ===================== V/A 사분면: 입력 + 경로 표시 =====================
@@ -2250,7 +2277,16 @@ async function recommend() {
   try { await loadEngine(); }
   catch (e) {
     console.error("[AZT] 엔진 로드 실패", e);
-    $("results").innerHTML = "<div class='scene-inner result-cabin'><div class='result-placeholder'><h2>추천 엔진을 불러오지 못했어요</h2><p>잠시 후 다시 시도해 주세요.</p></div></div>";
+    const local = location.protocol === "file:";
+    $("results").innerHTML =
+      "<div class='scene-inner result-cabin'><div class='result-placeholder'>"
+      + "<h2>추천 엔진을 불러오지 못했어요</h2>"
+      + "<p>" + esc(local
+          ? "engine/ 과 rules/ 폴더를 함께 두고 로컬 서버로 열거나 단일 파일 버전을 쓰세요."
+          : "engine/engine.js 와 rules/rules.compiled.json 이 함께 배포됐는지 확인해 주세요.")
+      + "</p><p class='plane-note'>" + esc(String(e && e.message || e)) + "</p>"
+      + "<button class='ghost' type='button' data-go-scene='stateRoom'>돌아가기</button></div></div>";
+    requestAnimationFrame(() => goScene("results"));   // 조용히 끝내지 않는다
     return;
   }
   const lyric = $("lyric").value;
@@ -2262,9 +2298,9 @@ async function recommend() {
   /* instrumental_only / prefer_vocal 은 엔진 게이트로 넘긴다(아래 gates).
      prefer_instrumental 은 '선호'라 게이트가 아니므로 여기서만 약하게 거른다. */
   if (lyric === "prefer_instrumental")
-    pool = pool.filter(s => (s.tags.instrumental_probability ?? 0) >= PREFER_INSTRUMENTAL_MIN);
+    pool = pool.filter(s => (s.tags.vocal_load ?? 1) <= (1 - PREFER_INSTRUMENTAL_MIN));
   else if (lyric === "prefer_vocal")
-    pool = pool.filter(s => (s.tags.instrumental_probability ?? 1) <= 0.7);
+    pool = pool.filter(s => (s.tags.vocal_load ?? 1) >= 0.3);
   /* 장르 최우선: 시퀀스 곡 수를 채울 만큼 있으면 장르 곡만 사용 */
   /* 시간이 슬라이더(5~90분)로 연속값이 되면서 곡 수도 연속으로 계산:
      평균 6분/곡 가정, 3~15곡 범위. (10→3곡, 30→5곡, 60→10곡, 90→15곡) */

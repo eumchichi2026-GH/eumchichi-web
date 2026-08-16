@@ -161,6 +161,8 @@
         "field": "va_source",
         "order": [
           "manual",
+          "golden_set_calibrated",
+          "golden_set_provisional",
           "lyric_blend",
           "deam",
           "provider"
@@ -303,7 +305,7 @@
       ]
     }
   ],
-  "rules_hash": "76edd8a3013c",
+  "rules_hash": "3347a588511c",
   "trace_keys": [
     "artist",
     "band_size",

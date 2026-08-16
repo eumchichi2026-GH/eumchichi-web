@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>음치치 — V/A 사분면 분포 진단</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
+<style>
+  :root { --mist:#edf3f0; --pine:#16352d; --soft:#47635b; --teal:#0e6b5b; --haze:#dfe9e4; --card:#f8fbf9; --tense:#c96f5a; --gold:#c9a24a; }
+  [hidden] { display: none !important; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: "Pretendard Variable", Pretendard, sans-serif; background: var(--mist); color: var(--pine); line-height: 1.55; padding: 32px 16px 80px; }
+  main { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 1.3rem; margin-bottom: 4px; }
+  .sub { font-size: .85rem; color: var(--soft); margin-bottom: 18px; }
+  #status { font-size: .85rem; padding: 9px 13px; background: var(--card); border: 1px solid var(--haze); border-radius: 9px; margin-bottom: 18px; }
+  #status.err { color: #8a4636; background: #faf3f1; border-color: #ecd3cb; }
+  #diag { font-size: .78rem; padding: 11px 13px; background: #fdf7ec; border: 1px solid #e8d9b8; border-radius: 9px; margin-bottom: 18px; color: #6b5424; }
+  #diag code { background: #f3e9d3; padding: 1px 4px; border-radius: 3px; }
+  .controls { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: .82rem; color: var(--soft); margin-bottom: 14px; }
+  .controls select, .controls button { font: inherit; font-size: .82rem; padding: 5px 9px; border: 1px solid var(--haze); border-radius: 7px; background: var(--card); color: var(--pine); }
+  .controls button { cursor: pointer; }
+  .wrap { display: grid; grid-template-columns: minmax(0,1fr) 260px; gap: 18px; align-items: start; }
+  @media (max-width: 760px) { .wrap { grid-template-columns: 1fr; } }
+  .panel { background: var(--card); border: 1px solid var(--haze); border-radius: 14px; padding: 18px; }
+  svg text { font-family: inherit; }
+  table { width: 100%; border-collapse: collapse; font-size: .82rem; }
+  th, td { padding: 7px 8px; border-bottom: 1px solid var(--haze); text-align: left; }
+  th { color: var(--soft); font-weight: 600; }
+  td.n { text-align: right; font-variant-numeric: tabular-nums; }
+  .dotk { display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:7px; vertical-align:-1px; }
+  .note { font-size: .75rem; color: var(--soft); margin-top: 12px; }
+  #tip { position: fixed; pointer-events: none; background: var(--pine); color: #fff; font-size: .75rem; padding: 6px 9px; border-radius: 7px; max-width: 260px; z-index: 10; }
+</style>
+</head>
+<body>
+<main>
+  <h1>V/A 사분면 분포 진단</h1>
+  <p class="sub" id="sub">Firestore <code>songs</code> 컬렉션의 좌표 분포</p>
+  <div id="status">연결 중…</div>
+  <div id="diag" hidden></div>
+
+  <div class="controls">
+    <label>가로축(기분):
+      <select id="vSource">
+        <option value="pipeline">v2_valence — 앱이 읽는 좌표 (전곡)</option>
+        
+        <option value="provider">provider_raw.valence — Spotify 원본 (전곡)</option>
+        <option value="lyric">lyric_valence — 가사 원점수 (1,374곡)</option>
+      </select>
+    </label>
+    <label>읽을 곡:
+      <select id="limit">
+        <option value="300">300곡 (빠름)</option>
+        <option value="0">전체 2,398곡</option>
+      </select>
+    </label>
+    <button id="reload">다시 읽기</button>
+  </div>
+
+  <div class="wrap">
+    <div class="panel"><svg id="chart" viewBox="0 0 560 560" width="100%" role="img" aria-label="V/A 산점도"></svg></div>
+    <div class="panel">
+      <table id="tbl">
+        <tr><th>영역</th><th class="n">곡 수</th><th class="n">비율</th></tr>
+      </table>
+      <p class="note" id="missNote"></p>
+      <p class="note" id="axisNote"></p>
+    </div>
+  </div>
+</main>
+<div id="tip" hidden></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyBzgeZAGiwC_0fc7CNQGVyIE4RNQGYCjS8",
+  authDomain: "eumchichi-5a1cd.firebaseapp.com",
+  projectId: "eumchichi-5a1cd",
+  storageBucket: "eumchichi-5a1cd.firebasestorage.app",
+  messagingSenderId: "631450879307",
+  appId: "1:631450879307:web:61ee4b2563db7ea53d14ce"
+};
+
+/* ── 필드 계약 (docs/firestore_read_contract.md) ────────────────────────────
+   v2_valence              number 0~1   전곡      **앱이 읽는 좌표** (공식+골드셋+가사 → 잔차화)
+   lyric_valence           number|null  1,374곡   가사 원점수 (받은 값 그대로)
+   v2_arousal              number 0~1   전곡      = Spotify energy
+   provider_raw.valence / .energy                 Spotify 원본 · fallback
+
+   2026-08-15 정리 — 파생 필드 4개를 지웠다. 옛 진단 파일이 0곡으로 뜬다면 이것 때문이다.
+     v2_valence_provider            → provider_raw.valence (같은 값이었다)
+     v2_valence_lyric_blend         → 0.2466 + 0.3074·provider + 0.3183·lyric 로 계산
+     v2_valence_lyric_blend_aligned → 1.9971·blend − 0.6266
+     v2_valence_source              → lyric_valence 가 null 인지로 판별
+   ───────────────────────────────────────────────────────────────────────── */
+const SOURCES = {
+  pipeline: { field: "v2_valence", get: d => d.v2_valence,
+              label: "v2_valence (앱이 읽는 좌표)",
+              desc: "공식 + 골드셋 299곡 + 가사 1,374곡을 정밀도 가중 결합 → **계단 보정**(A ≥ 0.5 면 −0.20, 아니면 +0.20) → 0~1 정규화. 2026-08-16 채택." },
+  provider: { field: "provider_raw.valence", get: d => (d.provider_raw || {}).valence,
+              label: "provider_raw.valence (Spotify 원본)",
+              desc: "Spotify 가 준 밝기 추정치 그대로. 잔차화·척도정렬이 걸려 있지 않다." },
+  lyric:    { field: "lyric_valence", get: d => d.lyric_valence,
+              label: "lyric_valence (가사 원점수)",
+              desc: "가사만 보고 매긴 밝기. 1,374곡만 값이 있고 나머지는 null — 결합식 전 원재료다." }
+};
+
+/* 스케일 방어: 소스에 따라 0~1 / 0~10 / 0~100 이 섞일 수 있다 */
+function normScale(x){ if (typeof x !== "number" || !isFinite(x)) return null; if (x > 1) x = (x <= 10) ? x/10 : x/100; return Math.min(1, Math.max(0, x)); }
+const esc = t => String(t).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* 사분면: TR 활기(V+E+) TL 격정(V-E+) BL 침잠(V-E-) BR 휴식(V+E-) */
+const Q = {
+  TR: { name: "활기 (기분↑·활력↑)", color: "#c9a24a" },
+  TL: { name: "격정 (기분↓·활력↑)", color: "#c96f5a" },
+  BL: { name: "침잠 (기분↓·활력↓)", color: "#5a7d9a" },
+  BR: { name: "휴식 (기분↑·활력↓)", color: "#0e6b5b" }
+};
+/* 사분면 경계는 상수가 아니라 카탈로그 중앙값이다 (v2.1 규칙과 동일).
+   0.5 로 자르면 분포가 쏠려 사분면 비율이 실제와 달라진다. */
+let MED_V = 0.5, MED_A = 0.5;
+const median = (arr) => { const a=[...arr].sort((x,y)=>x-y), n=a.length;
+  return n ? (n%2 ? a[(n-1)/2] : (a[n/2-1]+a[n/2])/2) : 0.5; };
+const quadOf = (v, e) => (e >= MED_A ? (v >= MED_V ? "TR" : "TL") : (v >= MED_V ? "BR" : "BL"));
+
+const statusEl = document.getElementById("status");
+const diagEl = document.getElementById("diag");
+function setStatus(msg, err){ statusEl.textContent = msg; statusEl.className = err ? "err" : ""; }
+function setDiag(html){ diagEl.innerHTML = html; diagEl.hidden = !html; }
+
+let appReady = false;
+
+async function run(){
+  const srcKey = document.getElementById("vSource").value;
+  const src = SOURCES[srcKey];
+  const limit = Number(document.getElementById("limit").value);
+  document.getElementById("sub").innerHTML =
+    "Firestore <code>songs</code> · 가로 " + esc(src.label) + " × 세로 v2_arousal(= Spotify energy)";
+  setDiag("");
+
+  try {
+    if (!appReady) { firebase.initializeApp(firebaseConfig); await firebase.auth().signInAnonymously(); appReady = true; }
+    setStatus("곡 불러오는 중…");
+    let q = firebase.firestore().collection("songs");
+    if (limit) q = q.limit(limit);
+    const snap = await q.get();
+
+    const pts = [], missing = [];
+    let rejected = 0, noTag = 0, fellBack = 0, nullValue = 0, nearEdge = 0, firstDoc = null;
+
+    snap.forEach(doc => {
+      const d = doc.data();
+      if (!firstDoc) firstDoc = d;
+      if (d.review_status === "reject_song") { rejected++; return; }
+
+      // 태그 키 이름은 재정의 중이라 특정하지 않는다. 맵이 있고 숫자가 하나라도 있으면 통과.
+      const tags = d.v2_tags;
+      if (!tags || !Object.values(tags).some(x => typeof x === "number")) { noTag++; return; }
+
+      // 좌표: 계약 필드 → 없으면 provider_raw 로 한 단계 내려간다
+      let vRaw = src.get(d), usedFallback = false;
+      if (typeof vRaw !== "number" && (srcKey === "selected" || srcKey === "pipeline")) {
+        vRaw = d.provider_raw && d.provider_raw.valence; usedFallback = true;
+      }
+      let eRaw = d.v2_arousal;
+      if (typeof eRaw !== "number") { eRaw = d.provider_raw && d.provider_raw.energy; usedFallback = true; }
+
+      const v = normScale(vRaw), e = normScale(eRaw);
+      const item = { title: d.title || doc.id, artist: d.artist || "", id: doc.id };
+      if (v === null || e === null) { nullValue++; missing.push(item); return; }
+      if (Math.abs(e - 0.5) <= 0.05) nearEdge++;
+      if (usedFallback) fellBack++;
+      pts.push({ ...item, v, e });
+    });
+
+    /* 전체를 읽은 뒤에야 중앙값을 알 수 있으므로 여기서 경계를 확정하고 재배정 */
+    MED_V = median(pts.map(p => p.v));
+    MED_A = median(pts.map(p => p.e));
+    pts.forEach(p => { p.q = quadOf(p.v, p.e); });
+
+    draw(pts);
+    summarize(pts, missing, rejected, noTag, snap.size, src, fellBack, nearEdge);
+    setStatus("완료 — 읽은 " + snap.size + "곡 중 좌표 표시 " + pts.length + "곡"
+      + (fellBack ? " (그중 " + fellBack + "곡은 provider_raw fallback)" : ""));
+
+    // 0곡이면 왜 0곡인지 화면에 찍는다 — 조용히 비는 게 가장 나쁘다
+    if (pts.length === 0) {
+      const keys = firstDoc ? Object.keys(firstDoc).sort().join(" · ") : "(문서 없음)";
+      setDiag("<b>표시할 좌표가 없습니다.</b><br>"
+        + "읽은 문서 " + snap.size + "곡 · <code>" + esc(src.field) + "</code> 또는 <code>v2_arousal</code> 이 숫자가 아닌 곡 " + nullValue + "곡"
+        + " · v2_tags 없음 " + noTag + "곡 · reject 제외 " + rejected + "곡<br>"
+        + "첫 문서의 실제 필드: <code>" + esc(keys) + "</code><br>"
+        + "여기에 읽으려는 필드가 없으면 필드 이름이 바뀐 것입니다. "
+        + "<code>docs/firestore_read_contract.md</code> 를 보세요.");
+    } else if (srcKey === "lyric") {
+      setDiag("가사 결합식은 <b>96곡에만</b> 값이 있습니다. 나머지는 <code>null</code> 이라 여기서 빠집니다 — 정상입니다.");
+    }
+  } catch (err) {
+    console.error(err);
+    let hint = err.message || String(err);
+    if (err.code === "auth/operation-not-allowed") hint = "익명 로그인이 꺼져 있어요. 콘솔 → Authentication에서 '익명'을 켜주세요.";
+    if (err.code === "permission-denied") hint = "songs 읽기 권한이 거부됐어요. Firestore 규칙을 확인해 주세요.";
+    if (err.code === "resource-exhausted") hint = "Firestore 읽기 할당량이 소진됐어요. '300곡'으로 줄여서 보거나 내일 다시 시도하세요.";
+    if (err.code === "auth/network-request-failed" || location.protocol === "file:") hint += " — 로컬 서버(python -m http.server 8000)로 열어주세요.";
+    setStatus(hint, true);
+  }
+}
+
+function draw(pts){
+  const S = 560, P = 44, W = S - P*2;
+  const X = v => P + v * W;
+  const Y = e => P + (1 - e) * W;
+  const svg = document.getElementById("chart");
+  let g = "";
+  const half = W/2;
+  g += `<rect x="${P}" y="${P}" width="${half}" height="${half}" fill="#c96f5a" opacity="0.05"/>`;
+  g += `<rect x="${P+half}" y="${P}" width="${half}" height="${half}" fill="#c9a24a" opacity="0.06"/>`;
+  g += `<rect x="${P}" y="${P+half}" width="${half}" height="${half}" fill="#5a7d9a" opacity="0.05"/>`;
+  g += `<rect x="${P+half}" y="${P+half}" width="${half}" height="${half}" fill="#0e6b5b" opacity="0.05"/>`;
+  for (let i = 0; i <= 4; i++){
+    const t = P + (W/4)*i, major = (i === 2);
+    g += `<line x1="${t}" y1="${P}" x2="${t}" y2="${P+W}" stroke="${major ? "#9fb7ad" : "#dfe9e4"}" stroke-width="${major ? 1.5 : 1}"/>`;
+    g += `<line x1="${P}" y1="${t}" x2="${P+W}" y2="${t}" stroke="${major ? "#9fb7ad" : "#dfe9e4"}" stroke-width="${major ? 1.5 : 1}"/>`;
+  }
+  g += `<rect x="${P}" y="${P}" width="${W}" height="${W}" fill="none" stroke="#c8d8d1"/>`;
+  g += `<text x="${P}" y="${S-12}" font-size="12" fill="#47635b">기분 안 좋음</text>`;
+  g += `<text x="${P+W}" y="${S-12}" font-size="12" fill="#47635b" text-anchor="end">기분 좋음</text>`;
+  g += `<text x="${P+W/2}" y="${S-12}" font-size="12" fill="#47635b" text-anchor="middle">valence →</text>`;
+  g += `<text x="14" y="${P+8}" font-size="12" fill="#47635b">활력 높음</text>`;
+  g += `<text x="14" y="${P+W}" font-size="12" fill="#47635b">활력 낮음</text>`;
+  // 계단 보정의 문턱(A=0.5). 이 선 위아래로 V 가 0.4 벌어진다 — 이 축의 구조적 특징이라 그린다.
+  g += `<line x1="${P}" y1="${Y(0.5)}" x2="${P+W}" y2="${Y(0.5)}" stroke="#a8563f" stroke-width="1.6" stroke-dasharray="7 4"/>`;
+  g += `<text x="${P+W-6}" y="${Y(0.5)-6}" font-size="11" fill="#a8563f" text-anchor="end">계단 경계 A=0.5 · 위아래로 V 가 0.40 벌어짐</text>`;
+  g += `<text x="${P+8}" y="${P+20}" font-size="12" fill="#c96f5a">격정</text>`;
+  g += `<text x="${P+W-8}" y="${P+20}" font-size="12" fill="#a8842f" text-anchor="end">활기</text>`;
+  g += `<text x="${P+8}" y="${P+W-10}" font-size="12" fill="#5a7d9a">침잠</text>`;
+  g += `<text x="${P+W-8}" y="${P+W-10}" font-size="12" fill="#0e6b5b" text-anchor="end">휴식</text>`;
+  pts.forEach((p, i) => {
+    g += `<circle cx="${X(p.v).toFixed(1)}" cy="${Y(p.e).toFixed(1)}" r="4.5" fill="${Q[p.q].color}" fill-opacity="0.55" stroke="#fff" stroke-width="0.7" data-i="${i}"/>`;
+  });
+  svg.innerHTML = g;
+
+  const tip = document.getElementById("tip");
+  svg.addEventListener("mousemove", ev => {
+    const c = ev.target.closest("circle[data-i]");
+    if (!c) { tip.hidden = true; return; }
+    const p = pts[+c.dataset.i];
+    tip.innerHTML = "<b>" + esc(p.title) + "</b>" + (p.artist ? " — " + esc(p.artist) : "")
+      + "<br>" + esc(p.id) + " · V " + p.v.toFixed(2) + " · A " + p.e.toFixed(2);
+    tip.style.left = (ev.clientX + 14) + "px";
+    tip.style.top = (ev.clientY + 14) + "px";
+    tip.hidden = false;
+  });
+  svg.addEventListener("mouseleave", () => tip.hidden = true);
+}
+
+function summarize(pts, missing, rejected, noTag, total, src, fellBack, nearEdge){
+  const tbl = document.getElementById("tbl");
+  tbl.innerHTML = '<tr><th>영역</th><th class="n">곡 수</th><th class="n">비율</th></tr>';
+  const counts = { TR:0, TL:0, BL:0, BR:0 };
+  pts.forEach(p => counts[p.q]++);
+  const row = (label, n, color) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>" + (color ? `<span class="dotk" style="background:${color}"></span>` : "") + label + "</td>"
+      + `<td class="n">${n}</td><td class="n">${pts.length ? (n/pts.length*100).toFixed(1) + "%" : "-"}</td>`;
+    tbl.appendChild(tr);
+  };
+  ["TR","BR","TL","BL"].forEach(k => row(Q[k].name, counts[k], Q[k].color));
+  row("합계 (좌표 있는 곡)", pts.length, null);
+
+  const parts = [];
+  if (missing.length) parts.push(src.field + " 또는 v2_arousal 이 없는 곡 " + missing.length + "곡: "
+    + missing.slice(0, 8).map(m => m.title).join(", ") + (missing.length > 8 ? " 외 " + (missing.length - 8) + "곡" : ""));
+  if (fellBack) parts.push("provider_raw 로 fallback 한 곡 " + fellBack + "곡");
+  if (noTag) parts.push("v2_tags 없음 제외 " + noTag + "곡");
+  if (rejected) parts.push("reject 제외 " + rejected + "곡");
+  document.getElementById("missNote").textContent = parts.length ? "⚠ " + parts.join(" · ") : "누락·제외 없음 — 읽은 곡 전부가 좌표를 갖고 있어요.";
+
+  const edgeNote = (nearEdge && document.getElementById("vSource").value === "pipeline")
+    ? "<br><b>계단 경계 주의</b> — 활력 0.45~0.55 인 곡이 " + nearEdge + "곡("
+      + (100 * nearEdge / Math.max(pts.length, 1)).toFixed(1) + "%). 이 곡들은 활력이 거의 같은데도 "
+      + "경계를 넘느냐에 따라 기분값이 0.40 벌어진다 — 계단 보정을 택하며 감수한 결함이다."
+    : "";
+  document.getElementById("axisNote").innerHTML =
+    "가로: <b>" + esc(src.field) + "</b> — " + esc(src.desc)
+    + "<br>세로: <b>v2_arousal</b> — Spotify energy 그대로."
+    + "<br>앱·추천이 읽는 좌표는 <b>v2_valence</b> 하나다 — 공식·골드셋·가사를 합친 뒤 "
+    + "<b>계단 보정</b>(A ≥ 0.5 면 V−0.20, 아니면 V+0.20)을 건 값이다. "
+    + "나머지 두 축은 <b>비교용</b>이다. 점에 마우스를 올리면 곡 정보가 보여요." + edgeNote;
+}
+
+document.getElementById("reload").addEventListener("click", run);
+document.getElementById("vSource").addEventListener("change", run);
+document.getElementById("limit").addEventListener("change", run);
+run();
+</script>
+</body>
+</html>
