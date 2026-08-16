@@ -60,9 +60,95 @@ const nv = normScale(pr.valence), ne = normScale(pr.energy);
 
 브라우저 콘솔에서 이 두 줄을 확인하세요. 두 번째 줄의 비율이 이번 수정의 실제 효과입니다.
 
+---
+
+# 2차 수정 (같은 날, 후속 배포)
+
+## 4. 🔴 R6 시간 감쇠가 구현돼 있는데 작동하지 않았음
+
+`engine.js` 는 `0.5^(last_days / half_life_days)` 로 반감기를 정확히 계산합니다.
+그런데 `index.html` 이 넘기는 `last_days` 가 **전부 `0`** 이었습니다:
+
+```js
+song_feedback[id] = { ...splitSignal(...), last_days: 0 };
+for (const id of LIKED_SONGS)    song_feedback[id] = { pos: 3, neg: 0, last_days: 0 };
+for (const id of PLAYLIST_SONGS) song_feedback[id] = ... || { pos: 2, neg: 0, last_days: 0 };
+```
+
+`0.5^(0/14) = 1` 이므로 **모든 피드백이 항상 "오늘 것"** 이었고, 반감기 14일이 사실상
+무한대였습니다. 규칙 파일에는 있고 엔진도 구현했는데 앱이 입력을 안 채워서 죽어 있던
+상태입니다. R6 를 "적용됨"으로 보고하면 안 되는 상태였습니다.
+
+**수정:**
+- `context_events` 의 `created_at` 으로 곡별 경과일 계산
+- 엔진이 곡당 감쇠계수를 하나만 받으므로 **기여도(|v|) 가중 평균 경과일**을 넘김
+  (최신 1건만 쓰면 오래된 누적이 안 늙고, 단순평균은 큰 신호를 과소평가)
+- 좋아요·벽 붙이기는 `users` 문서에 시각이 없으므로 이벤트 로그에서 최근 시각을 회수
+- `song_stats`(전체 집계)는 시각 필드 자체가 없어 감쇠 없이 유지 — 시간축이 필요하면
+  `song_stats` 에 최근 갱신 시각을 추가해야 함
+
+**검증** (합성 카탈로그 120곡, 30곡에 좋아요):
+
+```
+last_days=0   → 좋아한 곡이 시퀀스에 4/5곡
+last_days=140 → 좋아한 곡이 시퀀스에 0/5곡
+```
+
+## 5. full / preview 구분 로깅 추가
+
+Spotify iFrame 은 로그인 상태에 따라 전곡 또는 30초 미리듣기를 줍니다(모바일은 항상 30초).
+같은 `track_complete` 가 preview 에서는 "30초 완주", full 에서는 "4분 완주"를 뜻하는데
+구분 없이 쌓이고 있었습니다. **모바일=preview 가 100% 겹쳐 기기와 노출량이 완전히
+교락되므로, 미니 실험에서 "알고리즘 효과"와 "노출 시간 효과"를 분리할 수 없었습니다.**
+
+**판정은 추정이 아니라 관측:** embed 가 실제로 준 재생 길이를 카탈로그 원곡 길이와 비교합니다.
+`duration <= 30000` 같은 절대값 비교는 30초 미만 짧은 곡을 오판하므로 쓰지 않습니다.
+
+```
+available_ms < catalog_ms * 0.9  →  preview
+그 외                            →  full
+카탈로그 길이 없음 / 재생 전      →  unknown
+```
+
+**추가된 필드**
+
+| 위치 | 필드 |
+|---|---|
+| `context_events` 신규 이벤트 `playback_mode` | `playback_mode` · `available_ms` · `catalog_ms` |
+| `track_complete` | `playback_mode` · `available_ms` · `catalog_ms` (기존 `completion_rate` 는 이미 비율) |
+| `track_milestone` | `playback_mode` |
+| `post_change` · `after_unlock` · `sequence_complete` | `playback_mode_session` (`full`/`preview`/`mixed`/`unknown`) |
+| `users/{uid}/listeningHistory` | `playbackMode` · `catalogSeconds` |
+| `song_stats` | `completes_full` · `completes_preview` · `sum_completion` · `n_completion` |
+
+마지막 줄이 **R4(통계 비율화)** 의 입력입니다. preview 30초 완주와 full 4분 완주가
+`completes` 로는 똑같이 +1 이라, 비율 없이는 두 모집단이 섞입니다.
+
+## 6. 문서 숫자 정정 — V–A 상관
+
+기존 "V–A 상관 −0.564" 는 실제 배포 카탈로그에서 재현되지 않습니다.
+`data/processed/music_catalog_v2_20260816.csv` (2,398곡) 직접 계산:
+
+| | 실측 |
+|---|---|
+| step δ=0.20 (현재 채택) | **r(V, A) = +0.486** |
+| linear λ=0.5 (직전) | r(V, A) = +0.435 |
+
+부호가 반대입니다. V 와 A 는 원래 **양의 상관**(config 의 λ=0 기록: +0.739)이고,
+각성 보정은 그 양의 상관을 깎으려고 존재합니다. 발표 자료의 −0.564 / −0.027 은
+`build_v2_catalog.py` 가 실행할 때 찍는 `r(V,A) 보정전 → 보정후` 출력으로 교체하세요.
+
+---
+
 ## 남은 것
 
-- **계단 보정** — `CONFLICT_계단보정.md` 참고. V–A 상관 −0.564, 팀 결정 필요
-- **모바일 전곡 재생** — 정책상 막힘. 로그에 full/preview 구분 추가 필요
+- **계단 보정** — `CONFLICT_계단보정.md` 참고. **팀 결정 필요 — 이번 배포에 포함 안 됨.**
+  경계 A∈[0.45,0.55] 373곡에서 위/아래 V 평균차가 step 은 −0.147, linear 는 +0.008.
+  독립 37곡 검증은 provider 기준선 0.443 / step 0.399 / linear 0.373 로 **셋 다 구분 불가**
+  (n=37, SE≈0.17). 사람 판단으로는 못 고르므로 경계 연속성·사분면 균형으로 고르는 것이 타당.
+  linear 의 유일한 약점(β가 표본마다 흔들림)은 계수를 고정하면 사라짐.
+- **모바일 전곡 재생** — 정책상 막힘 (로깅은 위 5번으로 해결)
 - **좌표계** — 골드셋 906건으로는 판정 불가 (밝기 순서만 묻는 데이터라 퍼센타일에도 판정 동일).
   `post_change` 로그로 판정하는 것이 현실적
+- **band=0.16 · step_limit_scale=1.8** — 합성 카탈로그 120곡 기준. 실카탈로그 2,398곡에서
+  `variety_check.py` · `ablate.py` 로 재측정 필요
