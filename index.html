@@ -73,15 +73,8 @@ img{max-width:100%}
   transition:opacity .42s ease,transform .42s cubic-bezier(.2,.7,.2,1),visibility 0s linear .42s}
 .scene.scene-active{opacity:1;transform:none;pointer-events:auto;z-index:20;visibility:visible;transition:opacity .42s ease,transform .42s cubic-bezier(.2,.7,.2,1),visibility 0s}
 .scene-inner{width:min(1160px,100%);margin:auto;position:relative}
-/* 커스텀 스크롤바는 마우스 환경에서만. 터치 기기에서 폭을 주면 오버레이가 아니라
-   레이아웃을 8px 잡아먹는 회색 막대가 되어 카드가 잘려 보인다. */
-@media (hover:hover) and (pointer:fine){
-  .scene::-webkit-scrollbar{width:8px}
-  .scene::-webkit-scrollbar-thumb{background:var(--line-dark)}
-}
-@media (pointer:coarse){
-  .scene::-webkit-scrollbar{width:0;height:0}
-}
+.scene::-webkit-scrollbar{width:8px}
+.scene::-webkit-scrollbar-thumb{background:var(--line-dark)}
 
 .scene-kicker{font-size:.64rem;letter-spacing:.24em;text-transform:uppercase;color:var(--muted);font-weight:600}
 .scene-title{font-weight:600;letter-spacing:-.02em;font-size:clamp(1.9rem,3.8vw,3.4rem);line-height:1.28;margin-top:18px}
@@ -116,7 +109,7 @@ img{max-width:100%}
 .ghost:hover{border-color:var(--ink);color:var(--ink)}
 
 /* ── 0F 입구 ── */
-.ground .scene-inner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);align-items:center;gap:6vw}
+.ground .scene-inner{display:grid;grid-template-columns:1fr 1.05fr;align-items:center;gap:6vw}
 .ground-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:28px}
 .disclaimer{font-size:.66rem;color:var(--muted);margin-top:28px}
 .vinyl-panel{background:var(--panel);min-height:52vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:34px}
@@ -134,16 +127,13 @@ img{max-width:100%}
   background:var(--ink);color:var(--on-ink);font-size:.8rem;font-weight:700;letter-spacing:.06em}
 .floor-label strong{font-size:1.15rem;font-weight:700;display:block;margin-top:5px;letter-spacing:-.01em}
 .floor-label>span{font-size:.66rem;color:var(--muted);font-weight:600;text-align:right;letter-spacing:.06em}
-/* 그리드 아이템은 기본 min-width:auto라 내용의 min-content 폭이 칸보다 넓으면
-   칸을 밀고 나간다. 기기 글자 크기를 키우면 카드가 테두리를 벗어나는 원인. */
-.input-layout{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:16px}
-.input-layout>*{min-width:0}
+.input-layout{display:grid;grid-template-columns:1.15fr .85fr;gap:16px}
 .note-card{background:var(--panel-2);border:1px solid var(--line);padding:18px}
 .note-card h3{font-size:.86rem;font-weight:700;letter-spacing:.02em}
 .note-card .desc{font-size:.76rem;color:var(--muted);margin:5px 0 13px}
 .nl-wrap{display:flex;gap:8px}
 .nl-wrap textarea{flex:1;min-height:104px;border:1px solid var(--line-dark);padding:12px;background:var(--paper);resize:vertical}
-.nl-wrap button{min-width:92px;border:1px solid var(--ink);background:var(--ink);color:var(--on-ink);font-weight:600;font-size:.72rem;letter-spacing:.1em;white-space:nowrap}
+.nl-wrap button{min-width:92px;border:1px solid var(--ink);background:var(--ink);color:var(--on-ink);font-weight:600;font-size:.72rem;letter-spacing:.1em}
 .nl-wrap button:hover{background:var(--ink-strong)}
 .nl-wrap button:disabled{background:var(--panel);border-color:var(--line-dark);color:var(--muted);cursor:wait}
 .setting-stack{display:grid;gap:10px}
@@ -187,7 +177,6 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:var(-
 .result-cabin .section-head p{color:var(--muted);font-size:.76rem;margin-top:3px}
 .section-head .phase{white-space:nowrap}
 .results-wrap{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);gap:16px;align-items:start}
-.results-wrap>*{min-width:0}
 .cabin-player{border-top:2px solid var(--ink);padding:22px}
 .player-title{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
 .player-title .now{font-size:1.2rem;font-weight:700;letter-spacing:-.01em}
@@ -257,8 +246,7 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:var(-
 .my-room{width:min(1040px,100%);border-top:2px solid var(--ink);padding:28px}
 .my-room .section-head{border-bottom:1px solid var(--line);padding-bottom:16px;margin-bottom:0}
 .my-room h2{font-size:1.35rem;font-weight:700}
-.my-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-top:16px}
-.my-grid>*{min-width:0}
+.my-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
 .my-card{background:var(--panel-2);border:1px solid var(--line);padding:15px}
 .my-card h3{font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--mid);margin-bottom:10px;font-weight:700}
 .my-card p{font-size:.76rem;color:var(--mid)}
@@ -361,11 +349,11 @@ html[data-theme=dark] .time-out{color:var(--accent)}
   .topbar{padding:13px 16px}
   .topnav{display:none}
   .scene{padding:92px 5vw 100px}
-  .ground .scene-inner,.input-layout,.results-wrap{grid-template-columns:minmax(0,1fr)}
+  .ground .scene-inner,.input-layout,.results-wrap{grid-template-columns:1fr}
   .ground .scene-inner{gap:30px}
   .vinyl-panel{min-height:38vh;order:-1}
   .cabin-floor,.my-room{padding:22px}
-  .my-grid{grid-template-columns:minmax(0,1fr)}
+  .my-grid{grid-template-columns:1fr}
 }
 @media(max-width:700px){
   .scene{padding:86px 16px 96px}
@@ -459,7 +447,7 @@ html[data-theme=dark] .time-out{color:var(--accent)}
         <div class="input-layout">
           <div class="note-card">
             <h3>지금 마음</h3><p class="desc">한 문장이면 충분해요.</p>
-            <div class="nl-wrap"><textarea id="nlText" rows="3" maxlength="600" aria-label="지금 상태와 원하는 상태를 자유롭게 설명" placeholder="예: 마음이 조급해요. 차분해지고 싶어요."></textarea><button id="nlApply" type="button">AI로 읽기</button></div>
+            <div class="nl-wrap"><textarea id="nlText" rows="3" maxlength="600" aria-label="지금 상태와 원하는 상태를 자유롭게 설명" placeholder="예: 마음이 조급해요. 차분해지고 싶어요."></textarea><button id="nlApply" type="button">AI로<br/>읽기</button></div>
             <p class="plane-note" id="nlStatus" role="status"></p><div class="linear-preview" id="nlPreview"></div>
             <details class="manual" id="manualBox"><summary>직접 골라볼게요</summary><div class="manual-body"><div class="va-input" id="vaWrap" aria-describedby="vaEcho"></div><p class="plane-note" id="vaEcho"><b>지금</b> → <b>목표</b> 순서로 찍어주세요.</p><p class="plane-note" id="chipHint"></p><div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div></div></details>
           </div>
@@ -637,57 +625,68 @@ const firebaseConfig = {
       ※ 프론트 데모용 단순화 버전. 정식 규칙은 데이터 파이프라인의
         context_target_map_v0.3.csv가 기준이며, 추후 교체하세요.
    ===================================================================== */
+/* v1 의 6종 태그 목록은 표시용으로만 남깁니다. 점수 계산에는 쓰지 않습니다.
+   (태그를 하나의 점수로 합치는 것이 v1 이 무너진 지점이었습니다.) */
 const TAG_KEYS = ["calmness","focus_suitability","relaxation_suitability",
                   "energizing_suitability","lyric_distraction","instrumental_probability"];
 
-/* 목표 태그: goal 프리셋 대신, 사분면 네 꼭짓점의 프로토타입을
-   목표 좌표 (v, e)로 이중선형 보간해서 만든다.
-   BR(긍정·저활력)=휴식, TR(긍정·고활력)=활기, TL(부정·고활력)=격정,
-   BL(부정·저활력)=차분한 침잠. 값은 기존 GOAL_TARGETS(rest/energize 등)에서 유도. */
-const CORNER_TARGETS = {
-  BR: { calmness:0.90, focus_suitability:0.35, relaxation_suitability:0.95, energizing_suitability:0.05, lyric_distraction:0.20, instrumental_probability:0.60 },
-  TR: { calmness:0.20, focus_suitability:0.25, relaxation_suitability:0.20, energizing_suitability:0.90, lyric_distraction:0.55, instrumental_probability:0.25 },
-  TL: { calmness:0.10, focus_suitability:0.30, relaxation_suitability:0.10, energizing_suitability:0.85, lyric_distraction:0.45, instrumental_probability:0.35 },
-  BL: { calmness:0.80, focus_suitability:0.45, relaxation_suitability:0.50, energizing_suitability:0.10, lyric_distraction:0.25, instrumental_probability:0.60 }
-};
-function blendTarget(tgt) {
-  const v = tgt.v, e = tgt.e, out = {};
-  for (const k of TAG_KEYS) {
-    out[k] = (1-v)*(1-e)*CORNER_TARGETS.BL[k] + v*(1-e)*CORNER_TARGETS.BR[k]
-           + (1-v)*e*CORNER_TARGETS.TL[k]     + v*e*CORNER_TARGETS.TR[k];
-  }
-  return out;
+const TOP_K = 5;
+const AFTER_UNLOCK_SECONDS = 60;   // 이만큼 실제로 들어야 청취 후 변화 기록이 열린다
+
+/* ── v2.1 엔진 ──────────────────────────────────────────────────
+   추천 로직은 더 이상 이 파일에 없습니다. rules/rules.compiled.json 이 규칙이고
+   engine/engine.js 가 실행기입니다. 같은 규칙 파일을 Python 검증기도 읽으므로,
+   앱과 검증이 갈라지지 않습니다. 규칙을 바꾸려면 azt-rules 저장소의
+   rules/v2.rules.yaml 을 고치고 build_rules.py 로 다시 컴파일해 여기 복사하세요.
+
+   삭제된 것: TAG_KEYS 가중합(weightedFit) — 태그 6종이 사실상 한 축이라 폐기
+              CORNER_TARGETS 태그 보간 — 목표는 이제 V/A 좌표 그 자체
+              SCORE_W/TEMPO_W — 적합도와 선호를 한 점수에 섞던 부분
+   ------------------------------------------------------------------ */
+let AZT_ENGINE = null;     // engine.js 모듈
+let AZT_RULES  = null;     // 컴파일된 규칙
+let ALGO_VERSION = "v2.1-loading";
+let LAST_ENGINE_RESULT = null;   // 직전 추천의 엔진 출력(trace 포함) — 로그·설명에 사용
+
+/* stress(자기보고)와 load(상황부하)는 계약상 끝까지 분리된 축입니다.
+   한 모듈레이터가 둘을 함께 참조하면 규칙 빌드가 실패합니다. 여기서도 절대 합치지 마세요. */
+
+/* 스트레스: 8/4 개편으로 슬라이더를 없애고 사분면 입력으로 통합했으므로,
+   '지금' 좌표에서 유도합니다. 부정적일수록(V↓) 각성될수록(A↑) 높게.
+   ※ 자기보고 문항을 다시 넣게 되면 이 유도를 걷어내고 실제 응답을 쓰세요. */
+function deriveStress(cur) {
+  if (!cur) return 2;
+  const tension = (1 - cur.v) * 0.6 + cur.e * 0.4;   // 0~1
+  return Math.max(0, Math.min(4, Math.round(tension * 4)));
 }
 
-const WEIGHTS = { calmness:1.0, focus_suitability:1.0, relaxation_suitability:1.0,
-                  energizing_suitability:1.0, lyric_distraction:0.7, instrumental_probability:0.7 };
+/* 상황부하: 현재 앱은 수집하지 않습니다(날씨·캘린더·장소는 2단계 과제).
+   null 이면 엔진이 해당 모듈레이터를 건너뜁니다 — 0 으로 넣으면 "부하 없음"을
+   단정하는 셈이라 의도적으로 null 로 둡니다. */
+function deriveContextLoad() {
+  return null;
+}
 
-const TOP_K = 5;
-const PATH_SONGS = 3;                 // ISO 시퀀스 곡 수
-const WAYPOINT_START = 0.0;           // 첫 경유지 = 현재 상태 그 자체 (ISO: 동조 우선)
-const SCORE_W = 0.3;                  // 시퀀스 cost에서 태그 적합도 비중 (0.2~0.5 사이 튜닝)
-const TEMPO_W = 0.08;                 // 템포↔각성도 정합 보조 가중치 (0이면 미사용)
-const MAX_STEP_JUMP = 0.45;           // 인접 곡 간 V/A 최대 이동거리 (급점프 방지)
-const AFTER_UNLOCK_SECONDS = 60;   // 이만큼 실제로 들어야 청취 후 변화 기록이 열린다
-const ALGO_VERSION = "v1.2-fb-skipclear";  // R1·R2·R6 + 재청취 시 skipped 해제 (이 버전부터 skipped=true는 "그 방문이 스킵으로 끝남"을 뜻함)
+async function loadEngine() {
+  if (AZT_ENGINE && AZT_RULES) return;
+  AZT_ENGINE = await import("./engine/engine.js");
+  AZT_RULES  = await (await fetch("./rules/rules.compiled.json", { cache: "no-cache" })).json();
+  ALGO_VERSION = AZT_RULES.rules_version + "+" + AZT_RULES.rules_hash;
+  console.info("[AZT] 엔진 로드", ALGO_VERSION);
+}
 
-/* ── 개인화 가중치 — 여기만 조정하면 됩니다 ──
-   설계: 개인 피드백 > 취향(온보딩) > 가수·장르 일치 > 전체 사용자 피드백.
-   본인 피드백이 가장 크게, 전체 피드백은 조금씩만 영향을 준다. */
-const TASTE_W        = 0.12;  // 취향 벡터(선호곡 태그 평균)와의 적합도
-const ARTIST_BONUS   = 0.06;  // 선호 가수 일치 가점
-const GENRE_BONUS    = 0.04;  // 선호 장르 일치 가점 (songs 문서에 genres 필드가 있을 때만)
-/* 오늘 선택한 장르는 '가점'이 아니라 '최우선 조건':
-   ① 장르 일치 곡이 시퀀스를 채울 만큼 있으면 후보 풀 자체를 장르로 제한
-   ② 부족할 때만 다른 장르로 보충하되, 순위·경로 선택 모두에서 장르 일치가 항상 앞선다 */
-const GENRE_FIRST_PENALTY = 0.5;   // 부족 보충 시, 장르 불일치 곡의 경로 선택 비용 가산
-const PERSONAL_FB_W  = 0.10;  // 본인 피드백 (완청·클릭·전후 변화) — 개인 신호 중 최우선
-/* R1 신뢰도 축소: 반영값 = 원점수 × n/(n+k). n=그 곡의 피드백 관측 건수.
-   k=절반을 믿기까지 필요한 건수 — 1건이면 1/(1+k)만 반영되고 쌓일수록 원점수에 수렴.
-   회의 결정으로 조정: 키우면 보수적(개인화 느림), 줄이면 공격적. */
-const PERSONAL_K = 3;   // 내 피드백은 빨리 신뢰
-const GLOBAL_K   = 10;  // 전체 사용자 데이터는 천천히 신뢰
-const GLOBAL_FB_W    = 0.03;  // 전체 사용자 피드백 (song_stats 집계) — 약하게만
+/* ── 개인화 가중치는 이제 여기가 아니라 규칙 파일에 있습니다 ──
+   rules/v2.rules.yaml 의 preference 블록 (weights / shrinkage / band).
+   ⚠️ 여기에 숫자를 다시 만들지 마세요. 앱에만 있는 값은 Python 검증기가 못 읽어서
+      "앱과 검증이 서로 다른 추천을 하는" 상태로 되돌아갑니다.
+
+   설계 우선순위(규칙 파일에 반영됨):
+     개인 피드백 0.35 > 선호 가수 0.30 > 선호 장르 0.20 > 전체 사용자 0.15
+   R1 신뢰도 축소(개인 k=3, 전체 k=10)와 R6 시간 감쇠(반감기 14일)도 규칙 파일에 있습니다.
+
+   장르는 '가점'이 아니라 '최우선 조건'입니다 — 규칙의 genre_policy.hard_if_sufficient.
+   곡 수를 채우면 후보 풀 자체를 장르로 제한하고, 부족할 때만 타장르를 보충합니다. */
+const GLOBAL_K = 10;  // loadGlobalStats() 의 통계 축소에만 쓰임 (엔진 값과 별개)
 const FAVORITE_GENRES = ["K-pop","발라드","힙합","R&B","인디","록","팝","재즈","클래식","lo-fi","EDM","OST","시티팝","뉴에이지"];
 const INSTRUMENTAL_ONLY_MIN = 0.6;
 const PREFER_INSTRUMENTAL_MIN = 0.3;
@@ -731,7 +730,6 @@ let AFTER_UNLOCKED = false;   // 청취 후 변화 슬라이더 잠금 상태
 const LOCAL_KEY = "azt:v1:personal";
 
 let fallbackUsed = false;
-let v2Missing = 0;    // v2_valence/v2_arousal 이 없어 provider_raw 로 떨어진 곡 수
 
 function setStatus(kind, msg) {
   if(statusBox) statusBox.className = kind;
@@ -777,25 +775,11 @@ async function init() {
       }
       if (!tags) return;
       const pr = d.provider_raw || {};
-      /* V/A 좌표는 데이터팀이 만든 v2 축을 먼저 쓴다.
-         v2_valence — 공식(Spotify 특징) + 골드셋 사람 라벨 299곡 + 가사 점수 1,374곡을
-           정밀도 가중으로 합친 뒤, 활력이 0.5 이상이면 0.20 을 빼고 미만이면 0.20 을 더한 값
-           (계단 보정). 2026-08-16 채택. 전 2,398곡에 있다.
-           ※ 활력 0.5 경계에서 기분값이 0.40 튄다 — 경계 근처 곡끼리 기분값을 비교하지 말 것.
-           옛 v2_valence_selected 는 2026-08-15 삭제됐다(가사만 반영, 골드셋 빠진 반쪽 축).
-         v2_arousal — Spotify energy 그대로 (값은 provider_raw.energy 와 같다)
-         두 필드가 없는 문서에서만 provider_raw 로 떨어진다. */
-      const v2v = normScale(d.v2_valence), v2e = normScale(d.v2_arousal);
       const nv = normScale(pr.valence), ne = normScale(pr.energy);
-      const va = (v2v !== null && v2e !== null) ? { v: v2v, e: v2e }
-               : (nv !== null && ne !== null) ? { v: nv, e: ne } : null;
-      if (v2v === null || v2e === null) v2Missing++;
+      const va = (nv !== null && ne !== null) ? { v: nv, e: ne } : null;
       const tempo = (typeof pr.tempo === "number" && pr.tempo > 0) ? pr.tempo : null;
       const trackId = d.spotify_track_id || d.source_track_id;
-      /* 장르는 `genre`(단수, 배열)다 — `genres`(복수) 필드는 없다.
-         배열을 문자열로 받으려 해서 지금까지 장르 가점이 한 번도 안 걸렸다.
-         2,398곡 중 283곡(11.8%)은 null 이라 빈 배열로 떨어진다. */
-      const genres = Array.isArray(d.genre) ? d.genre
+      const genres = Array.isArray(d.genres) ? d.genres
                    : (typeof d.genre === "string" && d.genre ? [d.genre] : []);
       SONGS.push({
         id: doc.id,
@@ -811,7 +795,6 @@ async function init() {
       setStatus("err", "songs 컬렉션은 읽었지만 사용할 수 있는 곡이 없어요. final_tag가 업로드됐는지 확인해 주세요.");
       return;
     }
-    if (v2Missing) console.warn("v2 좌표가 없어 provider_raw 로 떨어진 곡 " + v2Missing + "개");
     setStatus("ok", "연결 완료 — " + SONGS.length + "곡 준비됨" + (fallbackUsed ? " (일부 곡은 검수 전 태그 사용)" : ""));
     SONGS_READY = true;
     loadLocalPersonal();
@@ -1516,46 +1499,89 @@ function bumpStats(songId, fields) {
   } catch (e) { /* 무시 — 통계는 best-effort */ }
 }
 
-/* 추천 점수에 더해지는 개인화 보정치. ranked 한 곳에만 적용되어
-   ISO 시퀀스 cost(c.score 경유)와 추가 추천 순위에 함께 반영된다. */
-function personalBonus(s) {
-  let b = 0;
-  if (TASTE_VECTOR) b += TASTE_W * weightedFit(s.tags, TASTE_VECTOR);
-  if (USER_PROFILE) {
-    const arts = USER_PROFILE.preferred_artists || [];
-    if (s.artist && arts.some(a => a && s.artist.toLowerCase().includes(a.toLowerCase()))) b += ARTIST_BONUS;
-    const gs = USER_PROFILE.preferred_genres || [];
-    if (s.genres && s.genres.length && gs.length &&
-        gs.some(g => s.genres.some(x => String(x).toLowerCase().includes(g.toLowerCase())))) b += GENRE_BONUS;
-  }
-  if (LIKED_SONGS.has(s.id)) b += 0.18;
-  if (PLAYLIST_SONGS.has(s.id)) b += 0.10;
-  if (DISLIKED_SONGS.has(s.id)) b -= 0.35;
-  if (SELECTED_GENRES.length && s.genres && s.genres.length) {
-    const hits = s.genres.filter(g => SELECTED_GENRES.some(x => String(g).toLowerCase().includes(String(x).toLowerCase()))).length;
-    b += Math.min(0.10, hits * 0.04);
-  }
-  if (PERSONAL_FB[s.id]) {
-    const pn = PERSONAL_FB_N[s.id] || 1;
-    b += PERSONAL_FB_W * (pn / (pn + PERSONAL_K)) * Math.max(-1, Math.min(1, PERSONAL_FB[s.id]));   // R1
-  }
-  if (GLOBAL_FB[s.id])   b += GLOBAL_FB_W   * Math.max(-1, Math.min(1, GLOBAL_FB[s.id]));
-  return b;
+/* ===== v2.1 어댑터: 앱 데이터 → 계약 스키마 =====================
+   엔진은 rules/CONTRACT.md 에 정의된 필드만 압니다. 앱 내부 구조를 여기서 옮깁니다.
+   필드 이름이 바뀌면 이 함수 세 개만 고치면 됩니다. */
+
+function toContractSong(s) {
+  const va = songVA(s);
+  const t = s.tags || {};
+  return {
+    song_id: s.id,
+    title: s.title, artist: s.artist,
+    V: va.v, A: va.e,
+    va_source: s.va_source || "provider",
+    // 말 비중: v1 에는 speechiness 가 없어 가사 방해도로 대체. 문턱 전용이라 안전.
+    spokenness: (typeof s.speechiness === "number") ? s.speechiness
+              : (typeof t.lyric_distraction === "number" ? t.lyric_distraction : 0),
+    instrumental: (t.instrumental_probability ?? 0) >= INSTRUMENTAL_ONLY_MIN,
+    genres: Array.isArray(s.genres) ? s.genres : [],
+    popularity: Number(s.popularity || 0),
+    duration_ms: Math.round((Number(s.durationSec) || 210) * 1000),
+  };
 }
 
-/* 거리 기반 적합도 (가중 RMSE의 보수). 0~1, 높을수록 목표에 가까움.
-   코사인과 달리 벡터 "크기"까지 반영 — 모든 특성이 절반인 밋밋한 곡은
-   방향이 같아도 점수가 깎인다. */
-function weightedFit(tags, target) {
-  let sum = 0, wsum = 0;
-  for (const k of TAG_KEYS) {
-    const w = WEIGHTS[k] ?? 1;
-    const a = (typeof tags[k] === "number" ? tags[k] : 0.5);
-    const b = target[k] ?? 0.5;
-    sum += w * (a - b) * (a - b);
-    wsum += w;
+/* 앱의 신호(부호 있는 점수)를 엔진이 기대하는 pos/neg 로 변환.
+   ※ 파이프라인이 pos/neg 카운트를 직접 내보내면 이 근사는 걷어내세요. */
+function splitSignal(score, n) {
+  const v = Math.max(-1, Math.min(1, Number(score) || 0));
+  const cnt = Math.max(1, Number(n) || 1);
+  return v >= 0 ? { pos: cnt * v, neg: cnt * (1 - v) } : { pos: 0, neg: cnt * -v };
+}
+
+function buildUserProfile() {
+  const song_feedback = {}, global_stats = {}, artist_affinity = {}, genre_affinity = {};
+
+  for (const id of Object.keys(PERSONAL_FB || {})) {
+    song_feedback[id] = { ...splitSignal(PERSONAL_FB[id], PERSONAL_FB_N[id]), last_days: 0 };
   }
-  return 1 - Math.sqrt(sum / wsum);
+  for (const id of LIKED_SONGS)     song_feedback[id] = { pos: 3, neg: 0, last_days: 0 };
+  for (const id of PLAYLIST_SONGS)  song_feedback[id] = song_feedback[id] || { pos: 2, neg: 0, last_days: 0 };
+  for (const id of Object.keys(GLOBAL_FB || {})) {
+    global_stats[id] = splitSignal(GLOBAL_FB[id], 10);
+  }
+  for (const a of ((USER_PROFILE && USER_PROFILE.preferred_artists) || [])) {
+    if (a) artist_affinity[a] = { pos: 5, neg: 0, last_days: 0 };
+  }
+  for (const g of ((USER_PROFILE && USER_PROFILE.preferred_genres) || [])) {
+    if (g) genre_affinity[g] = { pos: 5, neg: 0, last_days: 0 };
+  }
+
+  return {
+    disliked: [...DISLIKED_SONGS],
+    recent_played: recentlyPlayedIds(),   // 세션 간 반복을 막는 유일한 확정 장치
+    song_feedback, global_stats, artist_affinity, genre_affinity,
+  };
+}
+
+/* 최근 재생 곡 — localStorage 에 누적. 시드 변이만으로는 반복을 못 막습니다.
+   (동급 후보가 1곡뿐인 지점에서는 섞을 게 없어 같은 곡이 다시 나옵니다.) */
+const RECENT_KEY = "azt_recent_played_v1";
+const RECENT_MAX = 60;
+function recentlyPlayedIds() {
+  try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch (e) { return []; }
+}
+function pushRecentlyPlayed(ids) {
+  try {
+    const merged = [...ids, ...recentlyPlayedIds()].filter((v, i, a) => a.indexOf(v) === i);
+    localStorage.setItem(RECENT_KEY, JSON.stringify(merged.slice(0, RECENT_MAX)));
+  } catch (e) { /* 무시 */ }
+}
+
+/* 시드 = 사용자ID:날짜:세션번호.
+   세션번호가 올라가야 같은 사람이 같은 입력을 넣어도 다른 곡이 나옵니다. */
+const SESSION_KEY = "azt_session_no_v1";
+function buildSeed() {
+  const u = firebase.auth().currentUser;
+  const uid = (u && u.uid) ? u.uid : "guest";
+  const day = new Date().toISOString().slice(0, 10);
+  let no = 1;
+  try {
+    const prev = JSON.parse(localStorage.getItem(SESSION_KEY) || "{}");
+    no = (prev.day === day ? Number(prev.no) || 0 : 0) + 1;
+    localStorage.setItem(SESSION_KEY, JSON.stringify({ day, no }));
+  } catch (e) { /* 무시 */ }
+  return uid + ":" + day + ":" + no;
 }
 
 /* §3 스케일 방어: 소스에 따라 valence/energy가 0~1, 0~10, 0~100으로 혼재할 수 있음.
@@ -1581,8 +1607,14 @@ async function logRecommendation(input, seq, extras) {
   LAST_TGT_VA = round3(input.tgt);
   try {
     const rows = [
-      ...seq.map((s, i) => ({ song_id: s.id, position: i + 1, role: "path", score: Number(s.score.toFixed(4)) })),
-      ...extras.map((s, i) => ({ song_id: s.id, position: seq.length + i + 1, role: "extra", score: Number(s.score.toFixed(4)) }))
+      /* v2.1: 점수 하나가 아니라 trace 를 남긴다. 어떤 규칙 해시로, 어느 밴드에서,
+         기하로 골랐는지 선호로 골랐는지가 로그만 봐도 재구성된다. */
+      ...seq.map((s, i) => ({ song_id: s.id, position: i + 1, role: "path",
+                              fit: s._trace ? s._trace.va_distance : null,
+                              band_size: s._trace ? s._trace.band_size : null,
+                              chosen_by: s._trace ? s._trace.chosen_by : null,
+                              quadrant: s._trace ? s._trace.quadrant : null })),
+      ...extras.map((s, i) => ({ song_id: s.id, position: seq.length + i + 1, role: "extra" }))
     ];
     const ref = await firebase.firestore().collection("recommendations").add({
       user_id: firebase.auth().currentUser.uid,
@@ -2213,19 +2245,23 @@ async function initNL() {
   });
 }
 
-function recommend() {
+async function recommend() {
   if (!CUR_VA || !TGT_VA) return;
+  try { await loadEngine(); }
+  catch (e) {
+    console.error("[AZT] 엔진 로드 실패", e);
+    $("results").innerHTML = "<div class='scene-inner result-cabin'><div class='result-placeholder'><h2>추천 엔진을 불러오지 못했어요</h2><p>잠시 후 다시 시도해 주세요.</p></div></div>";
+    return;
+  }
   const lyric = $("lyric").value;
   RECOMMEND_MINUTES = Number($("listenTime").value) || 30;
   SELECTED_GENRES = [...SELECTED_GENRES];
-  const target = blendTarget(TGT_VA);
   const matchesGenre = s => !!(s.genres && s.genres.length &&
     s.genres.some(g => SELECTED_GENRES.some(x => String(g).toLowerCase().includes(String(x).toLowerCase()))));
   let pool = SONGS;
-  /* 가사 조건을 먼저 거른 뒤 장르를 판단해야, 장르 풀이 충분한지 정확히 알 수 있다 */
-  if (lyric === "instrumental_only")
-    pool = pool.filter(s => (s.tags.instrumental_probability ?? 0) >= INSTRUMENTAL_ONLY_MIN);
-  else if (lyric === "prefer_instrumental")
+  /* instrumental_only / prefer_vocal 은 엔진 게이트로 넘긴다(아래 gates).
+     prefer_instrumental 은 '선호'라 게이트가 아니므로 여기서만 약하게 거른다. */
+  if (lyric === "prefer_instrumental")
     pool = pool.filter(s => (s.tags.instrumental_probability ?? 0) >= PREFER_INSTRUMENTAL_MIN);
   else if (lyric === "prefer_vocal")
     pool = pool.filter(s => (s.tags.instrumental_probability ?? 1) <= 0.7);
@@ -2244,50 +2280,59 @@ function recommend() {
     return;
   }
 
-  const ranked = pool.map(s => ({ ...s, _gm: (!SELECTED_GENRES.length || matchesGenre(s)) ? 1 : 0,
-                                       score: weightedFit(s.tags, target) + personalBonus(s) }))
-    .filter(s => !DISLIKED_SONGS.has(s.id))
-    .sort((a, b) => (b._gm - a._gm) || (b.score - a.score));   // 장르 일치가 1차 기준, 적합도는 2차
-
-  const estimated = s => Math.max(60, Number(s.durationSec) || 180);
-  const totalTargetSec = RECOMMEND_MINUTES * 60;
-  const approxCount = Math.max(3, Math.min(ranked.length, Math.ceil(totalTargetSec / 180)));
-  const pathCount = needCount;
-  const n = Math.min(pathCount, approxCount, ranked.length);
-  const used = new Set(), seq = [];
+  /* ===== v2.1 엔진 호출 =====================================
+     기하(V/A 거리)가 경로를 정하고, 선호는 '동급' 후보 안에서 순위만 바꿉니다.
+     둘을 한 점수로 더하지 않는 것이 v1 과의 결정적 차이입니다. */
   const cur = CUR_VA, tgt = TGT_VA;
+  const byId = new Map(pool.map(s => [s.id, s]));
+  const contract = pool.map(toContractSong);
 
-  for (let i = 0; i < n; i++) {
-    const t = (n === 1) ? 1 : (i / (n - 1));
-    const wp = { v: cur.v + (tgt.v - cur.v) * t, e: cur.e + (tgt.e - cur.e) * t };
-    const prev = seq.length ? seq[seq.length - 1]._p : { v:cur.v, e:cur.e };
-    let best = null, bestCost = Infinity;
-    for (const c of ranked) {
-      if (used.has(c.id)) continue;
-      const pva = songVA(c);
-      const jump = Math.hypot(pva.v-prev.v, pva.e-prev.e);
-      if (jump > MAX_STEP_JUMP && i < n-1) continue;
-      let cost = Math.hypot(pva.v-wp.v, pva.e-wp.e) - c.score*SCORE_W;
-      if (TEMPO_W > 0 && c.tempo) {
-        const tn = Math.min(1, Math.max(0, (c.tempo-50)/130));
-        cost += Math.abs(tn-wp.e)*TEMPO_W;
-      }
-      if (!c._gm) cost += GENRE_FIRST_PENALTY;   // 장르 불일치는 경로에서도 사실상 최후순위
-      if (cost < bestCost) { bestCost = cost; best = c; }
-    }
-    if (!best) {
-      best = ranked.find(c => !used.has(c.id));
-    }
-    if (best) { used.add(best.id); seq.push({...best, _p:songVA(best)}); }
+  const gates = [];
+  if (lyric === "instrumental_only") gates.push("instrumental_only");
+  else if (lyric === "prefer_vocal") gates.push("exclude_instrumental");
+
+  const seed = buildSeed();
+  const engineInput = {
+    now:    { V: cur.v, A: cur.e },
+    target: { V: tgt.v, A: tgt.e },
+    stress: deriveStress(cur),       // 0~4
+    load:   deriveContextLoad(),     // 미수집(null) — stress 와 끝까지 분리된 축
+    genres: SELECTED_GENRES,
+    duration_min: RECOMMEND_MINUTES,
+    seed,
+    gates,
+    user: buildUserProfile(),
+  };
+
+  const result = AZT_ENGINE.recommend(contract, AZT_RULES, engineInput);
+  LAST_ENGINE_RESULT = result;
+
+  /* 엔진 결과(곡ID + trace)를 앱의 곡 객체에 다시 붙인다 */
+  const seq = result.sequence.map(r => {
+    const s = byId.get(r.song_id);
+    return s ? { ...s, _p: songVA(s), _trace: r.trace, _why: r.explanations } : null;
+  }).filter(Boolean);
+
+  if (!seq.length) {
+    $("results").innerHTML = "<div class='scene-inner result-cabin'><div class='result-placeholder'><h2>맞는 곡이 충분하지 않아요</h2><p>장르나 가사 조건을 조금 넓혀서 다시 만들어 볼까요?</p><button class='ghost' type='button' data-go-scene='stateRoom'>오늘의 음악 다시 만들기</button></div></div>";
+    return;
   }
 
+  pushRecentlyPlayed(seq.map(s => s.id));
+  if (result.relaxed_steps) {
+    console.warn("[AZT] 걸음 상한이 " + result.relaxed_steps + "회 완화됨 — 후보 고갈. 카탈로그 확충 또는 step_limit_scale 재측정 필요");
+  }
+
+  /* 시퀀스 뒤에 붙는 '더 들을 곡'은 엔진 경로가 아니므로 role=extra 로 구분해 기록한다 */
+  const estimated = s => Math.max(60, Number(s.durationSec) || 180);
+  const totalTargetSec = RECOMMEND_MINUTES * 60;
+  const used = new Set(seq.map(s => s.id));
   let total = seq.reduce((a,s)=>a+estimated(s),0);
   const extras = [];
-  for (const c of ranked) {
-    if (used.has(c.id)) continue;
-    if (extras.length >= Math.max(0, approxCount - seq.length)) break;
-    extras.push(c); used.add(c.id); total += estimated(c);
+  const extraPool = pool.filter(s => !used.has(s.id) && !DISLIKED_SONGS.has(s.id));
+  for (const c of extraPool) {
     if (total >= totalTargetSec * 0.85) break;
+    extras.push(c); used.add(c.id); total += estimated(c);
   }
   /* 10/30/60분의 차이는 고정 곡 수가 아니라 목표 총 청취시간을 기준으로 만든다.
      짧은 세션은 전환을 압축하고, 긴 세션은 목표 상태 구간을 충분히 유지한다. */
@@ -2300,9 +2345,9 @@ function recommend() {
     lyric_preference_default: lyric
   });
   logRecommendation({ lyric, cur, tgt, genres:SELECTED_GENRES, minutes:RECOMMEND_MINUTES }, seq, extras);
-  renderResults(list, seq, cur, tgt, target, pool.length, stepOf);
+  renderResults(list, seq, cur, tgt, pool.length, stepOf);
 }
-function renderResults(list, seq, cur, tgt, target, poolSize, stepOf) {
+function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
   const box = $("results");
   if (!list.length) { box.innerHTML = "<div class='scene-inner result-cabin'><div class='result-placeholder'><h2>오늘은 맞는 곡을 찾지 못했어요</h2><p>장르나 가사 조건을 조금 넓혀서 다시 찾아볼까요?</p></div></div>"; return; }
   const playable = seq.filter(s=>s.trackId);
@@ -2315,11 +2360,13 @@ function renderResults(list, seq, cur, tgt, target, poolSize, stepOf) {
   let li = 0;
   for(const s of list){
     if (li === 3) html += "<div id='songListMore' hidden>";   // 상위 3곡만 먼저, 나머지는 접어둔다
-    const reasons=TAG_KEYS.map(k=>({k,tv:target[k]??0,sv:(typeof s.tags[k]==='number'?s.tags[k]:0.5)})).sort((a,b)=>(b.tv*b.sv)-(a.tv*a.sv)).slice(0,3);
+    /* v2.1: 근거는 태그 막대가 아니라 엔진이 실제로 쓴 값(trace)에서 나온다.
+       점수에 안 쓰인 값으로는 설명을 만들 수 없다 — v1 실패 #5 차단. */
+    const reasons = (s._why || []);
     const metric=TRACK_METRICS[s.id], ready=!!(metric&&metric.listenedSeconds>=10);
     const jumpable = playable.some(p => p.id === s.id);   // 재생 큐에 있는 곡은 눌러서 바로 이동
-    html += "<article class='song"+(jumpable?" in-queue":"")+"' data-song-card='"+esc(s.id)+"'"+(jumpable?" data-jump-song='"+esc(s.id)+"' role='button' tabindex='0' aria-label='"+esc(s.title)+" 재생으로 이동'":"")+"><div class='top'><div>"+(stepOf[s.id]?"<span class='step'>"+stepOf[s.id]+"</span>":"")+"<span class='title'>"+esc(s.title)+"</span> <span class='artist'>"+esc(s.artist)+"</span></div><span class='score'>AZT "+(typeof s.score==='number'?s.score.toFixed(2):"")+"</span></div><div class='reasons'>";
-    for(const r of reasons) html += "<div class='reason'><span>"+TAG_LABELS[r.k]+"</span><span class='bar'><i style='width:"+Math.round(r.sv*100)+"%'></i></span></div>";
+    html += "<article class='song"+(jumpable?" in-queue":"")+"' data-song-card='"+esc(s.id)+"'"+(jumpable?" data-jump-song='"+esc(s.id)+"' role='button' tabindex='0' aria-label='"+esc(s.title)+" 재생으로 이동'":"")+"><div class='top'><div>"+(stepOf[s.id]?"<span class='step'>"+stepOf[s.id]+"</span>":"")+"<span class='title'>"+esc(s.title)+"</span> <span class='artist'>"+esc(s.artist)+"</span></div><span class='score'>"+esc(s._trace&&s._trace.quadrant?s._trace.quadrant:"")+"</span></div><div class='reasons'>";
+    for(const r of reasons) html += "<div class='reason'><span>"+esc(r)+"</span></div>";
     html += "</div><div class='song-actions'><button type='button' class='song-action' data-action='like' data-song-id='"+esc(s.id)+"' disabled>"+(LIKED_SONGS.has(s.id)?"♥ 좋아요":ready?"♡ 좋아요":"10초 후 좋아요")+"</button><button type='button' class='song-action dislike' data-action='dislike' data-song-id='"+esc(s.id)+"'>"+(DISLIKED_SONGS.has(s.id)?"싫어요 취소":"싫어요")+"</button><button type='button' class='song-action' data-action='playlist' data-song-id='"+esc(s.id)+"'>"+(PLAYLIST_SONGS.has(s.id)?"✓ 벽에 붙어 있음":"＋ 벽에 붙이기")+"</button></div>";
     if(s.spotifyUrl) html += "<a class='spotify' data-song-id='"+esc(s.id)+"' href='"+s.spotifyUrl+"' target='_blank' rel='noopener'>Spotify에서 열기 ↗</a>";
     html += "</article>";

@@ -1,0 +1,334 @@
+{
+  "schema_version": 2,
+  "rules_version": "v2.1.0",
+  "note": "숫자는 전부 설계 사전값(prior). 골드셋 채점으로 재추정 대상.",
+  "coordinate_space": "percentile",
+  "coordinate_note": "퍼센타일 좌표 p(x) = (x보다 작은 곡 수 + 같은 값 곡 수의 절반) / 전체. 기준선이 계산 없이 0.5 가 되고, \"거리 0.1\" 이 \"카탈로그의 10%\" 라는 뜻이 되어 희소 구간(휴식 사분면)에서도 후보가 고갈되지 않습니다. 화면에 그리는 좌표는 원 V/A 유지.\n",
+  "inputs": {
+    "now": {
+      "type": "point",
+      "axes": [
+        "V",
+        "A"
+      ]
+    },
+    "target": {
+      "type": "point",
+      "axes": [
+        "V",
+        "A"
+      ]
+    },
+    "stress": {
+      "type": "ordinal",
+      "range": [
+        0,
+        4
+      ],
+      "source": "self_report"
+    },
+    "load": {
+      "type": "ordinal",
+      "range": [
+        0,
+        4
+      ],
+      "source": "context"
+    },
+    "genres": {
+      "type": "set",
+      "optional": true
+    },
+    "duration_min": {
+      "type": "numeric",
+      "range": [
+        5,
+        90
+      ],
+      "default": 30
+    },
+    "user": {
+      "type": "profile",
+      "optional": true
+    },
+    "seed": {
+      "type": "string",
+      "optional": true
+    },
+    "gates": {
+      "type": "set",
+      "optional": true
+    }
+  },
+  "baselines": {
+    "V": {
+      "stat": "median",
+      "field": "V"
+    },
+    "A": {
+      "stat": "median",
+      "field": "A"
+    },
+    "observed": {
+      "V": 0.527,
+      "A": 0.593,
+      "n": 2398,
+      "measured_on": "2026-08-15"
+    },
+    "evidence": "원좌표에서 0.5 로 자르면 활기 48% / 격정 15% 로 쏠림. 기준선은 상수가 아니라 통계량.\n"
+  },
+  "axes": {
+    "V": {
+      "field": "V",
+      "range": [
+        0,
+        1
+      ]
+    },
+    "A": {
+      "field": "A",
+      "range": [
+        0,
+        1
+      ]
+    }
+  },
+  "quadrants": {
+    "격정": {
+      "V": "below",
+      "A": "above"
+    },
+    "활기": {
+      "V": "above",
+      "A": "above"
+    },
+    "침잠": {
+      "V": "below",
+      "A": "below"
+    },
+    "휴식": {
+      "V": "above",
+      "A": "below"
+    }
+  },
+  "gates": [
+    {
+      "id": "exclude_spoken",
+      "field": "spokenness",
+      "op": "percentile_below",
+      "value": 0.8,
+      "evidence": "문턱 전용. '상위 20% 제외'는 O, '말 비중 0.42' 점수화는 X."
+    },
+    {
+      "id": "exclude_instrumental",
+      "field": "instrumental",
+      "op": "is_false"
+    },
+    {
+      "id": "instrumental_only",
+      "field": "instrumental",
+      "op": "is_true"
+    }
+  ],
+  "selection": {
+    "primitive": "region",
+    "region": {
+      "type": "waypoint_neighborhood",
+      "radius": 0.28,
+      "min_pool": 12,
+      "grow_factor": 1.6,
+      "max_grow": 3
+    },
+    "evidence": "V 상위 10% 중 저에너지 곡은 5.0%(전체 22.3%). '밝은 곡'을 V 랭킹으로 뽑으면 잔잔하고 밝은 곡이 구조적으로 배제됨. 동시에 사분면 하드 컷은 경계 ±0.05 의 31.7% 를 0.001 차이로 잘라내므로, 영역은 사분면 박스가 아니라 waypoint 이웃으로 정의.\n"
+  },
+  "ranking": {
+    "terms": [
+      {
+        "id": "va_fit",
+        "type": "weighted_euclidean",
+        "axes": {
+          "V": 1.0,
+          "A": 1.0
+        },
+        "direction": "minimize",
+        "evidence": "v1 은 태그 6종 가중합으로 PC1 이 분산 80.6% 를 먹었다. 축은 V/A 둘뿐."
+      }
+    ],
+    "tiebreakers": [
+      {
+        "id": "va_source_rank",
+        "type": "ordinal_map",
+        "field": "va_source",
+        "order": [
+          "manual",
+          "lyric_blend",
+          "deam",
+          "provider"
+        ]
+      },
+      {
+        "id": "popularity",
+        "type": "numeric",
+        "field": "popularity",
+        "direction": "desc"
+      }
+    ]
+  },
+  "path": {
+    "fit_weight": 1.0,
+    "progress_weight": 0.35,
+    "evidence": "ISO 는 '이동'이 본체이므로 비용은 경로 단위로 매긴다."
+  },
+  "preference": {
+    "band": 0.16,
+    "weights": {
+      "personal_feedback": 0.35,
+      "liked_artist": 0.3,
+      "liked_genre": 0.2,
+      "global_feedback": 0.15
+    },
+    "shrinkage": {
+      "personal_k": 3,
+      "global_k": 10
+    },
+    "decay": {
+      "half_life_days": 14
+    },
+    "evidence": "선호를 거리 점수에 더하면 v1 의 합산 실패가 그대로 재발함. 대신 적합도 동급 구간 안에서만 정렬을 바꾼다 — \"ISO 가 어디로 갈지 정하고, 선호가 그중 무엇을 고른다\". 싫어요는 정렬이 아니라 게이트(하드 제외)로 처리.\n",
+    "band_tradeoff": "band 는 다양성과 경로 충실도의 유일한 레버입니다. 합성 카탈로그 실측 (커버리지 / 첫곡최빈 / 평균적합도 / 도착오차):\n  0.04 → 35.8% / 29% / 0.0652 / 0.0593\n  0.06 → 36.7% / 25% / 0.0663 / 0.0756\n  0.09 → 41.7% / 24% / 0.0704 / 0.0452\n  0.12 → 51.7% / 26% / 0.0849 / 0.0507\n  0.16 → 52.5% / 19% / 0.0825 / 0.0243   ← 채택\n  0.22 → 65.0% / 10% / 0.1152 / 0.0299\n0.16 은 0.12 를 모든 축에서 앞서고 도착오차는 전 구간 최저. 0.22 는 커버리지가 가장 좋지만 적합도가 74% 악화됩니다. 다양성을 어디까지 살지는 제품 결정이므로 실카탈로그(2,398곡)에서 이 표를 다시 뽑아 팀이 고르세요 — variety_check.py 로 재현됩니다.\n"
+  },
+  "variation": {
+    "enabled": true,
+    "pref_bucket": 0.05,
+    "seed_input": "seed",
+    "evidence": "측정(합성 카탈로그 120곡, 비슷한 상태 200회): 커버리지 33.3%, 한 곡이 77회 등장, 첫 곡이 28% 확률로 동일. v1 의 '추천 커버리지 1.9%' 와 같은 병. 무작위를 그냥 넣으면 JS/Python 패리티와 골드셋 재현성이 깨지므로 시드 기반으로 한다 — 시드가 같으면 결과도 같고, 시드가 없으면 변이가 0 이라 채점 결과는 그대로다. 우선순위는 기하 밴드 > 선호 버킷 > 시드 변이 > 결정론적 동점처리. 무작위가 적합도나 선호를 이기지 못한다.\n",
+    "seed_recipe": "앱에서 `${uid}:${YYYY-MM-DD}:${세션번호}` 를 권장. 같은 날 같은 사용자가 다시 들어오면 세션번호가 올라가 다른 곡이 나오고, 로그는 시드로 재현 가능하다. 콜드스타트(비로그인)는 익명 uid 로 충분하다.\n"
+  },
+  "search": {
+    "strategy": "beam",
+    "beam_width": 8,
+    "expand_per_step": 6
+  },
+  "diversity": {
+    "max_per_artist": 2,
+    "exclude_recent_played": true,
+    "recent_note": "세션 간 반복의 근본 해결은 변이가 아니라 이 필드입니다. 앱이 users 의 listeningHistory 에서 최근 재생 곡 ID 를 inputs.user.recent_played 로 넘겨야 작동합니다. 안 넘기면 매 세션이 첫 세션처럼 취급됩니다.\n"
+  },
+  "genre_policy": {
+    "mode": "hard_if_sufficient",
+    "evidence": "8/11 결정 — 장르는 가점이 아니라 최우선 조건. 부족할 때만 타장르 보충."
+  },
+  "iso": {
+    "song_count": {
+      "per_minutes": 6,
+      "min": 3,
+      "max": 15
+    },
+    "transition_point": [
+      {
+        "up_to": 10,
+        "at": 0.7
+      },
+      {
+        "up_to": 30,
+        "at": 0.5
+      },
+      {
+        "up_to": 90,
+        "at": 0.45
+      }
+    ],
+    "max_step_jump": 0.4,
+    "no_repeat_within": 3,
+    "step_limit_scale": {
+      "raw": 1.0,
+      "percentile": 1.8
+    },
+    "step_limit_note": "modulators.stress_step_limit 의 map 은 원좌표 기준 사전값입니다. 퍼센타일 좌표에서는 같은 숫자가 더 좁은 제약이 되어 후보가 고갈되고, 상한이 조용히 포기됩니다. ablate.py 의 '상한완화' 열이 0% 가 되는 값으로 맞추세요. 합성 카탈로그 실측: scale 1.0 → 완화 12%, 1.4 → 4%, 1.8 → 0%. scale 1.0 의 도착오차 0.0446 은 상한을 어겨서 얻은 값이고, 제약을 지킨 정직한 값은 0.0752 입니다. 실카탈로그(2,398곡)에서 반드시 재측정하세요.\n"
+  },
+  "modulators": [
+    {
+      "id": "stress_step_limit",
+      "input": "stress",
+      "applies_to": "iso.max_step_jump",
+      "map": {
+        "0": 0.5,
+        "1": 0.45,
+        "2": 0.4,
+        "3": 0.32,
+        "4": 0.25
+      },
+      "evidence": "스트레스가 높을수록 한 걸음을 작게. stress 단독 함수."
+    },
+    {
+      "id": "load_spoken_gate",
+      "input": "load",
+      "applies_to": "gates",
+      "when_gte": 3,
+      "adds_gate": "exclude_spoken",
+      "evidence": "상황부하가 높으면 말 많은 곡 제외. load 단독 함수."
+    }
+  ],
+  "explanations": [
+    {
+      "id": "step_move",
+      "template": "{step_index}/{step_total} 걸음 — {quadrant} 쪽 곡이에요.",
+      "binds": [
+        "step_index",
+        "step_total",
+        "quadrant"
+      ]
+    },
+    {
+      "id": "by_preference",
+      "when": {
+        "trace_key": "chosen_by",
+        "equals": "preference"
+      },
+      "template": "비슷한 후보 {band_size}곡 중 취향에 맞춰 골랐어요.",
+      "binds": [
+        "chosen_by",
+        "band_size"
+      ]
+    },
+    {
+      "id": "source_trust",
+      "when": {
+        "trace_key": "va_source",
+        "equals": "manual"
+      },
+      "template": "이 곡의 감정값은 사람이 직접 매긴 값이에요.",
+      "binds": [
+        "va_source"
+      ]
+    }
+  ],
+  "rules_hash": "76edd8a3013c",
+  "trace_keys": [
+    "artist",
+    "band_size",
+    "chosen_by",
+    "coord_space",
+    "gates_failed",
+    "gates_passed",
+    "jitter",
+    "path_cost",
+    "pool_size",
+    "pref_bucket",
+    "pref_score",
+    "quadrant",
+    "rules_hash",
+    "seed",
+    "song_A",
+    "song_V",
+    "step_index",
+    "step_relaxed",
+    "step_total",
+    "strategy",
+    "tiebreak_used",
+    "va_distance",
+    "va_source",
+    "wp_A",
+    "wp_V"
+  ]
+}
