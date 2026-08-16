@@ -148,6 +148,9 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:var(-
 .manual summary{padding:11px 13px;font-weight:600;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;color:var(--mid)}
 .manual summary:hover{color:var(--ink)}
 .manual-body{padding:0 13px 13px}
+.pace-box{margin-top:0}
+.pace-chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.pace-chips button{flex:1 1 200px;text-align:center;padding:10px 12px}
 .go-wrap{display:flex;justify-content:flex-end;margin-top:16px}
 .go-wrap #go{min-width:230px}
 .floor-meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.7rem;margin-top:12px}
@@ -455,6 +458,7 @@ html[data-theme=dark] .time-out{color:var(--accent)}
             <h3>설정</h3>
             <div class="setting-stack">
               <div class="setting-card"><label for="listenTime">시간 · <span class="time-out"><b id="listenTimeOut">30</b>분</span></label><input type="range" class="time-slider" id="listenTime" min="5" max="90" step="5" value="30" aria-describedby="listenTimeOut" aria-label="감상 시간(분)"/><div class="time-labels"><span>5분</span><span>90분</span></div></div>
+              <details class="manual pace-box" id="paceBox"><summary>감정 여정 · 자세히 보기</summary><div class="manual-body"><div class="genre-chips pace-chips" id="paceChips" role="group" aria-label="감정 여정 방식 선택"><button type="button" data-pace="fast" aria-pressed="false">빠르게 목표에 도달하고 싶어요</button><button type="button" data-pace="slow" aria-pressed="false">천천히 감정 변화를 갖고 싶어요</button></div><p class="plane-note" id="paceNote">선택하지 않으면 감상 시간에 맞춰 알아서 조절해요. 같은 버튼을 다시 누르면 해제됩니다.</p></div></details>
               <div class="setting-card"><label>장르</label><div class="genre-chips" id="genreChips" role="group" aria-label="추천 장르 선택"></div></div>
               <div class="setting-card"><label for="lyric">가사</label><select id="lyric"><option value="no_preference" selected>상관없어요</option><option value="instrumental_only">가사 없는 곡</option><option value="prefer_instrumental">가사 적은 곡</option><option value="prefer_vocal">가사 있는 곡</option></select></div>
             </div>
@@ -746,6 +750,9 @@ let SONGS = [];
 const GENRE_OPTIONS = ["K-pop","발라드","힙합","R&B","인디","록","팝","재즈","클래식","lo-fi","EDM","OST","시티팝","뉴에이지"];
 let SELECTED_GENRES = [];
 let RECOMMEND_MINUTES = 30;
+/* 감정 여정 속도: null=자동(시간별 기본 정책), fast=목표 중심, slow=펼침.
+   세션 한정 선택 — 저장하지 않는다(매번 그날 기분에 맞게 고르는 값). */
+let PACE_MODE = null;
 let LIKED_SONGS = new Set();
 let DISLIKED_SONGS = new Set();
 let PLAYLIST_SONGS = new Set();
@@ -1681,6 +1688,7 @@ async function logRecommendation(input, seq, extras) {
         current_va: LAST_CUR_VA,   // 사용자가 좌표에 직접 탭한 지금 상태
         target_va: LAST_TGT_VA,    // 사용자가 좌표에 직접 탭한 목표 상태
         input_mode: { current: CUR_MODE, target: TGT_MODE },   // 점별 입력 방식: tap | chip | nl
+        pace_mode: PACE_MODE || "auto",   // 감정 여정 속도: auto | fast | slow — 경로 재현·분석용
         nl_text: LAST_NL_TEXT,     // 자연어 원문 (해석 품질 감사용, 미사용 시 null)
         nl_model: LAST_NL_TEXT ? GEMINI_MODEL : null   // 어떤 모델이 해석했는지
       },
@@ -2366,7 +2374,21 @@ async function recommend() {
     user: buildUserProfile(),
   };
 
-  const result = AZT_ENGINE.recommend(contract, AZT_RULES, engineInput);
+  /* 감정 여정 속도: 선택 시에만 전환점을 바꾼 규칙 '사본'으로 실행한다.
+     AZT_RULES 원본은 절대 변형하지 않는다 — 자동 모드는 항상 기본 정책으로 복귀.
+     fast = 시퀀스 절반까지 목표 도달 후 유지 / slow = 마지막 곡에 도달(전체 펼침).
+     ⚠️ 이 분기도 yaml 정식 반영 대상: pace 를 엔진 input + modulator(map: fast/slow →
+        transition_point 프로파일)로 옮기면 Python 검증기가 같은 경로를 재현할 수 있다.
+        그전까지 검증기로 이 기간 로그를 검사할 땐 input.pace_mode 를 함께 읽을 것. */
+  const PACE_TP = {
+    fast: [{ up_to: 999, at: 0.5 }],
+    slow: [{ up_to: 999, at: 1.0 }],
+  };
+  const rulesForRun = PACE_MODE
+    ? { ...AZT_RULES, iso: { ...AZT_RULES.iso, transition_point: PACE_TP[PACE_MODE] } }
+    : AZT_RULES;
+
+  const result = AZT_ENGINE.recommend(contract, rulesForRun, engineInput);
   LAST_ENGINE_RESULT = result;
 
   /* 엔진 결과(곡ID + trace)를 앱의 곡 객체에 다시 붙인다 */
@@ -2496,6 +2518,20 @@ $("myAztBtn").addEventListener("click", openMyAzt);
 $("closeMyAzt").addEventListener("click", () => { $("myAzt").hidden = true; goScene("ground"); });
 $("myGuestLogin")?.addEventListener("click", () => openAuthModal("login"));
 $("listenTime").addEventListener("input", () => { RECOMMEND_MINUTES=Number($("listenTime").value)||30; const o=$("listenTimeOut"); if(o) o.textContent=$("listenTime").value; });
+$("paceChips").addEventListener("click", (e) => {
+  const btn = e.target.closest("button[data-pace]");
+  if (!btn) return;
+  const picked = btn.dataset.pace;
+  PACE_MODE = (PACE_MODE === picked) ? null : picked;   // 같은 걸 다시 누르면 해제(자동)
+  for (const b of $("paceChips").querySelectorAll("button[data-pace]"))
+    b.setAttribute("aria-pressed", String(b.dataset.pace === PACE_MODE));
+  const note = $("paceNote");
+  if (note) note.textContent = PACE_MODE === "fast"
+    ? "초반에 목표 상태로 옮겨가고, 남은 시간은 그 상태를 유지해요."
+    : PACE_MODE === "slow"
+    ? "마지막 곡까지 조금씩 이동하며 천천히 변화를 만들어가요."
+    : "선택하지 않으면 감상 시간에 맞춰 알아서 조절해요. 같은 버튼을 다시 누르면 해제됩니다.";
+});
 $("myRecommendMinutes")?.addEventListener("input", () => { const o=$("myRecommendMinutesOut"); if(o) o.textContent=$("myRecommendMinutes").value; });
 
 /* ── 화면 테마 (라이트/다크): 이 기기 기준으로 저장 ── */
