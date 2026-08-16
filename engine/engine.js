@@ -248,12 +248,10 @@ function waypoints(nowC, tgtC, n, at) {
 }
 
 // ── 탐색 ────────────────────────────────────────────────
-/* pool 은 recommend() 가 걸음당 한 번 계산해 넘긴다. 같은 걸음의 빔 상태들은 경유지가
-   같아 영역 풀도 같으므로, 상태마다 다시 거르면 카탈로그 전수 필터가 빔 폭(8)만큼
-   반복된다 — 2,398곡 × 8상태 × 최대 15걸음. 결과는 바뀌지 않는 순수 중복이었다. */
-function stepCandidates(pool, state, ctx, wp, tgtC, term, rules, inputs, maxStep, band, nExpand,
+function stepCandidates(universe, state, ctx, wp, tgtC, term, rules, inputs, maxStep, band, nExpand,
                        stepI = 0, seed = null, pbucket = 0) {
   const cap = Number(rules.diversity.max_per_artist);
+  const pool = regionPool(universe, ctx, wp, term, rules);
 
   let cands = [];
   for (const s of pool) {
@@ -312,20 +310,7 @@ export function recommend(catalog, rules, inputsIn) {
   const ctx = prepare(catalog, rules);
 
   const dur = inputsIn.duration_min ?? 30;
-  const nowC = toCoord(ctx, inputsIn.now), tgtC = toCoord(ctx, inputsIn.target);
-
-  /* 경유 곡 수는 두 가지로 정해진다.
-     ① 요청 시간 — songCount(). 곡 하나가 몇 분인지의 문제.
-     ② 여정 길이 — 지금과 목표가 가까운데 곡을 많이 끼워 넣으면 걸음이
-        preference.band 보다 잘게 쪼개진다. 그 폭 안의 곡들은 순위가 구분하지
-        못하므로 어느 곡이 뽑힐지는 선호·시드가 정하고, 경로가 선이 아니라
-        잡음이 된다. 그래서 걸음 하나가 최소 min_step_span 은 되도록 곡 수를 줄인다.
-     둘 중 작은 쪽을 쓰되 song_count.min 아래로는 내려가지 않는다. */
-  const nByTime = songCount(rules, dur);
-  const span = Number(rules.iso.min_step_span ?? 0);
-  const journey = dist(nowC, tgtC, term);
-  const nByJourney = span > 0 ? Math.floor(journey / span) + 1 : Infinity;
-  const n = Math.max(Number(rules.iso.song_count.min), Math.min(nByTime, nByJourney));
+  const n = songCount(rules, dur);
   const inputs = { ...inputsIn, _n_songs: n };
 
   let { maxStep, active } = applyModulators(rules, inputs);
@@ -340,7 +325,25 @@ export function recommend(catalog, rules, inputsIn) {
     return { rules_version: rules.rules_version, rules_hash: rules.rules_hash, baselines: baseOut, sequence: [] };
   }
 
+  const nowC = toCoord(ctx, inputs.now), tgtC = toCoord(ctx, inputs.target);
   const wps = waypoints(nowC, tgtC, n, transitionAt(rules, dur));
+
+  /* ── 동적 걸음 상한 (v2.2) ──────────────────────────────
+     max_step_jump 가 시퀀스 전체 고정이면 곡 수가 많을 때 후반부
+     (웨이포인트가 이미 목표에 도달한 구간)에서 목표 주변을 크게
+     오가는 지그재그가 생긴다. 각 스텝의 상한을 "직전→현재 웨이포인트
+     간격 × scale" 로 줄이되, 규칙의 max_step_jump 는 천장으로 유지.
+     전환점 이후엔 간격이 0 이므로 floor 가 곧 상한 — 곡이 목표
+     반경에 붙잡힌다(anchor). scale/floor 는 규칙 파일에서 덮어쓸
+     수 있고(iso.dynamic_step), 없으면 기본값으로 동작한다. */
+  const dynCfg = rules.iso.dynamic_step || {};
+  const dynScale = Number(dynCfg.scale ?? 1.5);
+  const dynFloor = Number(dynCfg.floor ?? 0.12);
+  const stepCaps = wps.map((wp, i) => {
+    if (i === 0) return maxStep;               // 첫 곡은 prev 가 없어 상한 미적용
+    const gap = dist(wps[i - 1], wp, term);    // 이상적인 한 걸음
+    return R9(Math.min(maxStep, Math.max(gap * dynScale, dynFloor)));
+  });
 
   const band = Number(rules.preference.band);
   const varc = rules.variation || {};
@@ -355,10 +358,9 @@ export function recommend(catalog, rules, inputsIn) {
 
   for (let wi = 0; wi < wps.length; wi++) {
     const wp = wps[wi];
-    const pool = regionPool(universe, ctx, wp, term, rules);   // 걸음당 1회
     const next = [];
     for (const st of beam) {
-      const { cands, bandSize, relaxed } = stepCandidates(pool, st, ctx, wp, tgtC, term, rules, inputs, maxStep, band, nExpand, wi, seed, pbucket);
+      const { cands, bandSize, relaxed } = stepCandidates(universe, st, ctx, wp, tgtC, term, rules, inputs, stepCaps[wi], band, nExpand, wi, seed, pbucket);
       for (const c of cands) {
         const s = c.song;
         const ac = { ...st.artistCount };
@@ -371,7 +373,7 @@ export function recommend(catalog, rules, inputsIn) {
           prefSum: st.prefSum + c.pref,
           pbSum: st.pbSum + c.pbucket,
           jitSum: st.jitSum + c.jitter,
-          picks: [...st.picks, { song: s, fit: c.fit, pref: c.pref, bandSize, wp, pool: universe.length, relaxed, pbucket: c.pbucket, jitter: c.jitter }],
+          picks: [...st.picks, { song: s, fit: c.fit, pref: c.pref, bandSize, wp, pool: universe.length, relaxed, pbucket: c.pbucket, jitter: c.jitter, stepCap: stepCaps[wi] }],
         });
       }
     }
@@ -403,6 +405,7 @@ export function recommend(catalog, rules, inputsIn) {
       strategy,
       pool_size: pk.pool,
       step_relaxed: pk.relaxed,
+      step_cap: R6(pk.stepCap),
       seed: seed ?? null,
       pref_bucket: pk.pbucket,
       jitter: R6(pk.jitter),
@@ -421,13 +424,6 @@ export function recommend(catalog, rules, inputsIn) {
     baselines: baseOut,
     genre_restricted: genreApplied,
     relaxed_steps: best.picks.filter((p) => p.relaxed).length,
-    /* 곡 수가 시간 때문에 줄었는지 여정이 짧아서 줄었는지 로그로 구분되게 남긴다 */
-    song_count: {
-      by_time: nByTime,
-      by_journey: Number.isFinite(nByJourney) ? nByJourney : null,
-      effective: n,
-      journey: R6(journey),
-    },
     sequence: out,
   };
 }
