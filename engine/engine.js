@@ -328,23 +328,6 @@ export function recommend(catalog, rules, inputsIn) {
   const nowC = toCoord(ctx, inputs.now), tgtC = toCoord(ctx, inputs.target);
   const wps = waypoints(nowC, tgtC, n, transitionAt(rules, dur));
 
-  /* ── 동적 걸음 상한 (v2.2) ──────────────────────────────
-     max_step_jump 가 시퀀스 전체 고정이면 곡 수가 많을 때 후반부
-     (웨이포인트가 이미 목표에 도달한 구간)에서 목표 주변을 크게
-     오가는 지그재그가 생긴다. 각 스텝의 상한을 "직전→현재 웨이포인트
-     간격 × scale" 로 줄이되, 규칙의 max_step_jump 는 천장으로 유지.
-     전환점 이후엔 간격이 0 이므로 floor 가 곧 상한 — 곡이 목표
-     반경에 붙잡힌다(anchor). scale/floor 는 규칙 파일에서 덮어쓸
-     수 있고(iso.dynamic_step), 없으면 기본값으로 동작한다. */
-  const dynCfg = rules.iso.dynamic_step || {};
-  const dynScale = Number(dynCfg.scale ?? 1.5);
-  const dynFloor = Number(dynCfg.floor ?? 0.12);
-  const stepCaps = wps.map((wp, i) => {
-    if (i === 0) return maxStep;               // 첫 곡은 prev 가 없어 상한 미적용
-    const gap = dist(wps[i - 1], wp, term);    // 이상적인 한 걸음
-    return R9(Math.min(maxStep, Math.max(gap * dynScale, dynFloor)));
-  });
-
   const band = Number(rules.preference.band);
   const varc = rules.variation || {};
   const seed = varc.enabled ? inputs[varc.seed_input || "seed"] ?? null : null;
@@ -360,7 +343,7 @@ export function recommend(catalog, rules, inputsIn) {
     const wp = wps[wi];
     const next = [];
     for (const st of beam) {
-      const { cands, bandSize, relaxed } = stepCandidates(universe, st, ctx, wp, tgtC, term, rules, inputs, stepCaps[wi], band, nExpand, wi, seed, pbucket);
+      const { cands, bandSize, relaxed } = stepCandidates(universe, st, ctx, wp, tgtC, term, rules, inputs, maxStep, band, nExpand, wi, seed, pbucket);
       for (const c of cands) {
         const s = c.song;
         const ac = { ...st.artistCount };
@@ -373,7 +356,7 @@ export function recommend(catalog, rules, inputsIn) {
           prefSum: st.prefSum + c.pref,
           pbSum: st.pbSum + c.pbucket,
           jitSum: st.jitSum + c.jitter,
-          picks: [...st.picks, { song: s, fit: c.fit, pref: c.pref, bandSize, wp, pool: universe.length, relaxed, pbucket: c.pbucket, jitter: c.jitter, stepCap: stepCaps[wi] }],
+          picks: [...st.picks, { song: s, fit: c.fit, pref: c.pref, bandSize, wp, pool: universe.length, relaxed, pbucket: c.pbucket, jitter: c.jitter }],
         });
       }
     }
@@ -405,13 +388,18 @@ export function recommend(catalog, rules, inputsIn) {
       strategy,
       pool_size: pk.pool,
       step_relaxed: pk.relaxed,
-      step_cap: R6(pk.stepCap),
       seed: seed ?? null,
       pref_bucket: pk.pbucket,
       jitter: R6(pk.jitter),
       artist: s.artist ?? null,
-      song_V: Number(s.V),
-      song_A: Number(s.A),
+      /* wp_V/wp_A 는 작업 좌표계(coord_space)의 값이다. song_V/song_A 를 원좌표로만
+         남기면 로그에서 두 점의 거리를 다시 계산할 때 좌표계가 섞여 틀린 값이 나온다
+         (percentile 사용 시 0.280 vs 실제 0.126). wp_* 와 같은 공간의 값을 함께 남긴다.
+         raw 좌표계에서는 두 쌍의 값이 동일하므로 기존 분석과 호환된다. */
+      song_V: R6(c[0]),            // 작업 좌표계 — wp_V 와 짝
+      song_A: R6(c[1]),            // 작업 좌표계 — wp_A 와 짝
+      song_V_raw: Number(s.V),     // 원좌표 (카탈로그 값)
+      song_A_raw: Number(s.A),
       va_source: s.va_source ?? null,
       rules_hash: rules.rules_hash,
     };
