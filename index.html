@@ -241,6 +241,12 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:var(-
 .journey-card svg{display:block;width:100%;height:auto;margin-top:6px}
 .after-card{margin-top:14px;background:var(--panel-2);border:1px solid var(--line);padding:16px}
 .after-card h3{font-size:.86rem;font-weight:700}
+.export-card{margin-top:14px;background:var(--panel-2);border:1px solid var(--line);padding:16px}
+.export-card h3{font-size:.86rem;font-weight:700}
+.export-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.export-actions button{border:1px solid var(--line-dark);background:var(--paper);color:var(--mid);padding:9px 12px;font-weight:600;font-size:.72rem}
+.export-actions button:disabled{opacity:.5}
+#exportStatus{margin-top:9px;min-height:1.1em}
 .stress-wrap{margin-top:10px}
 .stress-wrap input{width:100%;accent-color:var(--accent)}
 .stress-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:.64rem;letter-spacing:.06em;margin-top:6px}
@@ -2475,6 +2481,14 @@ function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
      (재생 불가 곡뿐이면 측정할 수 없으므로 처음부터 열어둔다) */
   const gateAttr = playable.length ? " disabled" : "";
   const gateMsg = playable.length ? "음악을 실제로 " + AFTER_UNLOCK_SECONDS + "초 이상 들으면 기록을 남길 수 있어요." : "";
+  /* 반출: 버튼이 곧 표기 분기다. 유튜브 뮤직은 한글 표기, Spotify 는 영문 표기를 보낸다
+     — 플랫폼마다 자기 로케일 표기로만 곡을 찾는다(2026-09-10 실측). */
+  html += "<div class='export-card' id='exportCard'><h3>이 시퀀스 가져가기</h3><p class='plane-note'>오늘의 음악을 내 음악 서비스에 플레이리스트로 저장할 수 있어요. 새 탭에서 서비스에 연결하면 저장돼요.</p><div class='export-actions'>"
+        + "<button type='button' data-export='ytmusic'>유튜브 뮤직에 저장</button>"
+        + "<button type='button' data-export='spotify'>Spotify에 저장</button>"
+        + "<button type='button' data-export=''>다른 서비스에 저장</button>"
+        + "<button type='button' id='exportCopy'>목록 복사</button>"
+        + "</div><p class='plane-note' id='exportStatus' role='status'></p></div>";
   html += "<div class='after-card' id='afterCard'><h3>듣고 난 뒤</h3><p class='plane-note'>듣기 전과 비교해 지금은 어떤가요?</p><div class='stress-wrap'><input type='range' id='afterChange' min='-2' max='2' step='1' value='0'"+gateAttr+" aria-describedby='afterEcho' aria-label='청취 전 대비 상태 변화'/><div class='stress-labels'><span>더 힘들어짐</span><span>그대로</span><span>한결 편안함</span></div><div id='afterEcho' style='margin-top:10px;font-weight:800'>선택: <b>그대로예요</b></div></div><button id='afterSubmit' class='after-btn'"+gateAttr+">기록하고 나가기</button><p id='afterGate' class='plane-note'>"+gateMsg+"</p><p id='afterThanks' class='plane-note' hidden>기록됐어요. 다음에 더 잘 맞춰볼게요.</p></div></div>";
   box.innerHTML="<div class='scene-inner result-cabin'>"+html+"</div>";
   box.classList.add("scene-active");
@@ -2493,7 +2507,135 @@ function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
   renderEmotionMap();
   if(playable.length) setupPlayer(seq);
   setupAfterInput();
+  setupExport(seq);
   requestAnimationFrame(()=>goScene("results"));
+}
+
+/* ===================== 시퀀스 반출 (Soundiiz Import API) =====================
+   재생은 Spotify 임베드 그대로 두고, "가져가기"만 외부로 연다. Spotify 약관은
+   다른 서비스의 스트림을 같은 화면에 붙이는 것은 금지하지만, 플레이리스트
+   메타데이터를 다른 서비스로 옮기는 것은 명시적 예외로 허용한다. 그래서
+   spotify_track_id 는 보내지 않고 곡명·아티스트 문자열만 보낸다.
+
+   표기 분기가 핵심이다(2026-09-10 실측, 한글 편중 20곡 표본):
+     한글 표기 → YouTube Music 16/20 · Spotify  3/20
+     영문 표기 → YouTube Music  2/20 · Spotify 19/20
+   두 표기를 한 제목에 이어붙이면 양쪽 다 떨어진다(11/20, 4/20). 그래서 병기하지
+   않고 대상에 맞는 표기 하나만 보낸다.
+   ========================================================================= */
+let EXPORT_SEQ = [];
+let GLOBAL_NAMES = null;          // song_id -> { t: 영문 제목, a: 영문 아티스트(쉼표 구분) }
+let GLOBAL_NAMES_TRIED = false;
+
+/* Spotify 글로벌 표기는 눌렀을 때만 받는다 — 대부분의 사용자는 안 쓰는 경로다 */
+async function loadGlobalNames() {
+  if (GLOBAL_NAMES || GLOBAL_NAMES_TRIED) return GLOBAL_NAMES;
+  GLOBAL_NAMES_TRIED = true;
+  try {
+    const r = await fetch("data/spotify_global_names.json", { cache: "force-cache" });
+    if (r.ok) GLOBAL_NAMES = await r.json();
+  } catch (e) {
+    console.warn("글로벌 표기 파일을 불러오지 못했어요 — 한글 표기로 보냅니다.", e);
+  }
+  return GLOBAL_NAMES;
+}
+
+function exportTracks(songs, notation) {
+  const out = [];
+  for (const s of songs) {
+    let title = s.title, raw = s.artist || "", sep = ";";
+    if (notation === "global") {
+      const g = GLOBAL_NAMES && GLOBAL_NAMES[s.id];
+      if (g && g.t) { title = g.t; raw = g.a || ""; sep = ","; }
+    }
+    if (!title) continue;
+    const artists = String(raw).split(sep).map(a => a.trim()).filter(Boolean).slice(0, 3);
+    out.push({ title, artists });
+  }
+  return out;
+}
+
+async function runExport(destination, btn) {
+  const status = $("exportStatus");
+  if (!EXPORT_SEQ.length) { if (status) status.textContent = "내보낼 곡이 없어요."; return; }
+
+  /* 팝업 차단을 피하려면 클릭 제스처 안에서 탭을 먼저 열어야 한다.
+     await 뒤에 window.open 을 부르면 브라우저가 막는다. */
+  const tab = window.open("about:blank", "_blank");
+  if (tab) tab.opener = null;
+
+  const buttons = document.querySelectorAll("#exportCard button");
+  buttons.forEach(b => { b.disabled = true; });
+  if (status) status.textContent = "링크를 만드는 중…";
+
+  try {
+    if (destination === "spotify") await loadGlobalNames();
+    const notation = destination === "spotify" ? "global" : "kr";
+    const tracks = exportTracks(EXPORT_SEQ, notation);
+    if (!tracks.length) throw new Error("no track");
+
+    const r = await fetch("/api/soundiiz", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ destination, name: "AZT 오늘의 음악", tracks })
+    });
+    const data = await r.json().catch(() => ({}));
+
+    if (r.status === 429) {
+      if (tab) tab.close();
+      if (status) status.textContent = "지금 이용자가 몰렸어요. 잠시 뒤 다시 누르거나 「목록 복사」를 써주세요.";
+      return;
+    }
+    if (!r.ok || !data.shareUrl) {
+      if (tab) tab.close();
+      if (status) status.textContent = "링크를 만들지 못했어요. 「목록 복사」를 써주세요.";
+      return;
+    }
+
+    if (tab) tab.location.href = data.shareUrl;
+    else window.open(data.shareUrl, "_blank", "noopener");
+    if (status) status.textContent = "새 탭에서 저장을 마쳐주세요.";
+    logEvent("export_click", { destination: destination || "other", count: tracks.length });
+  } catch (e) {
+    if (tab) tab.close();
+    if (status) status.textContent = "연결이 불안정해요. 「목록 복사」를 써주세요.";
+    console.warn("반출 실패", e);
+  } finally {
+    buttons.forEach(b => { b.disabled = false; });
+  }
+}
+
+/* 폴백: 목록만 복사되면 사용자가 어떤 이전 서비스로든 옮길 수 있다.
+   Soundiiz 가 막히거나 미지원 서비스(멜론 등)일 때의 유일한 경로다. */
+function copyExportList() {
+  const status = $("exportStatus");
+  const text = EXPORT_SEQ
+    .map(s => s.title + (s.artist ? " - " + String(s.artist).split(";")[0].trim() : ""))
+    .join("\n");
+  const done = () => { if (status) status.textContent = "목록을 복사했어요. 원하는 서비스에 붙여넣으세요."; };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done) {
+  const ta = document.createElement("textarea");
+  ta.value = text; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+  document.body.appendChild(ta); ta.select();
+  try { document.execCommand("copy"); done(); }
+  catch (e) { const status = $("exportStatus"); if (status) status.textContent = "복사가 막혔어요. 곡 목록을 직접 적어주세요."; }
+  finally { ta.remove(); }
+}
+
+function setupExport(seq) {
+  EXPORT_SEQ = (seq || []).filter(s => s && s.title);
+  const card = $("exportCard");
+  if (!card) return;
+  card.querySelectorAll("[data-export]").forEach(b =>
+    b.addEventListener("click", () => runExport(b.dataset.export, b)));
+  const copy = $("exportCopy");
+  if (copy) copy.addEventListener("click", copyExportList);
 }
 
 /* 청취 후 변화 자기보고: -2(훨씬 나빠짐) ~ +2(훨씬 나아짐).
