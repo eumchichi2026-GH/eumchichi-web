@@ -2563,32 +2563,41 @@ function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
    않고 대상에 맞는 표기 하나만 보낸다.
    ========================================================================= */
 let EXPORT_SEQ = [];
-let GLOBAL_NAMES = null;          // song_id -> { t: 영문 제목, a: 영문 아티스트(쉼표 구분) }
-let GLOBAL_NAMES_TRIED = false;
+/* 곡별·플랫폼별 표기 오버라이드: { song_id: { spotify: {t,a[]}, ytmusic: {t,a[]} } }
+   기본은 카탈로그의 한글 표기이고, 이 표에 항목이 있는 곡만 그 표기로 바꿔 보낸다.
+   그래서 파일에는 기본과 다른 곡만 들어 있다 — 없으면 그냥 기본으로 나간다. */
+let EXPORT_NAMES = null;
+let EXPORT_NAMES_TRIED = false;
 
-/* Spotify 글로벌 표기는 눌렀을 때만 받는다 — 대부분의 사용자는 안 쓰는 경로다 */
-async function loadGlobalNames() {
-  if (GLOBAL_NAMES || GLOBAL_NAMES_TRIED) return GLOBAL_NAMES;
-  GLOBAL_NAMES_TRIED = true;
+/* 반출 버튼을 눌렀을 때만 받는다 — 대부분의 사용자는 안 쓰는 경로다 */
+async function loadExportNames() {
+  if (EXPORT_NAMES || EXPORT_NAMES_TRIED) return EXPORT_NAMES;
+  EXPORT_NAMES_TRIED = true;
   try {
-    const r = await fetch("data/spotify_global_names.json", { cache: "force-cache" });
-    if (r.ok) GLOBAL_NAMES = await r.json();
+    /* force-cache 를 쓰면 표기를 고쳐 배포해도 기존 사용자가 옛 표를 계속 쓴다.
+       서비스워커가 stale-while-revalidate 로 받쳐 주므로 기본 캐시 정책이면 충분하다. */
+    const r = await fetch("data/export_names.json");
+    if (r.ok) EXPORT_NAMES = await r.json();
   } catch (e) {
-    console.warn("글로벌 표기 파일을 불러오지 못했어요 — 한글 표기로 보냅니다.", e);
+    console.warn("반출 표기 파일을 불러오지 못했어요 — 기본 표기로 보냅니다.", e);
   }
-  return GLOBAL_NAMES;
+  return EXPORT_NAMES;
 }
 
-function exportTracks(songs, notation) {
+function exportTracks(songs, destination) {
+  const table = EXPORT_NAMES || {};
   const out = [];
   for (const s of songs) {
-    let title = s.title, raw = s.artist || "", sep = ";";
-    if (notation === "global") {
-      const g = GLOBAL_NAMES && GLOBAL_NAMES[s.id];
-      if (g && g.t) { title = g.t; raw = g.a || ""; sep = ","; }
+    const ov = table[s.id] && table[s.id][destination];
+    let title, artists;
+    if (ov && ov.t) {
+      title = ov.t;
+      artists = (ov.a || []).slice(0, 3);
+    } else {
+      title = s.title;
+      artists = String(s.artist || "").split(";").map(a => a.trim()).filter(Boolean).slice(0, 3);
     }
     if (!title) continue;
-    const artists = String(raw).split(sep).map(a => a.trim()).filter(Boolean).slice(0, 3);
     out.push({ title, artists });
   }
   return out;
@@ -2608,9 +2617,8 @@ async function runExport(destination, btn) {
   if (status) status.textContent = "링크를 만드는 중…";
 
   try {
-    if (destination === "spotify") await loadGlobalNames();
-    const notation = destination === "spotify" ? "global" : "kr";
-    const tracks = exportTracks(EXPORT_SEQ, notation);
+    await loadExportNames();
+    const tracks = exportTracks(EXPORT_SEQ, destination);
     if (!tracks.length) throw new Error("no track");
 
     const r = await fetch("/api/soundiiz", {
