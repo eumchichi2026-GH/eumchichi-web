@@ -241,12 +241,28 @@ select{width:100%;border:1px solid var(--line-dark);padding:9px;background:var(-
 .journey-card svg{display:block;width:100%;height:auto;margin-top:6px}
 .after-card{margin-top:14px;background:var(--panel-2);border:1px solid var(--line);padding:16px}
 .after-card h3{font-size:.86rem;font-weight:700}
-.export-card{margin-top:14px;background:var(--panel-2);border:1px solid var(--line);padding:16px}
-.export-card h3{font-size:.86rem;font-weight:700}
-.export-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
-.export-actions button{border:1px solid var(--line-dark);background:var(--paper);color:var(--mid);padding:9px 12px;font-weight:600;font-size:.72rem}
-.export-actions button:disabled{opacity:.5}
-#exportStatus{margin-top:9px;min-height:1.1em}
+.export-card{margin-top:14px;background:var(--panel-2);border:1px solid var(--line-dark);border-left:3px solid var(--accent);padding:18px}
+.export-card h3{font-size:1rem;font-weight:700}
+.export-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+.export-actions button{border:1px solid var(--line-dark);background:var(--paper);color:var(--ink);
+                       padding:13px 18px;font-weight:700;font-size:.84rem;letter-spacing:-.01em}
+.export-actions button:hover{border-color:var(--ink)}
+/* 주 경로 두 개는 채워서 확실히 눈에 띄게 — 나머지는 보조 */
+.export-actions button.export-primary{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
+.export-actions button.export-primary:hover{background:var(--ink-strong);border-color:var(--ink-strong)}
+.export-actions button:disabled{opacity:.45}
+#exportStatus{margin-top:11px;min-height:1.1em;font-size:.74rem}
+.export-help{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
+.export-help button{border:0;background:transparent;color:var(--mid);font-size:.72rem;
+                    font-weight:600;text-decoration:underline;text-underline-offset:3px;padding:0}
+.export-help button:hover{color:var(--ink)}
+.modal ol.help-steps{margin:12px 0 0;padding-left:1.15em;font-size:.8rem;line-height:1.65;color:var(--mid)}
+.modal ol.help-steps b{color:var(--ink)}
+.modal .help-again{display:flex;align-items:center;gap:8px;margin-top:16px;font-size:.74rem;color:var(--mid)}
+.modal .help-again input{width:15px;height:15px;accent-color:var(--accent)}
+.modal .help-row{display:flex;gap:9px;margin-top:14px}
+.modal .help-row button{flex:1;padding:12px;font-weight:700;font-size:.78rem;border:1px solid var(--line-dark);background:var(--paper);color:var(--ink)}
+.modal .help-row button.go{background:var(--ink);color:var(--on-ink);border-color:var(--ink)}
 .stress-wrap{margin-top:10px}
 .stress-wrap input{width:100%;accent-color:var(--accent)}
 .stress-labels{display:flex;justify-content:space-between;color:var(--muted);font-size:.64rem;letter-spacing:.06em;margin-top:6px}
@@ -566,6 +582,28 @@ html[data-theme=dark] .time-out{color:var(--accent)}
         <a id="obSkip">나중에 할게요</a>
         <a id="obLogout">로그아웃하고 나가기</a>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 플레이리스트 반출 안내 모달 ──
+     서비스마다 곡 표기가 달라 일부는 자동으로 못 찾는다. 그때 Soundiiz 화면에서
+     직접 고르는 방법을 미리 알려준다. "다시 보지 않기"는 브라우저에만 남는다. -->
+<div class="modal-back" id="exportHelpModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="exportHelpTitle">
+    <button class="modal-x" id="exportHelpClose" type="button" aria-label="닫기">✕</button>
+    <h2 id="exportHelpTitle">못 찾는 곡이 있을 수 있어요</h2>
+    <p class="sub">서비스마다 곡 제목·가수 표기가 달라서, 자동으로 못 찾는 곡이 생겨요. 그런 곡은 직접 고르면 바로 해결돼요.</p>
+    <ol class="help-steps">
+      <li>새 탭에 뜬 목록에서 <b>「찾을 수 없음」</b>이라고 표시된 곡을 누르세요.</li>
+      <li>바로 아래에 <b>검색창과 후보 목록</b>이 펼쳐져요.</li>
+      <li>맞는 곡을 찾아 <b>「교체」</b>를 누르면 그 곡으로 담겨요.</li>
+      <li>검색어를 <b>영어 제목</b>이나 <b>가수 이름만</b>으로 바꿔 보면 더 잘 찾아져요.</li>
+    </ol>
+    <label class="help-again"><input type="checkbox" id="exportHelpNever"> 다시 보지 않기</label>
+    <div class="help-row">
+      <button type="button" id="exportHelpCancel">취소</button>
+      <button type="button" class="go" id="exportHelpGo">계속</button>
     </div>
   </div>
 </div>
@@ -2483,12 +2521,13 @@ function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
   const gateMsg = playable.length ? "음악을 실제로 " + AFTER_UNLOCK_SECONDS + "초 이상 들으면 기록을 남길 수 있어요." : "";
   /* 반출: 버튼이 곧 표기 분기다. 유튜브 뮤직은 한글 표기, Spotify 는 영문 표기를 보낸다
      — 플랫폼마다 자기 로케일 표기로만 곡을 찾는다(2026-09-10 실측). */
-  html += "<div class='export-card' id='exportCard'><h3>이 시퀀스 가져가기</h3><p class='plane-note'>오늘의 음악을 내 음악 서비스에 플레이리스트로 저장할 수 있어요. 새 탭에서 서비스에 연결하면 저장돼요.</p><div class='export-actions'>"
-        + "<button type='button' data-export='ytmusic'>유튜브 뮤직에 저장</button>"
-        + "<button type='button' data-export='spotify'>Spotify에 저장</button>"
+  html += "<div class='export-card' id='exportCard'><h3>이 플레이리스트 가져가기</h3><p class='plane-note'>오늘의 음악을 내 음악 서비스에 플레이리스트로 저장할 수 있어요. 새 탭에서 서비스에 연결하면 저장돼요.</p><div class='export-actions'>"
+        + "<button type='button' class='export-primary' data-export='ytmusic'>유튜브 뮤직에 저장</button>"
+        + "<button type='button' class='export-primary' data-export='spotify'>Spotify에 저장</button>"
         + "<button type='button' data-export=''>다른 서비스에 저장</button>"
         + "<button type='button' id='exportCopy'>목록 복사</button>"
-        + "</div><p class='plane-note' id='exportStatus' role='status'></p></div>";
+        + "</div><p class='plane-note' id='exportStatus' role='status'></p>"
+        + "<div class='export-help'><button type='button' id='exportHelpOpen'>못 찾은 곡이 있다면?</button></div></div>";
   html += "<div class='after-card' id='afterCard'><h3>듣고 난 뒤</h3><p class='plane-note'>듣기 전과 비교해 지금은 어떤가요?</p><div class='stress-wrap'><input type='range' id='afterChange' min='-2' max='2' step='1' value='0'"+gateAttr+" aria-describedby='afterEcho' aria-label='청취 전 대비 상태 변화'/><div class='stress-labels'><span>더 힘들어짐</span><span>그대로</span><span>한결 편안함</span></div><div id='afterEcho' style='margin-top:10px;font-weight:800'>선택: <b>그대로예요</b></div></div><button id='afterSubmit' class='after-btn'"+gateAttr+">기록하고 나가기</button><p id='afterGate' class='plane-note'>"+gateMsg+"</p><p id='afterThanks' class='plane-note' hidden>기록됐어요. 다음에 더 잘 맞춰볼게요.</p></div></div>";
   box.innerHTML="<div class='scene-inner result-cabin'>"+html+"</div>";
   box.classList.add("scene-active");
@@ -2628,14 +2667,68 @@ function fallbackCopy(text, done) {
   finally { ta.remove(); }
 }
 
+/* 반출 전 안내 모달.
+   표기가 달라 자동으로 못 찾는 곡이 늘 조금 남는다(유튜브 뮤직 기준 20곡 중 4곡).
+   Soundiiz 화면에서 직접 고르면 해결되는데 그걸 모르면 그냥 포기하게 되므로,
+   처음 몇 번은 먼저 알려준다. "다시 보지 않기"는 이 브라우저에만 남는다. */
+const EXPORT_HELP_KEY = "azt_export_help_hidden";
+let EXPORT_PENDING = null;      // 안내 후 이어서 보낼 대상. null 이면 안내만 보는 중
+let EXPORT_HELP_WIRED = false;  // 모달은 씬 밖에 있어 렌더마다 다시 묶으면 안 된다
+
+function exportHelpHidden() {
+  try { return localStorage.getItem(EXPORT_HELP_KEY) === "1"; } catch (e) { return false; }
+}
+function openExportHelp(destination) {
+  const modal = $("exportHelpModal");
+  if (!modal) { if (destination !== null) runExport(destination); return; }
+  EXPORT_PENDING = destination;
+  const never = $("exportHelpNever"); if (never) never.checked = false;
+  const go = $("exportHelpGo"); if (go) go.textContent = destination === null ? "알겠어요" : "계속";
+  const cancel = $("exportHelpCancel"); if (cancel) cancel.hidden = destination === null;
+  modal.hidden = false;
+}
+function closeExportHelp() {
+  const modal = $("exportHelpModal");
+  if (modal) modal.hidden = true;
+  EXPORT_PENDING = null;
+}
+function wireExportHelp() {
+  if (EXPORT_HELP_WIRED) return;
+  const modal = $("exportHelpModal");
+  if (!modal) return;
+  EXPORT_HELP_WIRED = true;
+  ["exportHelpClose", "exportHelpCancel"].forEach(id => {
+    const b = $(id); if (b) b.addEventListener("click", closeExportHelp);
+  });
+  modal.addEventListener("click", e => { if (e.target === modal) closeExportHelp(); });
+  const go = $("exportHelpGo");
+  if (go) go.addEventListener("click", () => {
+    const destination = EXPORT_PENDING;        // 닫기 전에 먼저 집어둔다
+    const never = $("exportHelpNever");
+    if (never && never.checked) {
+      try { localStorage.setItem(EXPORT_HELP_KEY, "1"); } catch (e) {}
+    }
+    modal.hidden = true;
+    EXPORT_PENDING = null;
+    /* 이 클릭 자체가 사용자 제스처라 여기서 여는 탭은 팝업 차단에 걸리지 않는다 */
+    if (destination !== null) runExport(destination);
+  });
+}
+
 function setupExport(seq) {
   EXPORT_SEQ = (seq || []).filter(s => s && s.title);
+  wireExportHelp();
   const card = $("exportCard");
   if (!card) return;
   card.querySelectorAll("[data-export]").forEach(b =>
-    b.addEventListener("click", () => runExport(b.dataset.export, b)));
+    b.addEventListener("click", () => {
+      if (exportHelpHidden()) runExport(b.dataset.export, b);
+      else openExportHelp(b.dataset.export);
+    }));
   const copy = $("exportCopy");
   if (copy) copy.addEventListener("click", copyExportList);
+  const help = $("exportHelpOpen");
+  if (help) help.addEventListener("click", () => openExportHelp(null));
 }
 
 /* 청취 후 변화 자기보고: -2(훨씬 나빠짐) ~ +2(훨씬 나아짐).
