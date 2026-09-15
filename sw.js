@@ -4,7 +4,7 @@
  * - Firebase / Spotify / Gemini 등 API 요청은 건드리지 않음
  * 배포할 때마다 VERSION 을 올리면 구캐시가 자동 삭제됩니다.
  */
-const VERSION = 'azt-v5';
+const VERSION = 'azt-v6';
 const SHELL = [
   '/',
   '/index.html',
@@ -60,7 +60,11 @@ self.addEventListener('fetch', (e) => {
     // network-first: 최신 HTML 우선, 실패 시 캐시
     e.respondWith(
       fetch(req)
-        .then((res) => { caches.open(VERSION).then((c) => c.put(req, res.clone())); return res; })
+        .then((res) => {
+          const copy = res.clone();                       // 본문을 쓰기 전에 먼저 복제
+          caches.open(VERSION).then((c) => c.put(req, copy)).catch(() => {});
+          return res;
+        })
         .catch(() => caches.match(req).then((r) => r || caches.match('/index.html')))
     );
     return;
@@ -70,7 +74,10 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(
     caches.match(req).then((cached) => {
       const network = fetch(req)
-        .then((res) => { if (res.ok) caches.open(VERSION).then((c) => c.put(req, res.clone())); return res; })
+        .then((res) => {
+          if (res.ok) { const copy = res.clone(); caches.open(VERSION).then((c) => c.put(req, copy)).catch(() => {}); }
+          return res;
+        })
         .catch(() => cached);
       return cached || network;
     })
