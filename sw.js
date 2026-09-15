@@ -4,7 +4,7 @@
  * - Firebase / Spotify / Gemini 등 API 요청은 건드리지 않음
  * 배포할 때마다 VERSION 을 올리면 구캐시가 자동 삭제됩니다.
  */
-const VERSION = 'azt-v4';
+const VERSION = 'azt-v5';
 const SHELL = [
   '/',
   '/index.html',

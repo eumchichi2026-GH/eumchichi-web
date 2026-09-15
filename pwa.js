@@ -15,6 +15,7 @@
   const inApp = /kakaotalk|instagram|fbav|fban|line\/|naver\(inapp|twitter|daumapps|whale/i.test(ua) || (isIOS && !/safari/i.test(ua) && !/crios|fxios/i.test(ua));
   const isKakao = /kakaotalk/i.test(ua);
   const iosSafari = isIOS && !inApp && /safari/i.test(ua) && !/crios|fxios|edgios/i.test(ua);
+  const isMobile = isIOS || isAndroid || (navigator.maxTouchPoints > 0 && Math.min(screen.width, screen.height) < 820);
   const DISMISS_KEY = "azt_install_gate_dismissed_until";
   const SNOOZE_DAYS = 7;
 
@@ -47,7 +48,7 @@
     if ("Notification" in window && Notification.permission === "default" && isStandalone && !isIOS) Notification.requestPermission();
   });
 
-  if (isStandalone) return;
+  if (isStandalone || !isMobile) return;   // 설치된 앱 / PC 에서는 설치 안내 없음
 
   // ---- 설치 프롬프트 (안드로이드/데스크톱 크롬) ----
   let deferredPrompt = null;
