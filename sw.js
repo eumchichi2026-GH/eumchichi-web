@@ -4,7 +4,7 @@
  * - Firebase / Spotify / Gemini 등 API 요청은 건드리지 않음
  * 배포할 때마다 VERSION 을 올리면 구캐시가 자동 삭제됩니다.
  */
-const VERSION = 'azt-v1';
+const VERSION = 'azt-v4';
 const SHELL = [
   '/',
   '/index.html',
@@ -80,4 +80,16 @@ self.addEventListener('fetch', (e) => {
 // 앱에서 postMessage({type:'SKIP_WAITING'}) 보내면 즉시 새 버전 적용
 self.addEventListener('message', (e) => {
   if (e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+
+// 알림 탭 → 앱 열고 피드백 시트 열기
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const target = e.notification.data?.url || '/';
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((list) => {
+      for (const c of list) { if ('focus' in c) { c.navigate(target); return c.focus(); } }
+      return self.clients.openWindow(target);
+    })
+  );
 });
