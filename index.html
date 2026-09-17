@@ -810,6 +810,49 @@ const $ = (id) => document.getElementById(id);
 const statusBox = null, statusText = $("statusText");
 let SONGS = [];
 const GENRE_OPTIONS = ["K-pop","발라드","힙합","R&B","인디","록","팝","재즈","클래식","lo-fi","EDM","OST","시티팝","뉴에이지"];
+
+/* 버튼 ↔ 데이터 어휘 잇기.
+   곡의 `genre` 는 Spotify 유래 한국어 값이라(`"케이팝"`, `"사운드트랙"`, `"로파이"`)
+   버튼 문자열과 부분일치하지 않는 게 많다. 2026-09-18 확인 시 **70개 장르값이 어느
+   버튼에도 안 걸렸고, 195곡은 어떤 버튼으로도 찾을 수 없었다** — `K-pop`·`시티팝`
+   버튼은 0곡이었다.
+   데이터를 14개로 뭉개면 원래 장르 정보를 잃으므로, 데이터는 그대로 두고 여기서 잇는다.
+   값은 **부분일치 stem** 이다(`"하우스"` 하나로 프로그레시브/퓨처/G 하우스를 다 잡는다). */
+const GENRE_SYNONYMS = {
+  "K-pop":  ["케이팝", "kpop"],
+  "팝":     ["j-pop", "가요쿄쿠", "엔카", "보컬로이드", "시부야계", "아프로", "댄스홀", "크리스마스"],
+  "힙합":   ["랩"],
+  "R&B":    ["소울"],
+  "록":     ["슈게이징", "매드체스터", "indorock", "비주얼계", "슬로우코어", "노이즈 음악"],
+  "재즈":   ["보사노바", "비밥", "하드 밥"],
+  "클래식": ["인상주의", "신고전주의", "체임버", "협주곡", "오페라", "바로크", "오케스트라",
+             "미니멀리즘", "르네상스"],
+  "lo-fi":  ["로파이"],
+  "EDM":    ["하우스", "house", "일렉트로", "덥스텝", "베이스", "누 디스코", "얼터너티브 댄스",
+             "빅 룸", "바운스", "저지 클럽", "하이에너지", "j-댄스", "budots", "amapiano",
+             "gqom", "악세", "하이피", "펑키", "펑크 카리오카", "펑크(funk)"],
+  "OST":    ["사운드트랙", "애니메이션", "오리지널 스코어"],
+  "시티팝": ["시티 팝"],
+  "뉴에이지": ["앰비언트", "이지 리스닝", "중국 고풍", "private school piano"],
+};
+
+/* 곡의 장르 문자열들이 어느 버튼에 해당하는지 */
+function genreButtons(genres) {
+  const out = [];
+  for (const b of GENRE_OPTIONS) {
+    const keys = [b, ...(GENRE_SYNONYMS[b] || [])].map(k => k.toLowerCase());
+    if ((genres || []).some(g => keys.some(k => String(g).toLowerCase().includes(k)))) out.push(b);
+  }
+  return out;
+}
+/* 사용자가 고른 버튼 중 하나라도 이 곡에 해당하는가 */
+function songMatchesGenres(song, selected) {
+  if (!selected || !selected.length) return false;
+  const mine = genreButtons(song.genres);
+  return selected.some(x => mine.includes(x)
+    || (song.genres || []).some(g => String(g).toLowerCase().includes(String(x).toLowerCase())));
+}
+
 let SELECTED_GENRES = [];
 let RECOMMEND_MINUTES = 30;
 /* 감정 여정 속도: null=자동(시간별 기본 정책), fast=목표 중심, slow=펼침.
@@ -1657,7 +1700,11 @@ function toContractSong(s) {
     va_source: s.va_source || "provider",
     spokenness: songSpokenness(s),
     instrumental: songIsInstrumental(s),
-    genres: Array.isArray(s.genres) ? s.genres : [],
+    /* 원래 장르 + 버튼 라벨을 함께 넘긴다. 엔진의 `genre_affinity` 키는 사용자가 고른
+       **버튼 문자열**이라, 원래 값(`"케이팝"`)만 넘기면 영영 맞지 않아 장르 가점이
+       죽는다. 원래 값도 남겨 두어 기존 규칙이 그대로 동작하게 한다. */
+    genres: [...new Set([...(Array.isArray(s.genres) ? s.genres : []),
+                         ...genreButtons(s.genres)])],
     popularity: Number(s.popularity || 0),
     duration_ms: Math.round((Number(s.durationSec) || 210) * 1000),
   };
@@ -2413,8 +2460,7 @@ async function recommend() {
   const lyric = $("lyric").value;
   RECOMMEND_MINUTES = Number($("listenTime").value) || 30;
   SELECTED_GENRES = [...SELECTED_GENRES];
-  const matchesGenre = s => !!(s.genres && s.genres.length &&
-    s.genres.some(g => SELECTED_GENRES.some(x => String(g).toLowerCase().includes(String(x).toLowerCase()))));
+  const matchesGenre = s => songMatchesGenres(s, SELECTED_GENRES);
   let pool = SONGS;
   /* instrumental_only / prefer_vocal 은 엔진 게이트로 넘긴다(아래 gates).
      prefer_instrumental 은 '선호'라 게이트가 아니므로 여기서만 약하게 거른다. */
