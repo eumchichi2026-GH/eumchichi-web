@@ -7,3 +7,17 @@ feedback.*
 *.notes.json
 *.classified.csv
 *.sample.csv
+# 로컬 서버 비밀값 (server.mjs 가 읽는 .env — GEMINI_API_KEY 등). 템플릿만 예외
+.env*
+!.env.example
+# Node 실행 부산물 (package.json 이 없어도 생길 수 있는 캐시·진단 파일)
+.cache/
+.node-compile-cache/
+node-compile-cache/
+*.cpuprofile
+*.heapprofile
+*.heapsnapshot
+npm-debug.log*
+.npm/
+# 시뮬레이터 원자료(대용량 생성물) — 요약 문서(.md)만 커밋
+docs/personal_eval_*.json

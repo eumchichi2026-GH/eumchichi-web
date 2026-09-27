@@ -11,7 +11,9 @@
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="AZT">   
+<meta name="apple-mobile-web-app-title" content="AZT">
+<!-- web-personal 실행 설정(AZT_ENV). 앱 스크립트보다 먼저 읽는다 — 로컬 서버(server.mjs)는 이 주소로 쓰기 끈 설정을 돌려준다 -->
+<script src="env.js"></script>
 <style>
 /* =====================================================================
    AZT v10 — MONOCHROME + ACCENT
@@ -484,6 +486,54 @@ html[data-theme=dark] .time-out{color:var(--accent)}
 .theme-toggle button{border:1px solid var(--line-dark);background:var(--paper);padding:7px 12px;font-size:.72rem;color:var(--mid);font-weight:600}
 .theme-toggle button[aria-pressed=true]{background:var(--accent);border-color:var(--accent);color:#fff}
 
+/* ── web-personal 개인화 층 (2026-09-27) — 흑백 + 포인트 컬러 규칙 그대로 ──
+   실행 띠(데모·로컬) · 점 끌기 손잡이 · 보정 안내 · "이번 추천에 반영된 나" · 비교 표시 · 내 취향 모델 패널 */
+.wp-envbar{position:fixed;top:0;left:0;right:0;height:26px;z-index:130;display:flex;align-items:center;justify-content:center;padding:0 12px;
+  background:var(--accent);color:#fff;font-size:.68rem;font-weight:700;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+html.wp-has-bar .topbar{top:26px}
+html.wp-has-bar .scene{top:26px;height:calc(100svh - 26px)}
+.va-handle{cursor:grab;touch-action:none}
+.va-input svg.dragging,.va-input svg.dragging .va-handle{cursor:grabbing}
+.calib-note{font-size:.74rem;color:var(--mid);margin-top:6px;display:grid;gap:4px}
+.calib-note b{color:var(--ink);margin-right:4px}
+.calib-note button,.minute-note button{border:0;background:transparent;padding:0 2px;color:var(--ink);font-weight:700;font-size:.74rem;text-decoration:underline;text-underline-offset:3px}
+.calib-note .prompt{display:block;padding:8px 10px;border-left:2px solid var(--accent);background:var(--panel);color:var(--ink)}
+.minute-note{font-size:.68rem;color:var(--mid);margin-top:6px;line-height:1.5}
+.wp-me{margin-top:12px;border:1px solid var(--line);border-left:3px solid var(--accent);background:var(--panel-2);padding:12px 14px}
+.wp-me-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.wp-me-head b{font-size:.8rem}
+.wp-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.wp-chip{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-dark);background:var(--paper);padding:7px 10px;font-size:.76rem;color:var(--ink);line-height:1.45}
+.wp-chip button{border:0;border-left:1px solid var(--line);background:transparent;color:var(--mid);padding:0 0 0 8px;font-size:.72rem;font-weight:700;text-decoration:underline;text-underline-offset:3px}
+.wp-chip button:hover{color:var(--ink)}
+.wp-toggle{border:1px solid var(--ink);background:transparent;color:var(--ink);padding:7px 12px;font-size:.72rem;font-weight:700}
+.wp-toggle[aria-pressed=true]{background:var(--ink);color:var(--on-ink)}
+.wp-toggle:disabled{border-color:var(--line-dark);color:var(--muted);cursor:not-allowed}
+.wp-note{font-size:.74rem;color:var(--mid);margin-top:8px}
+.wp-demo-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line-dark)}
+.wp-demo-row .wp-note{margin-top:0}
+.wp-badge{display:inline-block;margin-left:6px;border:1px solid var(--accent);color:var(--accent-strong);padding:1px 6px;font-size:.6rem;font-weight:700;letter-spacing:.04em;vertical-align:middle}
+html[data-theme=dark] .wp-badge{color:var(--accent)}
+.fb-sub{align-items:center}
+.fb-sub .fb-hint{font-size:.7rem;margin-right:4px}
+.my-card.wp-model{grid-column:1 / -1;background:var(--paper)}
+.wp-model-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.wp-model-head p{max-width:560px}
+.wp-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px;margin-top:12px}
+.wp-card{border:1px solid var(--line);background:var(--panel-2);padding:12px;display:flex;flex-direction:column;gap:6px;min-width:0}
+.wp-card-top{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.wp-card-top b{font-size:.8rem;letter-spacing:-.01em}
+.wp-tag{font-size:.58rem;font-weight:700;letter-spacing:.06em;border:1px solid var(--line-dark);color:var(--mid);padding:1px 6px}
+.wp-tag.changed{border-color:var(--accent);color:var(--accent-strong)}
+html[data-theme=dark] .wp-tag.changed{color:var(--accent)}
+.my-card .wp-card p{font-size:.76rem;color:var(--ink);line-height:1.6}
+.wp-card-foot{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:auto;font-size:.66rem;color:var(--muted)}
+.wp-dots{display:inline-flex;gap:3px}
+.wp-dots i{display:block;width:6px;height:6px;border-radius:50%;background:var(--line-dark)}
+.wp-dots i.on{background:var(--ink)}
+.wp-spark{display:block;width:64px;height:16px}
+.wp-card-foot .mini-btn{margin-left:auto;padding:4px 8px}
+
 /* ── 반응형 ── */
 @media(max-width:900px){
   .topbar{padding:13px 16px}
@@ -589,13 +639,13 @@ html[data-theme=dark] .time-out{color:var(--accent)}
           <div class="note-card">
             <h3>지금 마음</h3><p class="desc">한 문장이면 충분해요.</p>
             <div class="nl-wrap"><textarea id="nlText" rows="3" maxlength="600" aria-label="지금 상태와 원하는 상태를 자유롭게 설명" placeholder="예: 마음이 조급해요. 차분해지고 싶어요."></textarea><button id="nlApply" type="button">AI로<br/>읽기</button></div>
-            <p class="plane-note" id="nlStatus" role="status"></p><div id="nlReadBox"></div><div class="linear-preview" id="nlPreview"></div>
+            <p class="plane-note" id="nlStatus" role="status"></p><div id="nlReadBox"></div><div class="linear-preview" id="nlPreview"></div><div class="calib-note" id="calibNote" role="status" hidden></div>
             <details class="manual" id="manualBox"><summary>직접 골라볼게요</summary><div class="manual-body"><div class="va-input" id="vaWrap" aria-describedby="vaEcho"></div><p class="plane-note" id="vaEcho"><b>지금</b> → <b>목표</b> 순서로 찍어주세요.</p><p class="plane-note" id="chipHint"></p><div class="chips" id="chipRow" role="group" aria-label="상태 단어 선택"></div></div></details>
           </div>
           <div class="note-card">
             <h3>설정</h3>
             <div class="setting-stack">
-              <div class="setting-card"><label for="listenTime">시간 · <span class="time-out"><b id="listenTimeOut">30</b>분</span></label><input type="range" class="time-slider" id="listenTime" min="5" max="90" step="5" value="30" aria-describedby="listenTimeOut" aria-label="감상 시간(분)"/><div class="time-labels"><span>5분</span><span>90분</span></div></div>
+              <div class="setting-card"><label for="listenTime">시간 · <span class="time-out"><b id="listenTimeOut">30</b>분</span></label><input type="range" class="time-slider" id="listenTime" min="5" max="90" step="5" value="30" aria-describedby="listenTimeOut" aria-label="감상 시간(분)"/><div class="time-labels"><span>5분</span><span>90분</span></div><p class="minute-note" id="minuteNote" role="status" hidden></p></div>
               <details class="manual pace-box" id="paceBox"><summary>감정 여정 · 자세히 보기</summary><div class="manual-body"><div class="genre-chips pace-chips" id="paceChips" role="group" aria-label="감정 여정 방식 선택"><button type="button" data-pace="fast" aria-pressed="false">빠르게 목표에 도달하고 싶어요</button><button type="button" data-pace="slow" aria-pressed="false">천천히 감정 변화를 갖고 싶어요</button></div><p class="plane-note" id="paceNote">선택하지 않으면 감상 시간에 맞춰 알아서 조절해요. 같은 버튼을 다시 누르면 해제됩니다.</p></div></details>
               <div class="setting-card"><label>장르</label><div class="genre-chips" id="genreChips" role="group" aria-label="추천 장르 선택"></div></div>
               <div class="setting-card"><label for="lyric">가사</label><select id="lyric"><option value="no_preference" selected>상관없어요</option><option value="instrumental_only">가사 없는 곡</option><option value="prefer_vocal">가사 있는 곡</option></select></div>
@@ -620,14 +670,15 @@ html[data-theme=dark] .time-out{color:var(--accent)}
         <div class="section-head"><div><span class="room-tag">MY ROOM</span><h2 style="margin-top:8px">내 방</h2></div><button id="closeMyAzt" class="mini-btn" type="button">홈으로</button></div>
         <!-- 비로그인: 벽·설정 대신 로그인 안내만 -->
         <div id="myGuest" class="my-guest" hidden>
-          <p>로그인하면 나만의 벽이 생겨요.<br/>붙인 곡과 메모, 설정이 계정에 저장됩니다.</p>
+          <p>로그인하면 나만의 벽이 생겨요.<br/>붙인 곡과 메모, 설정이 계정에 저장됩니다.<br/>로그인하면 들을수록 나에게 맞춰져요.</p>
           <button class="primary" type="button" id="myGuestLogin">로그인</button>
         </div>
         <div id="myOwn" class="my-grid">
           <div class="my-card wall-card"><h3>나의 벽</h3><p>좋아하는 곡과 가수가 메모지로 붙어요. 떼고 붙이면 그게 곧 내 취향이에요.</p><div id="myPlaylist"></div></div>
+          <div class="my-card wp-model" id="wpModelCard"><div class="wp-model-head"><div><h3>내 취향 모델</h3><p>들을수록 나에게 맞춰지는 값이에요. 모든 문장은 내 기록에서 센 횟수로 말해요. 항목마다 기본값으로 되돌릴 수 있어요.</p></div><button type="button" id="wpOptBtn" class="mini-btn" aria-pressed="false">개인화 끄기</button></div><div id="wpModelBody"></div></div>
           <div class="my-card"><h3>설정</h3><div class="my-edit"><div class="my-edit-row"><label for="myDisplayName">이름</label><input id="myDisplayName" type="text" maxlength="40" placeholder="내 이름"></div><div class="my-edit-row"><label for="myRecommendMinutes">시간 · <span class="time-out"><b id="myRecommendMinutesOut">30</b>분</span></label><input type="range" class="time-slider" id="myRecommendMinutes" min="5" max="90" step="5" value="30" aria-label="기본 감상 시간(분)"/></div><div class="my-edit-row"><label>화면</label><div class="theme-toggle" role="group" aria-label="화면 테마"><button type="button" id="themeLight" aria-pressed="true">라이트</button><button type="button" id="themeDark" aria-pressed="false">다크</button></div></div><div class="my-edit-row"><label for="myLyric">가사</label><select id="myLyric"><option value="no_preference">상관없어요</option><option value="instrumental_only">가사 없는 곡</option><option value="prefer_vocal">가사 있는 곡</option></select></div><div><label style="display:block;font-size:.64rem;letter-spacing:.1em;text-transform:uppercase;font-weight:600;color:var(--muted);margin-bottom:6px">장르</label><div id="myGenreEdit" class="my-genre-edit"></div></div><button id="saveMyPrefs" class="my-save" type="button">저장</button><p id="myEditStatus" class="plane-note"></p></div></div>
           <div class="my-card"><h3>기록</h3><p id="myFeedbackSummary"></p><div id="myHistory" style="margin-top:8px"><p>아직 기록이 없어요.</p></div></div>
-          <div class="my-card"><h3>계정</h3><button id="deleteMyData" class="mini-btn danger-btn" type="button">데이터·계정 삭제</button><p class="privacy-note">삭제는 되돌릴 수 없어요. AZT는 의학적 진단·치료를 제공하지 않습니다.</p></div>
+          <div class="my-card"><h3>계정</h3><button id="deleteMyData" class="mini-btn danger-btn" type="button">데이터·계정 삭제</button><p class="privacy-note">삭제는 되돌릴 수 없어요. 추천·재생 기록(추천 로그·이벤트 로그)은 보안 규칙상 앱에서 지울 수 없어 남아요. AZT는 의학적 진단·치료를 제공하지 않습니다.</p></div>
         </div>
       </div>
     </div>
@@ -848,28 +899,405 @@ function deriveContextLoad() {
   return null;
 }
 
+/* [web-personal] 로그인 직후 모델을 만들려면 엔진·규칙이 추천 전에 필요하다 — 여러 곳에서 동시에 불러도 한 번만 받는다 */
+let ENGINE_LOADING = null;
 async function loadEngine() {
   if (AZT_ENGINE && AZT_RULES) return;
-  if (globalThis.__AZT_ENGINE__ && globalThis.__AZT_RULES__) {
-    AZT_ENGINE = globalThis.__AZT_ENGINE__;      // 단일 파일 빌드
-    AZT_RULES  = globalThis.__AZT_RULES__;
-  } else {
-    /* ?v= : 이미 설치된 옛 서비스워커(azt-v6)는 이 두 파일을 캐시에서 먼저 돌려준다.
-       주소를 바꿔 그 캐시를 비켜 간다. 새 서비스워커(v7)부터는 network-first 라 값은 안 올려도 된다. */
-    AZT_ENGINE = await import("./engine/engine.js?v=254");
-    const res = await fetch("./rules/rules.compiled.json?v=254", { cache: "no-cache" });
-    if (!res.ok) throw new Error("rules.compiled.json HTTP " + res.status);
-    AZT_RULES = await res.json();
-  }
-  ALGO_VERSION = AZT_RULES.rules_version + "+" + AZT_RULES.rules_hash
-               + (AZT_ENGINE.ENGINE_VERSION ? "+e" + AZT_ENGINE.ENGINE_VERSION : "");
+  if (!ENGINE_LOADING) ENGINE_LOADING = (async () => {
+    if (globalThis.__AZT_ENGINE__ && globalThis.__AZT_RULES__) {
+      AZT_ENGINE = globalThis.__AZT_ENGINE__;      // 단일 파일 빌드
+      AZT_RULES  = globalThis.__AZT_RULES__;
+    } else {
+      /* ?v= : 이미 설치된 옛 서비스워커는 이 파일들을 캐시에서 먼저 돌려준다. 주소를 바꿔 그 캐시를 비켜 간다.
+         [web-personal] 엔진 2.6.0-wp · 규칙 v2.5.0-wp · personal.js 를 한 번에 올리므로 셋 다 ?v=300 으로 맞춘다. */
+      const eng = await import("./engine/engine.js?v=300");
+      const res = await fetch("./rules/rules.compiled.json?v=300", { cache: "no-cache" });
+      if (!res.ok) throw new Error("rules.compiled.json HTTP " + res.status);
+      AZT_RULES = await res.json();
+      AZT_ENGINE = eng;
+    }
+    ALGO_VERSION = AZT_RULES.rules_version + "+" + AZT_RULES.rules_hash
+                 + (AZT_ENGINE.ENGINE_VERSION ? "+e" + AZT_ENGINE.ENGINE_VERSION : "");
 
-  /* 시간별 ISO 전환점은 2026-09-17 에 rules.compiled.json(iso.transition_point)로 이관했습니다.
-     여기서 규칙을 덮어쓰지 않습니다 — 앱에만 있는 값은 검증 도구가 읽지 못합니다.
-     값이 같으므로 추천은 그대로이고, 로그의 algorithm_version 에서 "+tp-override" 꼬리표만 사라집니다. */
+    /* 시간별 ISO 전환점은 2026-09-17 에 rules.compiled.json(iso.transition_point)로 이관했습니다.
+       여기서 규칙을 덮어쓰지 않습니다 — 앱에만 있는 값은 검증 도구가 읽지 못합니다.
+       값이 같으므로 추천은 그대로이고, 로그의 algorithm_version 에서 "+tp-override" 꼬리표만 사라집니다. */
 
-  console.info("[AZT] 엔진 로드", ALGO_VERSION);
+    console.info("[AZT] 엔진 로드", ALGO_VERSION);
+  })().catch(e => { ENGINE_LOADING = null; throw e; });
+  return ENGINE_LOADING;
 }
+
+/* =====================================================================
+   web-personal 개인화 배선 (2026-09-27 · 명세 docs/personalization_spec_20260927.md)
+   ---------------------------------------------------------------------
+   · 계산은 engine/personal.js(로그 정규화 → 개인 모델 → 정책 → 로그 문서)와 engine/engine.js(추천)가 한다.
+     이 파일은 사실을 모아 넘기고(RawFacts), 결과를 그리고, Firestore 에는 fsWrite 한 곳으로만 쓴다.
+   · 새 숫자는 여기서 만들지 않는다 — 전부 rules.personalization 에서 읽는다(I8).
+   · 익명 사용자 · 개인화 끔(규칙 스위치 · ?personal=0 · 내 방 "개인화 끄기")은 inputs.personal 없이
+     엔진 2.5.1 과 같은 경로로 간다(I0·I10·I11). 버그 수정(B-항목)만 모두에게 적용된다.
+   ===================================================================== */
+const WP_URL = new URLSearchParams(location.search);
+/* 실행 설정: env.js(배포 prod 값) 또는 server.mjs 의 /env.js(로컬, 쓰기 기본 끔). 데모·픽스처 주소는 쓰기를 강제로 끈다. */
+const WP_ENV = (() => {
+  const e = Object.assign({ app: "web-personal", env: "prod", writes: true, sw: true, personal: true, debug: false }, window.AZT_ENV || {});
+  if (WP_URL.get("demo")) { e.env = "demo"; e.writes = false; }      // §4.12.4 데모: 모든 Firestore 쓰기 무효
+  if (WP_URL.get("fixture")) e.writes = false;                        // §11 H2 개발 픽스처 페이지
+  if (WP_URL.get("debug") === "1" && e.env !== "prod") e.debug = true;
+  window.AZT_ENV = e;
+  return e;
+})();
+/* I11 주소 스위치: ?personal=0 이면 끔, ?personal=1 이면 배포 설정(personal:false — 단계 공개)과 무관하게 켬 */
+const WP_URL_PERSONAL = WP_URL.get("personal") === "0" ? false : WP_URL.get("personal") === "1" ? true : null;
+
+/* 저장 모양의 상한(명세 §7.4·§7.5). 추천 숫자가 아니라 저장 형식의 한도라 여기 둔다. */
+const WP_LIMITS = { rec_bytes: 200 * 1024, event_bytes: 10 * 1024, history_bytes: 5 * 1024, wp_bytes: 64 * 1024,
+                    dislike_reasons: 500, state_at: 1000 };
+const DAY_MS = 86400000;
+
+let PERSONAL = null;          // engine/personal.js — 불러오지 못하면 null → 모두 I0 경로
+let PERSONAL_LOADING = null;
+let CATALOG_INDEX = null;     // §6.2 — 전체 카탈로그로 한 번 만든다
+let MODEL = null;             // 개인 모델(§6.4). 저장하지 않고 매번 로그에서 다시 만든다
+let RAW_STATE = null;         // 로그인 때 한 번 읽은 기록 { uid, recommendations, events, listening_history }
+let WP_DOC = null;            // users/{uid}.wp_personal_v1 의 이 탭 사본(§7.4, 시각은 ms 숫자)
+let DEMO = null, DEMO_RAW = null;   // ?demo=<persona> — 합성 RawFacts 를 메모리에만
+let SESSION_LOG = { recommendations: [], events: [] };   // 이 탭이 쓴 것(쓰기 여부와 무관, §2.3)
+let GLOBAL_DIGEST = { src: null, digest: null };
+let LAST_WP = null;           // 직전 추천의 개인화 보기 { mode, chips, fallback, refSeq, changed, changedN, gates }
+let EVENT_SEQ = 0;            // client_id 순번
+
+async function loadPersonal() {
+  if (PERSONAL) return PERSONAL;
+  if (!PERSONAL_LOADING) PERSONAL_LOADING = import("./engine/personal.js?v=300")
+    .then(m => { PERSONAL = m; console.info("[AZT] personal.js 로드", m.PERSONAL_VERSION || "?"); return m; })
+    .catch(e => { console.warn("[AZT] personal.js 를 불러오지 못했어요 — 개인화 없이(I0) 동작합니다", e); return null; });
+  return PERSONAL_LOADING;
+}
+
+/* ── I11 끄는 스위치 3개(+배포 설정). 하나라도 꺼지면 inputs.personal 없이 간다 ── */
+function personalSwitchesOn() {
+  const cfg = AZT_RULES && AZT_RULES.personalization;
+  if (!PERSONAL || !cfg || cfg.enabled !== true) return false;          // 규칙 스위치(+모듈 로드 실패)
+  if (WP_URL_PERSONAL === false) return false;                          // ?personal=0
+  if (WP_URL_PERSONAL !== true && WP_ENV.personal === false) return false;
+  if (WP_DOC && WP_DOC.opt_out === true) return false;                  // 사용자 "개인화 끄기"
+  return true;
+}
+/* 회원 전용(I10, 9/17 결정). 데모 프로필은 합성 회원으로 본다(쓰기는 전부 꺼져 있다). */
+function personalUser() { return !!DEMO || isMember(); }
+function personalActive() { return personalUser() && personalSwitchesOn() && !!CATALOG_INDEX; }
+function currentUid() {
+  if (DEMO) return DEMO.uid;
+  const u = firebase.auth().currentUser;
+  return u ? u.uid : null;
+}
+const tsMs = (ts) => ts && typeof ts.toMillis === "function" ? ts.toMillis() : (typeof ts === "number" && isFinite(ts) ? ts : null);
+const PR = () => (AZT_RULES && AZT_RULES.personalization) || {};
+
+/* ── §7.5 쓰기 보호: 모든 Firestore 쓰기가 여기를 지난다(계정 삭제 batch 만 예외) ──────────────
+   kind: rec(추천 문서, 동기 ID) · event(context_events) · user_patch(users merge, 회원만) · stats(song_stats 7키) · history(listeningHistory, 회원만)
+   AZT_ENV.writes === false(로컬 기본·데모·픽스처)면 Firestore 를 부르지 않고 console.info + SESSION_LOG 에만 남긴다. */
+const FS_ALLOWED = {
+  rec: ["user_id", "is_anonymous", "created_at", "algorithm_version", "input", "sequence"],
+  event: ["user_id", "rec_id", "type", "payload", "created_at"],
+  user_patch: ["likedSongs", "dislikedSongs", "playlists", "playlistNotes", "wallMeta", "wallArtists", "favorite_tracks",
+               "preferred_artists", "display_name", "recommend_minutes", "lyric_preference_default", "preferred_genres",
+               "email", "taste_vector",                              // 온보딩 필드
+               "wp_personal_v1", "updated_at", "created_at", "skipped"],
+  stats: ["likes", "dislikes", "completes", "clicks", "playlistAdds", "sum_change", "n_change"],
+  history: ["songId", "listenedSeconds", "durationSeconds", "completionRate", "skipped", "seekEvents", "liked", "disliked",
+            "addedToPlaylist", "reason", "at", "created_at", "app", "env"],
+};
+const WP_WRITES = { calls: 0, sent: 0, off: 0, refused: 0, failed: 0 };   // 개발 페이지 카운터(§11 I)
+function isFieldValue(v) { try { return v instanceof firebase.firestore.FieldValue; } catch (e) { return false; } }
+function fsBytes(obj) {
+  try { return new TextEncoder().encode(JSON.stringify(obj, (k, v) => (v && typeof v === "object" && isFieldValue(v)) ? "§fv" : v)).length; }
+  catch (e) { return Infinity; }
+}
+function sessionLogPush(kind, id, doc) {
+  const now = Date.now();
+  const { created_at, ...rest } = doc;
+  let copy;
+  try { copy = JSON.parse(JSON.stringify(rest)); } catch (e) { return; }
+  if (kind === "rec") SESSION_LOG.recommendations.unshift({ ...copy, id, created_at: now, created_at_ms: now });
+  else SESSION_LOG.events.unshift({ id: (copy.payload && copy.payload.client_id) || ("local|" + now + "|" + (++EVENT_SEQ)),
+                                    user_id: copy.user_id, rec_id: copy.rec_id ?? null, type: copy.type, payload: copy.payload || {},
+                                    created_at: now, created_at_ms: now });
+}
+async function fsWrite(kind, target, data, opts = {}) {
+  WP_WRITES.calls++;
+  const allowed = FS_ALLOWED[kind];
+  if (!allowed) { WP_WRITES.refused++; console.warn("[fsWrite] 모르는 종류", kind); return false; }
+  const clean = {};
+  for (const [k, v] of Object.entries(data || {})) {
+    if (allowed.includes(k)) clean[k] = v;
+    else console.warn("[fsWrite] 허용 목록에 없는 키를 뺐어요:", kind, k);
+  }
+  if (kind === "user_patch" || kind === "history") {                   // 회원만(B19·B24)
+    const u = firebase.auth().currentUser;
+    if (!isMember() || !u || u.uid !== target) { WP_WRITES.refused++; return false; }
+  }
+  const limit = { rec: WP_LIMITS.rec_bytes, event: WP_LIMITS.event_bytes, history: WP_LIMITS.history_bytes }[kind];
+  if (limit && fsBytes(clean) > limit) { WP_WRITES.refused++; console.warn("[fsWrite] 크기 상한을 넘어 쓰지 않아요:", kind, fsBytes(clean)); return false; }
+  if (kind === "user_patch" && clean.wp_personal_v1 && fsBytes(clean.wp_personal_v1) > WP_LIMITS.wp_bytes) {
+    WP_WRITES.refused++; console.warn("[fsWrite] wp_personal_v1 이 64KB 를 넘어요 — 쓰지 않아요"); return false;
+  }
+  /* 로컬·데모·디버그에서는 이벤트 모양을 personal.validateEvent 로 한 번 더 본다(쓰기는 막지 않고 알리기만) */
+  if (kind === "event" && (WP_ENV.writes === false || WP_ENV.debug) && PERSONAL && typeof PERSONAL.validateEvent === "function") {
+    try { const v = PERSONAL.validateEvent(clean.type, clean.payload); if (v && v.ok === false) console.warn("[fsWrite] 이벤트 모양 확인:", clean.type, v.errors); } catch (e) { /* 무시 */ }
+  }
+  /* 이 탭이 쓴 추천·이벤트는 쓰기 여부와 무관하게 메모리에 쌓는다 — 서버 시각이 확정되기 전에도 모델이 자기 기록을 본다 */
+  if (kind === "rec") sessionLogPush("rec", target, clean);
+  else if (kind === "event") sessionLogPush("event", null, clean);
+  if (WP_ENV.writes === false) {
+    WP_WRITES.off++;
+    console.info("[AZT][쓰기 꺼짐]", kind, target || "", kind === "event" ? clean.type : "");
+    return false;
+  }
+  try {
+    const db = firebase.firestore();
+    if (kind === "rec") await db.collection("recommendations").doc(target).set(clean);
+    else if (kind === "event") await db.collection("context_events").add(clean);
+    else if (kind === "user_patch") await db.collection("users").doc(target).set(clean, opts.mergeFields ? { mergeFields: opts.mergeFields } : { merge: true });
+    else if (kind === "stats") await db.collection("song_stats").doc(target).set(clean, { merge: true });
+    else if (kind === "history") await db.collection("users").doc(target).collection("listeningHistory").add(clean);
+    WP_WRITES.sent++;
+    return true;
+  } catch (e) {
+    WP_WRITES.failed++;
+    console.warn("[fsWrite] 쓰기 실패", kind, e);
+    if (opts.throwOnError) throw e;
+    return false;
+  }
+}
+const serverTs = () => firebase.firestore.FieldValue.serverTimestamp();
+
+/* ── users/{uid}.wp_personal_v1 (§7.4) — 유일한 새 영속 상태. 부분 갱신은 merge, 상한을 넘겨 줄였으면 필드째 교체 ── */
+function emptyWpDoc() {
+  return { schema: 1, app: "web-personal", opt_out: false, resets: {}, dislike_reasons: {}, state_at: {}, gate_off_until: {}, calib_prompt_seen: {} };
+}
+function trimWpDoc(d) {
+  let cut = false;
+  const keepNewest = (map, n, at) => {
+    const ks = Object.keys(map || {});
+    if (ks.length <= n) return;
+    ks.sort((a, b) => at(map[a]) - at(map[b]));
+    for (const k of ks.slice(0, ks.length - n)) delete map[k];
+    cut = true;
+  };
+  keepNewest(d.dislike_reasons, WP_LIMITS.dislike_reasons, v => Number(v && v.at_ms) || 0);
+  keepNewest(d.state_at, WP_LIMITS.state_at, v => Number(v) || 0);
+  /* 그래도 64KB 를 넘으면 오래된 항목부터(상태 시각 → 싫어요 이유) 줄인다 */
+  while (fsBytes(d) > WP_LIMITS.wp_bytes) {
+    const big = Object.keys(d.state_at || {}).length ? "state_at" : Object.keys(d.dislike_reasons || {}).length ? "dislike_reasons" : null;
+    if (!big) break;
+    const map = d[big], at = big === "state_at" ? (v => Number(v) || 0) : (v => Number(v && v.at_ms) || 0);
+    const ks = Object.keys(map).sort((a, b) => at(map[a]) - at(map[b]));
+    for (const k of ks.slice(0, Math.max(1, Math.ceil(ks.length / 10)))) delete map[k];
+    cut = true;
+  }
+  return cut;
+}
+async function patchWpDoc(partial) {
+  if (!personalUser()) return false;
+  const doc = WP_DOC ? JSON.parse(JSON.stringify(WP_DOC)) : emptyWpDoc();
+  for (const [k, v] of Object.entries(partial)) {
+    if (v && typeof v === "object" && !Array.isArray(v) && doc[k] && typeof doc[k] === "object") doc[k] = { ...doc[k], ...v };
+    else doc[k] = v;
+  }
+  const trimmed = trimWpDoc(doc);
+  WP_DOC = doc;
+  if (USER_PROFILE) USER_PROFILE.wp_personal_v1 = WP_DOC;
+  if (DEMO || !isMember()) return false;                                // 데모: 메모리에만
+  const uid = currentUid();
+  if (trimmed) return fsWrite("user_patch", uid, { wp_personal_v1: { ...WP_DOC, updated_at: serverTs() }, updated_at: serverTs() },
+                              { mergeFields: ["wp_personal_v1", "updated_at"] });
+  return fsWrite("user_patch", uid, { wp_personal_v1: { schema: 1, app: "web-personal", ...partial, updated_at: serverTs() }, updated_at: serverTs() });
+}
+
+/* ── §6.2 CatalogIndex — 전체 카탈로그(장르·가사로 거르기 전)로 한 번. 도구(catalog.mjs)와 같은 digest 식 ── */
+function fnvHex(text) {
+  const f = AZT_ENGINE && AZT_ENGINE.fnv1a32;
+  return f ? (f(String(text)) >>> 0).toString(16).padStart(8, "0") : null;
+}
+function buildCatalogIndex() {
+  if (CATALOG_INDEX) return CATALOG_INDEX;
+  if (!SONGS_READY || !SONGS.length || !AZT_ENGINE || !AZT_RULES) return null;
+  const contracts = SONGS.map(contractWithBins);
+  const specs = (PR().taste && PR().taste.extra_features) || [];
+  let binP = null;
+  try { if (specs.length && AZT_ENGINE.makeExtraBinner) binP = AZT_ENGINE.makeExtraBinner(contracts, specs); }
+  catch (e) { console.warn("[AZT] 개인 추가 특징 묶음 실패 — 없이 진행", e); }
+  const byId = new Map();
+  for (const c of contracts) { c.feature_bins_p = binP ? binP(c) : {}; byId.set(c.song_id, c); }
+  let coords = new Map();
+  try { if (AZT_ENGINE.workingCoords) coords = AZT_ENGINE.workingCoords(contracts, AZT_RULES); }
+  catch (e) { console.warn("[AZT] workingCoords 실패", e); }
+  CATALOG_INDEX = { n: contracts.length, digest: fnvHex(contracts.map(c => c.song_id + ":" + c.V + ":" + c.A).sort().join("\n")), byId, coords };
+  return CATALOG_INDEX;
+}
+function globalStatsForEngine() {
+  const global_stats = {};
+  for (const id of Object.keys(GLOBAL_FB || {})) global_stats[id] = splitSignal(GLOBAL_FB[id], 10);
+  return global_stats;
+}
+function globalStatsDigest() {
+  if (GLOBAL_DIGEST.src !== GLOBAL_FB) {
+    const ks = Object.keys(GLOBAL_FB || {}).sort();
+    GLOBAL_DIGEST = { src: GLOBAL_FB, digest: ks.length ? fnvHex(ks.map(k => k + ":" + GLOBAL_FB[k]).join("\n")) : null };
+  }
+  return GLOBAL_DIGEST.digest;
+}
+
+/* ── §2.3 로그인 때 한 번 읽기: 추천 100 · 이벤트 400×3쪽 · 청취 기록 300(선택). 옛 가중합·2.5.0 청취표(개인화 끔일 때)도 같은 읽기로 채운다 ── */
+async function loadPersonalData(uid) {
+  resetPersonalFeedback();
+  try { await loadEngine(); } catch (e) { /* 규칙을 못 읽으면 옛 값으로 읽는다 */ }
+  const L = PR().load || { recs: 100, event_pages: 1, event_page_size: 400, history_rows: 200 };
+  const db = firebase.firestore();
+  const state = { uid, recommendations: [], events: [], listening_history: null, loaded: false };
+  /* R6: 최신순 정렬로 '최근 N건'을 보장. where+orderBy 조합은 Firestore 복합 색인이 필요하다 —
+     색인이 없으면 정렬 없이 한 쪽만 읽어 기능이 멈추지 않게 한다(기존 색인 user_id ==, created_at desc 재사용). */
+  const recent = (col) => db.collection(col).where("user_id", "==", uid).orderBy("created_at", "desc");
+  const firstPage = async (col, lim) => {
+    try { return { snap: await recent(col).limit(lim).get(), ordered: true }; }
+    catch (e) {
+      if (e.code === "failed-precondition") {
+        console.warn("[R6] " + col + " 복합 색인 필요 — 이 오류 메시지의 링크로 색인을 만들면 최근 " + lim + "건이 보장됩니다. 임시로 정렬 없이 로드합니다.", e.message);
+        return { snap: await db.collection(col).where("user_id", "==", uid).limit(lim).get(), ordered: false };
+      }
+      throw e;
+    }
+  };
+  const recRow = d => { const x = d.data(); const ms = tsMs(x.created_at); return { ...x, id: d.id, created_at: ms, created_at_ms: ms }; };
+  const evRow = d => { const x = d.data(); const ms = tsMs(x.created_at);
+    return { id: d.id, user_id: x.user_id, rec_id: x.rec_id ?? null, type: x.type, payload: x.payload || {}, created_at: ms, created_at_ms: ms }; };
+  try {
+    const r = await firstPage("recommendations", Number(L.recs));
+    r.snap.forEach(d => state.recommendations.push(recRow(d)));
+    const e1 = await firstPage("context_events", Number(L.event_page_size));
+    e1.snap.forEach(d => state.events.push(evRow(d)));
+    let last = e1.snap.docs[e1.snap.docs.length - 1], size = e1.snap.size;
+    for (let p = 1; e1.ordered && p < Number(L.event_pages) && size >= Number(L.event_page_size) && last; p++) {
+      const snap = await recent("context_events").startAfter(last).limit(Number(L.event_page_size)).get();   // B16: 400건 창 너머까지
+      snap.forEach(d => state.events.push(evRow(d)));
+      size = snap.size; last = snap.docs[snap.docs.length - 1];
+    }
+    state.loaded = true;
+  } catch (e) {
+    console.warn("개인 기록 로드 실패(규칙에 본인 문서 읽기 허용 필요):", e);
+  }
+  try {   // 선택 — 보안규칙이 막으면 조용히 건너뛴다
+    const snap = await db.collection("users").doc(uid).collection("listeningHistory").orderBy("created_at", "desc").limit(Number(L.history_rows)).get();
+    state.listening_history = [];
+    snap.forEach(d => { const x = d.data(); state.listening_history.push({ ...x, created_at: tsMs(x.created_at), created_at_ms: tsMs(x.created_at) }); });
+  } catch (e) { state.listening_history = null; }
+  if (currentUid() !== uid) return;                                      // 읽는 사이 다른 계정으로 바뀜
+  feedLegacyPersonal(state, Number(L.event_page_size));
+  RAW_STATE = state;
+  scheduleModelBuild();
+}
+/* 옛 경로(개인화 끔 · combine=weighted)의 누적값 — 76e8bdf 의 loadPersonalFeedback·loadHeardHistory 와 같은 규칙(이벤트 첫 쪽만) */
+function feedLegacyPersonal(state, firstPageSize) {
+  const recSongs = {};
+  for (const r of state.recommendations) recSongs[r.id] = (r.sequence || []).filter(x => x.role === "path").map(x => x.song_id);
+  const daysOf = ms => ms ? Math.max(0, (Date.now() - ms) / DAY_MS) : 0;
+  state.events.slice(0, firstPageSize).forEach(e => {
+    const days = daysOf(e.created_at_ms);
+    const sid = e.payload && e.payload.song_id;
+    if (e.type === "track_complete" && sid) addPersonalSignal(sid, 0.3, days);
+    else if (e.type === "spotify_click" && sid) addPersonalSignal(sid, 0.15, days);
+    else if ((e.type === "like" || e.type === "playlist_add" || e.type === "dislike") && sid) {
+      STATE_DAYS[sid] = (sid in STATE_DAYS) ? Math.min(STATE_DAYS[sid], days) : days;   // 가장 최근 것
+    }
+    else if (e.type === "dislike_reason" && sid && e.payload.reason) {
+      if (!(sid in DISLIKE_REASONS)) DISLIKE_REASONS[sid] = e.payload.reason;          // 최신순 조회 → 처음 만난 것이 최신
+    }
+    else if (e.type === "post_change" && e.rec_id && recSongs[e.rec_id]) {
+      const c = (e.payload && typeof e.payload.change === "number") ? e.payload.change : 0;  // -2 ~ +2
+      recSongs[e.rec_id].forEach(id => addPersonalSignal(id, c * 0.35, days));
+    }
+  });
+  /* B16: 400건 창 밖으로 밀려난 싫어요 이유는 wp_personal_v1.dislike_reasons 에 남아 있다 */
+  for (const [sid, r] of Object.entries((WP_DOC && WP_DOC.dislike_reasons) || {})) if (!(sid in DISLIKE_REASONS) && r && r.reason) DISLIKE_REASONS[sid] = r.reason;
+  for (const r of state.listening_history || [])
+    if (Number(r.listenedSeconds) >= HEARD_MIN_SECONDS || r.skipped) noteHeard(r.songId, daysOf(r.created_at_ms), r.completionRate, r.skipped);
+}
+
+/* ── §6.1 RawFacts — personal.js 에 넘기는 사실. 이 탭이 쓴 것(SESSION_LOG)도 같은 모양으로 합친다 ── */
+function pinnedArtistsResolved() {
+  return preferredArtistNames().map(n => { const e = findArtist(n); return e ? e.name : n; });
+}
+function assembleRaw(as_of_ms) {
+  const uid = currentUid();
+  const src = DEMO ? DEMO_RAW : RAW_STATE;
+  const p = USER_PROFILE || {};
+  const mine = x => !x.user_id || x.user_id === uid;
+  const demoLog = (DEMO && DEMO_RAW && DEMO_RAW.session_log) || { recommendations: [], events: [] };
+  return {
+    schema: "wp-raw/1", uid, as_of_ms,
+    env: { app: "web-personal", env: WP_ENV.env },
+    profile: {
+      likedSongs: [...LIKED_SONGS], dislikedSongs: [...DISLIKED_SONGS], playlists: [...PLAYLIST_SONGS],
+      favorite_tracks: Array.isArray(p.favorite_tracks) ? p.favorite_tracks : [],
+      wallMeta: WALL_META, pinned_artists_resolved: pinnedArtistsResolved(),
+      recommend_minutes: p.recommend_minutes != null ? Number(p.recommend_minutes) || null : null,
+      wp_personal_v1: WP_DOC ? JSON.parse(JSON.stringify(WP_DOC)) : null,
+    },
+    recommendations: (src && src.recommendations) || [],
+    events: (src && src.events) || [],
+    listening_history: (src && src.listening_history) || null,
+    session_log: { recommendations: [...SESSION_LOG.recommendations.filter(mine), ...(demoLog.recommendations || [])],
+                   events: [...SESSION_LOG.events.filter(mine), ...(demoLog.events || [])] },
+    vocab: { mood_chips: MOOD_CHIPS, goal_chips: GOAL_CHIPS, nl_extra_emo: NL_EXTRA_EMO, nl_extra_goal: NL_EXTRA_GOAL,
+             nl_k: Object.fromEntries(Object.entries(NL_K).map(([k, v]) => [String(k), v])) },
+    context: { global_stats_digest: globalStatsDigest() },
+  };
+}
+
+/* ── §2.3 모델 빌드: 로그인 직후 한 번 + 세션이 닫힐 때마다(「기록하고 나가기」·다음 추천·pagehide) 메모리에서 다시 ── */
+let MODEL_INFO = { ms: null, why: null, at: null };
+function scheduleModelBuild() {
+  if (!personalUser()) { MODEL = null; afterModelChange("anon"); return; }
+  Promise.all([loadEngine(), loadPersonal()])
+    .then(() => { buildCatalogIndex(); rebuildModel("load"); })
+    .catch(e => console.warn("[AZT] 모델 준비 실패 — 기본 경로로 추천해요", e));
+}
+function rebuildModel(why) {
+  const haveRaw = DEMO ? !!DEMO_RAW : !!(RAW_STATE && RAW_STATE.uid === currentUid());
+  if (!personalActive() || !haveRaw) { MODEL = null; afterModelChange(why); return null; }
+  const t0 = performance.now();
+  try {
+    const as_of_ms = Date.now();                                        // 기준 시각은 여기서 한 번만 읽어 넘긴다(I7)
+    const norm = PERSONAL.normalizeLogs(assembleRaw(as_of_ms), CATALOG_INDEX, AZT_RULES);
+    MODEL = PERSONAL.buildPersonalModel(norm, CATALOG_INDEX, AZT_RULES, { as_of_ms });
+    MODEL_INFO = { ms: Math.round((performance.now() - t0) * 10) / 10, why, at: as_of_ms };
+    if (WP_ENV.debug) console.info("[AZT] 개인 모델", why, MODEL_INFO.ms + "ms", MODEL && MODEL.digest);
+  } catch (e) {
+    console.error("[AZT] 개인 모델 빌드 실패 — 이번엔 기본 경로(I0)로 추천해요", e);
+    MODEL = null;
+  }
+  afterModelChange(why);
+  return MODEL;
+}
+function afterModelChange(why) {
+  renderPaceNote();
+  maybeSuggestMinutes();
+  renderModelPanel();
+}
+/* explainModel 결과는 모델이 바뀔 때만 다시 만든다 */
+let CARDS_CACHE = { model: null, cards: [] };
+function modelCards() {
+  if (!MODEL || !PERSONAL || typeof PERSONAL.explainModel !== "function") return [];
+  if (CARDS_CACHE.model !== MODEL) {
+    let cards = [];
+    try { cards = PERSONAL.explainModel(MODEL, AZT_RULES) || []; } catch (e) { console.warn("[AZT] explainModel 실패", e); }
+    CARDS_CACHE = { model: MODEL, cards: Array.isArray(cards) ? cards : [] };
+  }
+  return CARDS_CACHE.cards;
+}
+const cardFor = (...keys) => modelCards().find(c => c && (keys.includes(c.id) || keys.includes(c.reset_procedure))) || null;
 
 /* ── 개인화 가중치는 이제 여기가 아니라 규칙 파일에 있습니다 ──
    rules/v2.rules.yaml 의 preference 블록 (weights / shrinkage / band).
@@ -1171,6 +1599,11 @@ async function init() {
     loadLocalPersonal();
     loadGlobalStats();   // 전체 사용자 피드백 통계 (비동기, 실패해도 무관)
     updateGo();   // 지금·목표가 이미 탭돼 있으면 즉시 활성화
+    /* [web-personal] 곡이 준비되면 엔진·personal.js 를 미리 올려 카탈로그 인덱스(§6.2)와 개인 모델(§2.3)을 만든다 —
+       칩을 누르는 순간 좌표 보정(calibratePoint)과 감상 시간 제안이 바로 쓸 수 있게 */
+    Promise.all([loadEngine(), loadPersonal()])
+      .then(() => { buildCatalogIndex(); scheduleModelBuild(); if (WP_URL.get("fixture")) runFixture(WP_URL.get("fixture")); })
+      .catch(e => console.warn("[AZT] 엔진 미리 불러오기 실패 — 추천 때 다시 시도", e));
   } catch (err) {
     console.error(err);
     let hint = err.message || String(err);
@@ -1217,21 +1650,9 @@ function noteHeard(id, days, completion, skipped) {
   if (Number(completion) > h.completion) h.completion = Number(completion) || 0;
   if (fresh) h.skipped = !!skipped;
 }
-/* 들어본 곡 기록 회수 — users/{uid}/listeningHistory (본인 문서). 로그인 사용자만, 최근 200건.
-   이 기기에서 들은 것은 LISTEN_HISTORY(로컬)에도 있지만, 다른 기기·브라우저에서 들은 것은 여기서만 온다. */
-async function loadHeardHistory(uid) {
-  try {
-    const snap = await firebase.firestore().collection("users").doc(uid).collection("listeningHistory")
-      .orderBy("created_at", "desc").limit(200).get();
-    snap.forEach(d => {
-      const r = d.data();
-      /* [2.5.0] 일찍 넘긴 곡(skipped)은 10초 미만이어도 '안 좋음' 표로 센다 */
-      if (Number(r.listenedSeconds) >= HEARD_MIN_SECONDS || r.skipped) noteHeard(r.songId, daysSince(r.created_at), r.completionRate, r.skipped);
-    });
-  } catch (e) {
-    console.warn("청취 기록 로드 실패(이 기기의 기록만으로 개인화합니다):", e);
-  }
-}
+/* 들어본 곡 기록 회수(users/{uid}/listeningHistory)는 [web-personal] loadPersonalData 한 곳으로 옮겼다 —
+   추천·이벤트와 한 번에 읽어 개인 모델(RawFacts)과 옛 경로(feedLegacyPersonal)에 같이 쓴다.
+   [2.5.0] 일찍 넘긴 곡(skipped)은 10초 미만이어도 '안 좋음' 표로 센다 — 그 규칙은 feedLegacyPersonal 에 그대로 있다. */
 function addPersonalSignal(id, v, days) {
   PERSONAL_FB[id]   = (PERSONAL_FB[id]   || 0) + v;
   PERSONAL_FB_N[id] = (PERSONAL_FB_N[id] || 0) + 1;
@@ -1405,13 +1826,18 @@ async function handleUserChange(user, force) {
   if (!force && key === LAST_HANDLED) return;
   LAST_HANDLED = key;
   USER_PROFILE = null; TASTE_VECTOR = null; resetPersonalFeedback();
+  /* [web-personal] 계정이 바뀌면 개인 모델·읽은 기록·감상 시간 제안도 비운다(다른 사람 기록이 남지 않게) */
+  RAW_STATE = null; MODEL = null; WP_DOC = null; MIN_SUGGEST = null;
   if (!user || user.isAnonymous) {
     /* 로그아웃: 개인화 상태를 비워 다른 사람 데이터가 남지 않게 하고, 내 방을 게스트 화면으로 전환 */
     LIKED_SONGS = new Set(); DISLIKED_SONGS = new Set(); PLAYLIST_SONGS = new Set(); PLAYLIST_NOTES = {};
     WALL_META = {}; WALL_ARTISTS = []; WALL_FILTER = "all"; LEGACY_ARTISTS_DONE = false; LEGACY_UNMATCHED = [];
     if (typeof closeWallPanel === "function") closeWallPanel();
     LISTEN_HISTORY = [];
+    if (DEMO && DEMO_RAW) applyProfile(DEMO_RAW.profile || {});   // 데모 프로필(합성 회원)은 익명 세션 위에 메모리로만 얹는다
     updateAuthUI(user);
+    if (user) recoverPendingExposure(user.uid);
+    scheduleModelBuild();
     if (typeof renderMyAzt === "function") renderMyAzt();
     if (typeof applyMemberGate === "function") applyMemberGate();
     return;
@@ -1434,15 +1860,21 @@ async function handleUserChange(user, force) {
     closeAuthModal();
   }
   updateAuthUI(user);
-  loadPersonalFeedback(user.uid);   // 비동기 — 실패해도 앱 동작에는 영향 없음
-  loadHeardHistory(user.uid);       // 비동기 — 개인화의 분모(들어본 곡)
+  recoverPendingExposure(user.uid);  // 지난 실행에서 탭이 닫히며 못 쓴 track_exit 한 건(§7.3)
+  /* 비동기 — 추천 100 · 이벤트 400×3쪽 · 청취 기록을 한 번 읽어 개인 모델(§2.3)과 옛 경로(개인화 끔)에 같이 쓴다.
+     실패해도 앱 동작에는 영향 없음 */
+  if (!DEMO) loadPersonalData(user.uid);
+  else scheduleModelBuild();
   if (typeof renderMyAzt === "function") renderMyAzt();   // 내 방이 열려 있으면 게스트↔개인 화면 즉시 전환
   if (typeof applyMemberGate === "function") applyMemberGate();   // 로그인/로그아웃 즉시 곡 액션 버튼 상태 반영
 }
 
 function applyProfile(p) {
   USER_PROFILE = p || {};
-  TASTE_VECTOR = p && p.taste_vector || null;
+  TASTE_VECTOR = p && p.taste_vector || null;   // B5: 저장만 된다 — 추천은 읽지 않는다(선호곡을 핀으로 이미 센다)
+  /* [web-personal] §7.4 wp_personal_v1 — 개인화 끄기·초기화 시각·싫어요 이유·상태 시각·게이트 끔·안내 표시 */
+  WP_DOC = (p && p.wp_personal_v1 && typeof p.wp_personal_v1 === "object") ? { ...emptyWpDoc(), ...JSON.parse(JSON.stringify(p.wp_personal_v1, (k, v) => isFieldValue(v) ? undefined : v)) } : null;
+  if (WP_DOC) delete WP_DOC.updated_at;
   LIKED_SONGS = new Set(Array.isArray(p && p.likedSongs) ? p.likedSongs : []);
   DISLIKED_SONGS = new Set(Array.isArray(p && p.dislikedSongs) ? p.dislikedSongs : []);
   PLAYLIST_SONGS = new Set(Array.isArray(p && p.playlists) ? p.playlists : []);
@@ -1498,14 +1930,9 @@ function initOnboardingUI() {
     closeAuthModal();
     const user = firebase.auth().currentUser;
     if (!user || user.isAnonymous) return;
-    try {
-      await firebase.firestore().collection("users").doc(user.uid).set({
-        skipped: true,
-        created_at: firebase.firestore.FieldValue.serverTimestamp(),
-        updated_at: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      USER_PROFILE = { skipped: true };
-    } catch (e) { console.warn("건너뛰기 저장 실패(다음 로그인에 다시 물어봄):", e); }
+    const ok = await fsWrite("user_patch", user.uid, { skipped: true, created_at: serverTs(), updated_at: serverTs() });
+    if (ok) USER_PROFILE = { skipped: true };
+    else console.warn("건너뛰기를 저장하지 못했어요(다음 로그인에 다시 물어봄)");
   });
   /* 가입 도중이라도 로그아웃 상태(익명)로 돌아갈 수 있어야 한다 */
   $("obLogout").addEventListener("click", async () => {
@@ -1594,20 +2021,17 @@ async function saveOnboarding() {
     const profile = buildOnboardingProfile(user);
     $("obSave").disabled = true;
     $("obSave").textContent = "저장 중…";
-    const write = firebase.firestore().collection("users").doc(user.uid).set({
-      ...profile,
-      created_at: firebase.firestore.FieldValue.serverTimestamp(),
-      updated_at: firebase.firestore.FieldValue.serverTimestamp()
-    }, { merge: true });
+    const write = fsWrite("user_patch", user.uid, { ...profile, created_at: serverTs(), updated_at: serverTs() }, { throwOnError: true });
     /* 8초 안에 응답이 없으면 멈춘 것으로 보고 원인 안내 (오프라인 쓰기 대기 등) */
-    await Promise.race([
+    const saved = await Promise.race([
       write,
       new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000))
     ]);
-    applyProfile(profile);
+    applyProfile({ ...(USER_PROFILE || {}), ...profile });
     updateAuthUI(user);
     closeAuthModal();
-    setStatus("ok", "취향 저장 완료 — 이제 추천에 반영됩니다");
+    setStatus("ok", saved ? "취향 저장 완료 — 이제 추천에 반영됩니다" : "쓰기가 꺼진 실행이라 취향을 이 세션에만 적용했어요");
+    scheduleModelBuild();
   } catch (e) {
     console.error("온보딩 저장 실패:", e);
     let msg;
@@ -1658,16 +2082,14 @@ function renderGenreChips() {
     b.setAttribute("aria-pressed", String(SELECTED_GENRES.includes(g)));
   }));
 }
+/* B19: users 문서 쓰기는 회원만(fsWrite 가 막는다). 익명 uid 로 문서를 만들면 나중에 계정을 연결할 때 온보딩을 건너뛴다. */
 async function persistPreferencePatch(patch) {
+  if (DEMO) { USER_PROFILE = { ...(USER_PROFILE || {}), ...patch }; return false; }   // 데모: 메모리에만
   const user = firebase.auth().currentUser;
-  if (user) {
-    try {
-      await firebase.firestore().collection("users").doc(user.uid).set({
-        ...patch, updated_at: firebase.firestore.FieldValue.serverTimestamp()
-      }, { merge: true });
-      USER_PROFILE = { ...(USER_PROFILE || {}), ...patch };
-      return true;
-    } catch (e) { console.warn("선호 설정 저장 실패:", e); }
+  if (user && isMember()) {
+    const ok = await fsWrite("user_patch", user.uid, { ...patch, updated_at: serverTs() });
+    if (ok) { USER_PROFILE = { ...(USER_PROFILE || {}), ...patch }; return true; }
+    if (WP_ENV.writes === false) { USER_PROFILE = { ...(USER_PROFILE || {}), ...patch }; return false; }
   }
   const local = readLocalPersonal();
   writeLocalPersonal({ ...local, ...patch });
@@ -1689,7 +2111,7 @@ function loadLocalPersonal() {
    currentUser 존재 여부가 아니라 isAnonymous까지 봐야 진짜 로그인 여부를 알 수 있다. */
 const isMember = () => { const u = firebase.auth().currentUser; return !!u && !u.isAnonymous; };
 function requireLogin(actionLabel) {
-  if (isMember()) return true;
+  if (isMember() || DEMO) return true;   // 데모 프로필(합성 회원)은 좋아요·싫어요를 메모리에만 남긴다
   openAuthModal("login");
   const sub = $("authSub");
   if (sub) sub.textContent = (actionLabel || "이 기능") + "는 로그인하면 내 계정에 저장돼요.";
@@ -1700,7 +2122,7 @@ function applyMemberGate() {
   const ids = new Set();
   document.querySelectorAll("[data-song-card]").forEach(c => { if (c.dataset.songCard) ids.add(c.dataset.songCard); });
   ids.forEach(id => refreshSongActions(id));
-  const mn = $("memberNote"); if (mn) mn.hidden = isMember();
+  const mn = $("memberNote"); if (mn) mn.hidden = personalUser();
 }
 async function setSongFeedback(songId, kind) {
   if (!songId) return;
@@ -1720,10 +2142,14 @@ async function setSongFeedback(songId, kind) {
   };
   USER_PROFILE = { ...(USER_PROFILE || {}), ...patch };   // 저장이 실패해도 이번 세션 추천에는 반영
   await persistPreferencePatch(patch);
-  const local = readLocalPersonal(); writeLocalPersonal({ ...local, ...patch });
-  if (firebase.auth().currentUser && !firebase.auth().currentUser.isAnonymous) {
-    if (kind !== "playlist" || PLAYLIST_SONGS.has(songId))   // [10차] 떼어낼 때는 playlist_add 를 남기지 않는다 (이전에는 뗄 때도 +1 이 찍혔다)
-      logEvent(kind === "like" ? "like" : kind === "dislike" ? "dislike" : "playlist_add", { song_id: songId });
+  if (!DEMO) { const local = readLocalPersonal(); writeLocalPersonal({ ...local, ...patch }); }
+  /* B13: 켤 때·끌 때 모두 방향(on)을 남긴다. 위치는 시퀀스 위치(경로 1..n, 더 들을 곡 n+1..) — B14 */
+  const on = kind === "like" ? LIKED_SONGS.has(songId) : kind === "dislike" ? DISLIKED_SONGS.has(songId) : PLAYLIST_SONGS.has(songId);
+  if (personalUser()) {
+    const sp = SEQ_POS[songId] || {};
+    if (kind === "like" || kind === "dislike") logEvent(kind, { song_id: songId, on, position: sp.position ?? null, role: sp.role || null });
+    else if (on) logEvent("playlist_add", { song_id: songId });   // [10차] 떼어낼 때는 playlist_add 를 남기지 않는다
+    if (on) patchWpDoc({ state_at: { [songId]: Date.now() } });   // §7.4 '켠' 시각(경과일 계산)
   }
   renderMyAzt();
   refreshSongActions(songId);
@@ -1747,13 +2173,16 @@ function showDislikeReasons(card, songId) {
     const b = e.target.closest("button[data-dislike-reason]");
     if (!b) return;
     e.stopPropagation();
-    const idx = LAST_PATH_IDS.indexOf(songId);
+    const sp = SEQ_POS[songId] || {};
     logEvent("dislike_reason", {
       song_id: songId,
       reason: b.dataset.dislikeReason,
-      position: idx >= 0 ? idx + 1 : null,            // 경로 몇 번째 곡이었나 (추가 곡이면 null)
-      role: idx >= 0 ? "path" : "extra"
+      position: sp.position ?? null,                  // 시퀀스 위치(경로 1..n, 더 들을 곡 n+1..) — B14
+      role: sp.role || null,
+      phase: sp.phase || null                         // move | hold | extra
     });
+    /* B16: 400건 창 밖으로 밀려나도 이유가 남도록 계정 상태에도 적는다 */
+    patchWpDoc({ dislike_reasons: { [songId]: { reason: b.dataset.dislikeReason, at_ms: Date.now() } } });
     box.innerHTML = "<div class='fb-done'>알려줘서 고마워요. 다음 추천에 참고할게요.</div>";
     setTimeout(() => box.remove(), 2500);
   });
@@ -1767,7 +2196,7 @@ function refreshSongActions(songId) {
     const like = card.querySelector("[data-action='like']");
     const dislike = card.querySelector("[data-action='dislike']");
     const pl = card.querySelector("[data-action='playlist']");
-    const member = isMember();
+    const member = personalUser();
     if (like) {
       like.classList.toggle("active", member && LIKED_SONGS.has(songId));
       like.classList.toggle("like-ready", member && ready && !LIKED_SONGS.has(songId));
@@ -1790,11 +2219,13 @@ function refreshSongActions(songId) {
   });
 }
 
-async function saveListeningRecord(songId, metric, reason) {
+/* 청취 기록 행(users/{uid}/listeningHistory). [web-personal] 곡 재생 1회당 한 번 — closeExposure 에서만 부른다(B10 이중 저장 제거).
+   exp 가 있으면 그 재생분(곡별 누적에서 시작 시점 값을 뺀 것)을 적는다. 회원만(B24), localStorage 사본은 두지 않는다(B26). */
+async function saveListeningRecord(songId, metric, reason, exp) {
   if (!songId || !metric) return;
   const duration = Number(metric.durationSec) || 0;
-  const listened = Math.max(0, Number(metric.listenedSeconds) || 0);
-  const completion = duration ? Math.min(1, listened / duration) : 0;
+  const listened = exp ? Number(exp.listened_s) || 0 : Math.max(0, Number(metric.listenedSeconds) || 0);
+  const completion = exp ? Number(exp.completion) || 0 : (duration ? Math.min(1, listened / duration) : 0);
   const row = {
     songId, listenedSeconds: Number(listened.toFixed(2)), durationSeconds: duration,
     completionRate: Number(completion.toFixed(3)), skipped: !!metric.skipped,
@@ -1804,22 +2235,13 @@ async function saveListeningRecord(songId, metric, reason) {
   };
   LISTEN_HISTORY = [row, ...LISTEN_HISTORY.filter(x => !(x.songId === songId && x.at === row.at))].slice(0, 100);
   const user = firebase.auth().currentUser;
-  if (user) {
-    try {
-      await firebase.firestore().collection("users").doc(user.uid).collection("listeningHistory").add({
-        ...row, created_at: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    } catch (e) { console.warn("청취 기록 저장 실패:", e); }
-  }
-  const local = readLocalPersonal();
-  writeLocalPersonal({ ...local, listeningHistory: LISTEN_HISTORY });
+  if (user && isMember()) fsWrite("history", user.uid, { ...row, app: "web-personal", env: WP_ENV.env, created_at: serverTs() });
 }
-function flushActiveMetric(reason) {
+/* 재생 중인 곡 표시만 푼다 — 청취 기록 저장은 closeExposure 가 맡는다 */
+function flushActiveMetric() {
   if (!ACTIVE_METRIC_ID) return;
-  const id = ACTIVE_METRIC_ID, m = TRACK_METRICS[id];
   ACTIVE_METRIC_ID = null;
   LAST_PLAYBACK_POSITION = null; LAST_PLAYBACK_TS = 0;
-  if (m) saveListeningRecord(id, m, reason);
 }
 function ensureMetric(songId, durationSec) {
   if (!TRACK_METRICS[songId]) TRACK_METRICS[songId] = {
@@ -1842,6 +2264,7 @@ function updateAfterGate() {
     AFTER_UNLOCKED = true;
     slider.disabled = false; if (btn) btn.disabled = false;
     const extra = $("afterExtra"); if (extra) extra.disabled = false;
+    const paceBox = $("afterPaceBox"); if (paceBox) paceBox.disabled = false;
     if (gate) gate.textContent = "이제 지금 상태를 남길 수 있어요.";
     logEvent("after_unlock", { listened_seconds: Math.round(t) });
   } else if (gate) {
@@ -2039,6 +2462,7 @@ async function wallAttachSong(song) {
   WALL_META[song.id] = { src: "search", at: new Date().toISOString() };
   await saveWall();
   logEvent("playlist_add", { song_id: song.id, source: "search" });
+  patchWpDoc({ state_at: { [song.id]: Date.now() } });   // §7.4 벽 '켠' 시각
   refreshSongActions(song.id);
 }
 async function wallAttachArtist(entry) {
@@ -2139,11 +2563,13 @@ function renderWall(pl) {
 
 function renderMyAzt() {
   const sec = $("myAzt"); if (!sec || sec.hidden) return;
-  const guest = !firebase.auth().currentUser;
+  /* B23: 앱은 늘 익명 세션을 들고 있어 currentUser 가 항상 있다 — 회원 여부로 가른다(데모 프로필은 회원처럼) */
+  const guest = !personalUser();
   const gEl = $("myGuest"), oEl = $("myOwn");
   if (gEl) gEl.hidden = !guest;
   if (oEl) oEl.hidden = guest;
   if (guest) return;   // 비로그인: 안내만 보여주고 개인 데이터 렌더 생략
+  renderModelPanel();
   const nameInput=$("myDisplayName"); if(nameInput) nameInput.value=(USER_PROFILE&&USER_PROFILE.display_name)||firebase.auth().currentUser?.displayName||"";
   syncMinuteReadouts();
   const lyricInput=$("myLyric"); if(lyricInput) lyricInput.value=normalizeLyricPref($("lyric")?.value||USER_PROFILE?.lyric_preference_default||"no_preference");
@@ -2176,52 +2602,7 @@ async function openMyAzt() {
   ensureArtistAliases().then(adoptLegacyArtists).then(renderMyAzt).catch(e => console.warn("가수 목록 준비 실패:", e));
 }
 
-async function loadPersonalFeedback(uid) {
-  resetPersonalFeedback();
-  try {
-    const db = firebase.firestore();
-    /* R6: 최신순 정렬로 '최근 N건'을 보장. where+orderBy 조합은 Firestore 복합 색인이
-       필요하다 — 색인이 없으면 콘솔 오류의 생성 링크로 한 번 만들면 되고,
-       그 전까지는 정렬 없이 폴백해 기능이 멈추지 않게 한다. */
-    const queryRecent = async (col, lim) => {
-      try {
-        return await db.collection(col).where("user_id", "==", uid)
-          .orderBy("created_at", "desc").limit(lim).get();
-      } catch (e) {
-        if (e.code === "failed-precondition") {
-          console.warn("[R6] " + col + " 복합 색인 필요 — 이 오류 메시지의 링크로 색인을 만들면 최근 " + lim + "건이 보장됩니다. 임시로 정렬 없이 로드합니다.", e.message);
-          return await db.collection(col).where("user_id", "==", uid).limit(lim).get();
-        }
-        throw e;
-      }
-    };
-    const recSnap = await queryRecent("recommendations", 100);
-    const recSongs = {};
-    recSnap.forEach(d => {
-      recSongs[d.id] = (d.data().sequence || []).filter(r => r.role === "path").map(r => r.song_id);
-    });
-    const evSnap = await queryRecent("context_events", 400);
-    evSnap.forEach(d => {
-      const e = d.data();
-      const days = daysSince(e.created_at);
-      const sid = e.payload && e.payload.song_id;
-      if (e.type === "track_complete" && sid) addPersonalSignal(sid, 0.3, days);
-      else if (e.type === "spotify_click" && sid) addPersonalSignal(sid, 0.15, days);
-      else if ((e.type === "like" || e.type === "playlist_add" || e.type === "dislike") && sid) {
-        STATE_DAYS[sid] = (sid in STATE_DAYS) ? Math.min(STATE_DAYS[sid], days) : days;   // 가장 최근 것
-      }
-      else if (e.type === "dislike_reason" && sid && e.payload.reason) {
-        if (!(sid in DISLIKE_REASONS)) DISLIKE_REASONS[sid] = e.payload.reason;          // 최신순 조회 → 처음 만난 것이 최신
-      }
-      else if (e.type === "post_change" && e.rec_id && recSongs[e.rec_id]) {
-        const c = (e.payload && typeof e.payload.change === "number") ? e.payload.change : 0;  // -2 ~ +2
-        recSongs[e.rec_id].forEach(id => addPersonalSignal(id, c * 0.35, days));  // 전후 변화가 그 시퀀스의 곡들에 귀속
-      }
-    });
-  } catch (e) {
-    console.warn("개인 피드백 로드 실패(규칙에 본인 문서 읽기 허용 필요):", e);
-  }
-}
+/* 개인 피드백 로드(옛 loadPersonalFeedback)는 [web-personal] loadPersonalData → feedLegacyPersonal 로 옮겼다(같은 규칙, 같은 첫 쪽 400건). */
 
 async function loadGlobalStats() {
   GLOBAL_FB = {};
@@ -2243,12 +2624,10 @@ async function loadGlobalStats() {
   }
 }
 
+/* song_stats 는 기존 7개 키만(fsWrite 허용 목록). 통계는 best-effort — 실패해도 무시 */
 function bumpStats(songId, fields) {
-  try {
-    firebase.firestore().collection("song_stats").doc(songId)
-      .set(fields, { merge: true })
-      .catch(e => console.warn("song_stats 갱신 실패:", e));
-  } catch (e) { /* 무시 — 통계는 best-effort */ }
+  if (!songId) return;
+  fsWrite("stats", songId, fields);
 }
 
 /* ===== v2.1 어댑터: 앱 데이터 → 계약 스키마 =====================
@@ -2360,16 +2739,17 @@ function buildHeardItems() {
     const e = findArtist(a);                                   // "IU" 로 적었어도 카탈로그의 "아이유" 묶음에 센다
     items.push({ pinned: true, artist: e ? e.name : a, days: 0 });
   }
-  for (const g of normalizeGenreList(USER_PROFILE && USER_PROFILE.preferred_genres)) items.push({ liked: true, genres: [g], days: 0 });
+  /* B2·D3: preferred_genres 는 취향 증거가 아니다 — 두 앱이 세션마다 고른 장르를 여기에 저장해 '좋아요'로 세이며 내 평균을 부풀렸다.
+     (76e8bdf 는 여기서 장르마다 liked 항목을 만들었다.) */
   return items;
 }
 let LAST_PERSONAL_SNAPSHOT = null;
 let LAST_FILTER_SNAPSHOT = null;     // 추천 로그용: 장르·가사 조건이 실제로 적용됐는지
 let GENRE_NOTICE = null;             // 고른 장르를 적용하지 못했을 때 결과 화면에 보여 줄 안내   // 추천 로그에 남기는 개인화 상태 요약
 
+/* 옛 경로(inputs.personal 없음 — 익명 · 개인화 끔)의 엔진 user. 개인화 경로는 personal.resolvePolicy 가 user 를 만든다. */
 function buildUserProfile() {
-  const song_feedback = {}, global_stats = {};
-  for (const id of Object.keys(GLOBAL_FB || {})) global_stats[id] = splitSignal(GLOBAL_FB[id], 10);
+  const song_feedback = {}, global_stats = globalStatsForEngine();
   const base = { disliked: [...DISLIKED_SONGS], recent_played: recentlyPlayedIds(), global_stats };
 
   if (AZT_RULES.preference.combine !== "weighted" && AZT_ENGINE.aggregateAffinity) {
@@ -2389,7 +2769,7 @@ function buildUserProfile() {
   for (const id of LIKED_SONGS)     song_feedback[id] = { pos: 3, neg: 0, last_days: STATE_DAYS[id] || 0 };
   for (const id of PLAYLIST_SONGS)  song_feedback[id] = song_feedback[id] || { pos: 2, neg: 0, last_days: STATE_DAYS[id] || 0 };
   for (const a of ((USER_PROFILE && USER_PROFILE.preferred_artists) || [])) {
-    if (a) artist_affinity[AZT_ENGINE.artistKey((findArtist(a) || { name: a }).name)] = { pos: 5, neg: 0, last_days: 0 };   // 엔진 2.3.1: 가수 키는 artistKey()
+    if (a) artist_affinity[AZT_ENGINE.artistKeys((findArtist(a) || { name: a }).name)[0] || artistKeyOf(a)] = { pos: 5, neg: 0, last_days: 0 };   // 엔진 2.5.0: 가수 키는 artistKeys()[0] — 옛 artistKey() export 는 없다(가중합 분기 전용, 통합 때 수정)
   }
   for (const g of normalizeGenreList(USER_PROFILE && USER_PROFILE.preferred_genres)) {
     if (g) genre_affinity[g] = { pos: 5, neg: 0, last_days: 0 };
@@ -2399,33 +2779,42 @@ function buildUserProfile() {
 }
 
 /* 최근 재생 곡 — localStorage 에 누적. 시드 변이만으로는 반복을 못 막습니다.
-   (동급 후보가 1곡뿐인 지점에서는 섞을 게 없어 같은 곡이 다시 나옵니다.) */
+   (동급 후보가 1곡뿐인 지점에서는 섞을 게 없어 같은 곡이 다시 나옵니다.)
+   [web-personal] 개인화 경로는 이 목록 대신 기기 무관 노출 창(policy.exclude_ids, §4.10.2)을 쓴다 — 이 목록은 익명·개인화 끔 전용.
+   창 크기는 규칙(personalization.diversity.recent_window — 옛 RECENT_MAX 값)에서 읽고, 이제 더 들을 곡도 넣는다. */
 const RECENT_KEY = "azt_recent_played_v1";
-const RECENT_MAX = 60;
 function recentlyPlayedIds() {
   try { return JSON.parse(localStorage.getItem(RECENT_KEY) || "[]"); } catch (e) { return []; }
 }
 function pushRecentlyPlayed(ids) {
   try {
+    const cap = Number(PR().diversity && PR().diversity.recent_window) || undefined;
     const merged = [...ids, ...recentlyPlayedIds()].filter((v, i, a) => a.indexOf(v) === i);
-    localStorage.setItem(RECENT_KEY, JSON.stringify(merged.slice(0, RECENT_MAX)));
+    localStorage.setItem(RECENT_KEY, JSON.stringify(merged.slice(0, cap)));
   } catch (e) { /* 무시 */ }
 }
 
 /* 시드 = 사용자ID:날짜:세션번호.
-   세션번호가 올라가야 같은 사람이 같은 입력을 넣어도 다른 곡이 나옵니다. */
+   세션번호가 올라가야 같은 사람이 같은 입력을 넣어도 다른 곡이 나옵니다.
+   B25: 번호가 기기별이라 두 기기에서 같은 날 같은 시드가 나왔다 → max(이 기기 카운터, 불러온 추천 중 오늘(UTC) 이 uid 의 개수) + 1 */
 const SESSION_KEY = "azt_session_no_v1";
 function buildSeed() {
-  const u = firebase.auth().currentUser;
-  const uid = (u && u.uid) ? u.uid : "guest";
+  const uid = currentUid() || "guest";
   const day = new Date().toISOString().slice(0, 10);
-  let no = 1;
+  let dev = 0;
   try {
     const prev = JSON.parse(localStorage.getItem(SESSION_KEY) || "{}");
-    no = (prev.day === day ? Number(prev.no) || 0 : 0) + 1;
-    localStorage.setItem(SESSION_KEY, JSON.stringify({ day, no }));
+    dev = prev.day === day ? Number(prev.no) || 0 : 0;
   } catch (e) { /* 무시 */ }
-  return uid + ":" + day + ":" + no;
+  const loaded = DEMO ? ((DEMO_RAW && DEMO_RAW.recommendations) || []) : ((RAW_STATE && RAW_STATE.uid === uid && RAW_STATE.recommendations) || []);
+  const today = new Set();
+  for (const r of [...SESSION_LOG.recommendations, ...loaded]) {
+    const ms = r && (r.created_at_ms ?? tsMs(r.created_at));
+    if (ms && (!r.user_id || r.user_id === uid) && new Date(ms).toISOString().slice(0, 10) === day) today.add(r.id);
+  }
+  const no = Math.max(dev, today.size) + 1;
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify({ day, no })); } catch (e) { /* 무시 */ }
+  return { seed: uid + ":" + day + ":" + no, no };
 }
 
 /* §3 스케일 방어: 소스에 따라 valence/energy가 0~1, 0~10, 0~100으로 혼재할 수 있음.
@@ -2449,88 +2838,101 @@ let LAST_TGT_VA = null;    // 직전 추천의 목표 좌표
 
 const round3 = p => ({ v: Number(p.v.toFixed(3)), e: Number(p.e.toFixed(3)) });
 
-async function logRecommendation(input, seq, extras) {
-  LAST_REC_ID = null;
-  LAST_PATH_IDS = seq.map(s => s.id);
-  LAST_CUR_VA = round3(input.cur);
-  LAST_TGT_VA = round3(input.tgt);
-  try {
-    const rows = [
-      /* v2.1: 점수 하나가 아니라 trace 를 남긴다. 어떤 규칙 해시로, 어느 밴드에서,
-         기하로 골랐는지 선호로 골랐는지가 로그만 봐도 재구성된다. */
-      ...seq.map((s, i) => ({ song_id: s.id, position: i + 1, role: "path",
-                              fit: s._trace ? s._trace.va_distance : null,
-                              band_size: s._trace ? s._trace.band_size : null,
-                              chosen_by: s._trace ? s._trace.chosen_by : null,
-                              pref_score: s._trace ? s._trace.pref_score : null,     // 내 좋아요 비율 기준 점수
-                              pref_match: s._trace ? !!s._trace.pref_match : null,   // '내가 좋아요한 곡들과 닮음'으로 골랐나
-                              pref_basis: s._trace ? (s._trace.pref_basis || null) : null,
-                              quadrant: s._trace ? s._trace.quadrant : null })),
-      ...extras.map((s, i) => ({ song_id: s.id, position: seq.length + i + 1, role: "extra" }))
-    ];
-    const ref = await firebase.firestore().collection("recommendations").add({
-      user_id: firebase.auth().currentUser.uid,
-      is_anonymous: firebase.auth().currentUser.isAnonymous,   // 구글 로그인 사용자 구분용
-      created_at: firebase.firestore.FieldValue.serverTimestamp(),
-      algorithm_version: ALGO_VERSION,
-      input: {
-        lyric_preference: input.lyric,
-        genres: input.genres || [],
-        recommend_minutes: input.minutes || 30,
-        current_va: LAST_CUR_VA,   // 사용자가 좌표에 직접 탭한 지금 상태
-        target_va: LAST_TGT_VA,    // 사용자가 좌표에 직접 탭한 목표 상태
-        input_mode: { current: CUR_MODE, target: TGT_MODE },   // 점별 입력 방식: tap | chip | nl
-        filters: LAST_FILTER_SNAPSHOT,             // { lyric, genres, genre_applied, genre_pool(고른 장르의 곡 수), pool(최종 후보 수) }
-        personalization: LAST_PERSONAL_SNAPSHOT,   // { mode, heard(들어본 곡), liked, like_rate(내 평균 좋아요 비율) } — 개인화 효과 분석용
-        pace_mode: PACE_MODE || "auto",   // 감정 여정 속도: auto | fast | slow — 경로 재현·분석용
-        nl_text: LAST_NL_TEXT,     // 자연어 원문 (해석 품질 감사용, 미사용 시 null)
-        nl_model: LAST_NL_TEXT ? GEMINI_MODEL : null,  // 어떤 모델이 해석했는지
-        nl_v2: buildNLLog()        // v2: AI가 고른 단어(parsed) · 사용자가 고친 뒤(final) · 고친 내역(corrections)
-      },
-      sequence: rows
-    });
-    LAST_REC_ID = ref.id;
-  } catch (e) {
-    console.warn("추천 로그 저장 실패(앱 동작에는 영향 없음):", e);
-  }
+/* ── 추천 문서(§7.1) ──────────────────────────────────────────────────────
+   B15: 문서 ID 를 **동기**로 만든다(doc() 는 쓰기가 아니다) → 재생 이벤트 전에 rec_id 확정 → fsWrite("rec") 가 set.
+   개인화 경로는 personal.buildRecLog 가 본문을 만들고(앱·시뮬레이터가 같은 함수), 앱은 user_id·is_anonymous·created_at·algorithm_version 을 붙인다. */
+function newRecId() {
+  try { return firebase.firestore().collection("recommendations").doc().id; }
+  catch (e) { return "local-" + Date.now().toString(36) + "-" + (++EVENT_SEQ); }
+}
+/* 옛 경로(익명·개인화 끔)의 시퀀스 행 — 엔진 trace 에서 옮긴다. 머묾 구간은 경유지가 마지막 경유지(=목표)와 같은 걸음들. */
+function seqRowsFromResult(result, extras) {
+  const seq = (result && result.sequence) || [];
+  const last = seq.length ? seq[seq.length - 1].trace || {} : {};
+  let holdFrom = seq.length;
+  while (holdFrom > 0 && (seq[holdFrom - 1].trace || {}).wp_V === last.wp_V && (seq[holdFrom - 1].trace || {}).wp_A === last.wp_A) holdFrom--;
+  const P_KEYS = ["p_pmarg", "p_pers", "p_adj", "p_adj_x", "p_bpm_diff", "p_geo_best", "p_chosen_by"];
+  const rows = seq.map((r, i) => {
+    const t = r.trace || {};
+    /* v2.1: 점수 하나가 아니라 trace 를 남긴다. 어떤 규칙 해시로, 어느 밴드에서, 기하로 골랐는지 선호로 골랐는지가 로그만 봐도 재구성된다. */
+    const row = { song_id: r.song_id, position: i + 1, role: "path",
+                  fit: t.va_distance ?? null, band_size: t.band_size ?? null, chosen_by: t.chosen_by ?? null,
+                  pref_score: t.pref_score ?? null,                        // 내 좋아요 비율 기준 점수
+                  pref_match: t.pref_match != null ? !!t.pref_match : null, // '내가 좋아요한 곡들과 닮음'으로 골랐나
+                  pref_basis: t.pref_basis || null, quadrant: t.quadrant ?? null,
+                  wp_V: t.wp_V ?? null, wp_A: t.wp_A ?? null, song_V: t.song_V ?? null, song_A: t.song_A ?? null,
+                  phase: t.p_phase || (i >= holdFrom ? "hold" : "move") };
+    if ("p_pmarg" in t) {   // 개인화 경로 trace(§6.8)에만 있는 값
+      for (const k of P_KEYS) row[k] = t[k] ?? null;
+      row.discovery = !!t.p_discovery; row.replay = !!t.p_replay; row.soft_relaxed = !!t.p_soft_relaxed;
+    }
+    return row;
+  });
+  (extras || []).forEach((x, j) => {
+    const t = x._trace || {};
+    rows.push({ song_id: x.id, position: seq.length + j + 1, role: "extra", phase: "extra",
+                fit: t.va_distance ?? null, song_V: t.song_V ?? null, song_A: t.song_A ?? null,
+                ...("p_pmarg" in t ? { p_pmarg: t.p_pmarg ?? null, p_pers: t.p_pers ?? null, p_adj: t.p_adj ?? null, p_adj_x: t.p_adj_x ?? null } : {}) });
+  });
+  return rows;
+}
+function writeRecDoc(recId, input, sequence, withPolicy) {
+  const uid = currentUid();
+  if (!uid) return Promise.resolve(false);
+  const u = firebase.auth().currentUser;
+  const doc = {
+    user_id: uid,
+    is_anonymous: DEMO ? false : !!(u && u.isAnonymous),   // 구글 로그인 사용자 구분용
+    created_at: serverTs(),
+    /* §7 algorithm_version = rules_version + "+" + rules_hash + "+e" + ENGINE_VERSION (+ "+" + PERSONAL_VERSION, 정책이 있을 때) */
+    algorithm_version: ALGO_VERSION + (withPolicy && PERSONAL && PERSONAL.PERSONAL_VERSION ? "+" + PERSONAL.PERSONAL_VERSION : ""),
+    input, sequence,
+  };
+  return fsWrite("rec", recId, doc).then(ok => { if (!ok && WP_ENV.writes !== false) console.warn("추천 로그 저장 실패(앱 동작에는 영향 없음)"); return ok; });
 }
 
-async function logEvent(type, payload) {
-  /* 전체 사용자 통계(song_stats)와 이 세션의 개인 피드백을 함께 갱신 —
-     다음 추천부터 바로 반영된다. */
+/* ── 이벤트(§7.2) — context_events. 공통 payload 에 app·env·client_id(= rec_id|type|song_id|순번, 중복 제거용) ──
+   opts.rec_id: 그 이벤트가 속한 추천(재생 기록은 곡을 틀 때의 추천 — 새 추천 직후 닫혀도 옛 추천에 붙는다)
+   opts.client_id: 같은 재생의 복구 사본과 원본이 같은 키를 갖게 할 때 */
+async function logEvent(type, payload, opts) {
+  payload = { ...(payload || {}) };
+  /* 전체 사용자 통계(song_stats)와 이 세션의 개인 피드백을 함께 갱신 — 다음 추천부터 바로 반영된다. */
   const inc = firebase.firestore.FieldValue.increment;
   const addLocal = (id, v) => addPersonalSignal(id, v, 0);   // 방금 일어난 일 → 경과일 0
-  if ((type === "like" || type === "playlist_add" || type === "dislike") && payload.song_id) STATE_DAYS[payload.song_id] = 0;
-  if (type === "dislike" && payload.song_id) delete DISLIKE_REASONS[payload.song_id];   // 새로 누른 싫어요 — 이전 이유는 버린다
-  if (type === "dislike_reason" && payload.song_id) DISLIKE_REASONS[payload.song_id] = payload.reason;
-  if (type === "spotify_click" && payload.song_id) {
-    bumpStats(payload.song_id, { clicks: inc(1) });
-    addLocal(payload.song_id, 0.15);
-  } else if (type === "track_complete" && payload.song_id) {
-    bumpStats(payload.song_id, { completes: inc(1) });
-    addLocal(payload.song_id, 0.3);
-  } else if (type === "like" && payload.song_id) {
-    bumpStats(payload.song_id, { likes: inc(1) });        // R2: 개인 점수는 상태 보너스(+0.18)로만 — 이벤트 적립 제거
-  } else if (type === "dislike" && payload.song_id) {
-    bumpStats(payload.song_id, { dislikes: inc(1) });     // R2: 상태(−0.35 + 풀 제외)로만
-  } else if (type === "playlist_add" && payload.song_id) {
-    bumpStats(payload.song_id, { playlistAdds: inc(1) }); // R2: 상태(+0.10)로만
-  } else if (type === "post_change" && typeof payload.change === "number") {
+  const sid = payload.song_id;
+  const turnedOn = payload.on !== false;                     // like/dislike 는 on 을 싣는다(B13). 없으면 옛 모양 = 켬
+  if ((type === "like" || type === "playlist_add" || type === "dislike") && sid && turnedOn) STATE_DAYS[sid] = 0;
+  if (type === "dislike" && sid && turnedOn) delete DISLIKE_REASONS[sid];   // 새로 누른 싫어요 — 이전 이유는 버린다
+  if (type === "dislike_reason" && sid) DISLIKE_REASONS[sid] = payload.reason;
+  if (type === "spotify_click" && sid) {
+    bumpStats(sid, { clicks: inc(1) });
+    addLocal(sid, 0.15);
+  } else if (type === "track_complete" && sid) {
+    addLocal(sid, 0.3);                                        // completes 통계는 closeExposure 가 c ≥ keep_from 일 때만(B29)
+  } else if (type === "like" && sid) {
+    if (turnedOn) bumpStats(sid, { likes: inc(1) });           // B6: 켤 때만. R2: 개인 점수는 상태 보너스로만
+  } else if (type === "dislike" && sid) {
+    if (turnedOn) bumpStats(sid, { dislikes: inc(1) });        // B6: 켤 때만
+  } else if (type === "playlist_add" && sid) {
+    bumpStats(sid, { playlistAdds: inc(1) });                  // R2: 상태(+0.10)로만
+  } else if (type === "post_change" && typeof payload.change === "number" && payload.touched) {
+    /* B17·B29: 슬라이더를 실제로 움직였을 때만, 10초 이상 들은 곡에만 나눈다(안 들은 곡까지 경로 전 곡에 나누던 것을 고침) */
     LAST_PATH_IDS.forEach(id => {
+      const m = TRACK_METRICS[id];
+      if (!m || !(m.listenedSeconds >= HEARD_MIN_SECONDS)) return;
       bumpStats(id, { sum_change: inc(payload.change), n_change: inc(1) });
       addLocal(id, payload.change * 0.35);
     });
   }
-  try {
-    await firebase.firestore().collection("context_events").add({
-      user_id: firebase.auth().currentUser.uid,
-      rec_id: LAST_REC_ID,   // 로그 저장이 실패했으면 null일 수 있음
-      type, payload,
-      created_at: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  } catch (e) {
-    console.warn("이벤트 로그 저장 실패:", e);
-  }
+  /* §7.2: 곡당 track_exit 1건이 대신한다 — 이정표·전환 추적은 운영 앱의 400건 창을 덜 쓰도록 디버그 때만 */
+  if ((type === "track_milestone" || type === "track_transition_trace") && !WP_ENV.debug) return false;
+  const uid = currentUid();
+  if (!uid) return false;
+  const rec_id = opts && "rec_id" in opts ? opts.rec_id : LAST_REC_ID;
+  payload.app = "web-personal";
+  payload.env = WP_ENV.env;
+  payload.client_id = (opts && opts.client_id) || [rec_id, type, sid || "", ++EVENT_SEQ].join("|");
+  return fsWrite("event", null, { user_id: uid, rec_id: rec_id ?? null, type, payload, created_at: serverTs() });
 }
 
 /* ===================== 시퀀스 연속재생 (Spotify iFrame Embed API) =====================
@@ -2554,7 +2956,117 @@ function nowPlayingText() {
   return "지금 재생: " + (marks[QUEUE_IDX] || (QUEUE_IDX + 1)) + " " + s.title + (s.artist ? " — " + s.artist : "");
 }
 
+/* ===================== [web-personal] 노출 = 곡 한 번 재생의 결과 (§3.1 · §7.3) =====================
+   곡을 한 번 틀 때마다 track_exit 한 건. 닫는 곳은 closeExposure(cause) 하나다:
+     goTo(다음/이전/점프 — 호출자가 원인을 넘김) · finishTrack(complete) · setupPlayer 맨 앞(new_rec, B11) ·
+     「기록하고 나가기」(session_end) · 자동재생 15초 포기(autoplay_fail) · pagehide.
+   visibilitychange:hidden 은 닫지 않고(백그라운드 재생 계속) 스냅숏만 localStorage 에 둔다 → 다음 실행에서
+   남은 스냅숏을 track_exit{cause:"pagehide", recovered:true} 로 한 번 쓰고 지운다(같은 client_id — 중복은 정규화가 거른다).
+   위치는 시퀀스 위치(경로 1..n, 더 들을 곡 n+1..), 재생 큐 위치는 queue_pos 로 따로(B14). */
+let EXPOSURE = null;          // 지금 열린 재생 1회
+let LAST_CLOSED_EXP = null;   // 같은 추천에서 직전에 닫힌 재생 — prev_song_id·prev_completion
+let EXP_INSTANCE = {};        // song_id → 이 추천에서 몇 번째 재생인가
+let SEQ_POS = {};             // song_id → { position, role, phase } (직전 추천)
+let HIDDEN_SINCE_TS = 0;      // 마지막으로 탭이 숨은 시각(performance.now) — 백그라운드 보정 판단
+let PENDING_SAVED_AT = 0;
+
+function openExposure(song, queueIdx) {
+  if (!song) return null;
+  const m = TRACK_METRICS[song.id] || ensureMetric(song.id, 0);
+  const inst = (EXP_INSTANCE[song.id] || 0) + 1;
+  EXP_INSTANCE[song.id] = inst;
+  const sp = SEQ_POS[song.id] || {};
+  const rec_id = LAST_REC_ID;
+  EXPOSURE = {
+    song_id: song.id, rec_id, position: sp.position ?? null, queue_pos: queueIdx + 1, role: sp.role || "path", phase: sp.phase || null,
+    instance: inst, started: false, startListened: Number(m.listenedSeconds) || 0, seek_fwd_s: 0, bg_credit_s: 0,
+    prev_song_id: LAST_CLOSED_EXP ? LAST_CLOSED_EXP.song_id : null,
+    prev_completion: LAST_CLOSED_EXP ? LAST_CLOSED_EXP.completion : null,
+    client_id: [rec_id, "track_exit", song.id, inst].join("|"),
+  };
+  if (document.hidden) savePendingSnapshot(true);
+  return EXPOSURE;
+}
+function exposurePayload(exp, cause) {
+  const m = TRACK_METRICS[exp.song_id] || {};
+  const song = songById(exp.song_id);
+  const listened = Math.max(0, (Number(m.listenedSeconds) || 0) - exp.startListened);
+  const dur = Number(m.durationSec) || 0;                               // 임베드가 알려 준 길이
+  const cat = song && Number(song.durationSec) > 0 ? Number(song.durationSec) : 0;   // 카탈로그 길이
+  const base = dur || cat;
+  const completion = base ? Math.min(1, listened / base) : 0;
+  const O = PR().outcome || {};
+  const preview = !!(dur > 0 && O.preview_max_duration_s != null && dur <= Number(O.preview_max_duration_s)
+                     && cat >= Number(O.preview_catalog_min_s));        // 30초 미리듣기
+  const r2 = x => Math.round(x * 100) / 100, r3 = x => Math.round(x * 1000) / 1000;
+  return {
+    song_id: exp.song_id, position: exp.position, queue_pos: exp.queue_pos, role: exp.role, instance: exp.instance,
+    started: !!exp.started, listened_s: r2(listened), duration_s: dur ? r2(dur) : null, catalog_s: cat ? r2(cat) : null,
+    completion: r3(completion), preview, cause,
+    prev_song_id: exp.prev_song_id, prev_completion: exp.prev_completion,
+    bg_credit_s: r2(exp.bg_credit_s || 0), seek_fwd_s: r2(exp.seek_fwd_s || 0),
+    liked: LIKED_SONGS.has(exp.song_id), disliked: DISLIKED_SONGS.has(exp.song_id),
+  };
+}
+function closeExposure(cause) {
+  const exp = EXPOSURE;
+  if (!exp) return null;                                                 // finishTrack 이 이미 닫았으면 아무것도 안 함(B10)
+  EXPOSURE = null;
+  const payload = exposurePayload(exp, cause);
+  LAST_CLOSED_EXP = { song_id: exp.song_id, completion: payload.completion };
+  if (cause !== "pagehide") clearPendingSnapshot();
+  /* 불러오기만 하고 한 번도 안 움직인 곡(점프로 지나침 등)은 재생이 아니다 — 자동재생 실패만 예외로 남긴다 */
+  if (!(payload.started || payload.listened_s > 0 || cause === "autoplay_fail")) return null;
+  const m = TRACK_METRICS[exp.song_id];
+  if (m) saveListeningRecord(exp.song_id, m, cause, payload);          // 청취 기록 행(회원만) — 재생 1회당 1행
+  const keep = Number(PR().outcome && PR().outcome.keep_from);
+  if (isFinite(keep) && keep > 0 && payload.completion >= keep)
+    bumpStats(exp.song_id, { completes: firebase.firestore.FieldValue.increment(1) });   // B29: 끝까지(c ≥ keep_from)만
+  const w = logEvent("track_exit", payload, { rec_id: exp.rec_id, client_id: exp.client_id });
+  if (cause === "pagehide" && w && w.then) w.then(ok => { if (ok) clearPendingSnapshot(null, exp.client_id); });
+  if (WP_ENV.debug || WP_ENV.writes === false) console.table([{ 곡: exp.song_id, 위치: payload.position, 큐: payload.queue_pos, 회차: payload.instance,
+    원인: cause, 들은초: payload.listened_s, 완주율: payload.completion, 시작됨: payload.started }]);
+  return payload;
+}
+const pendingKey = uid => "azt_wp_pending_v1:" + uid;
+function savePendingSnapshot(force) {
+  if (!EXPOSURE || DEMO) return;
+  const now = performance.now();
+  if (!force && now - PENDING_SAVED_AT < 5000) return;                 // 숨은 동안 워커 틱마다 쓰지 않게(5초 간격)
+  PENDING_SAVED_AT = now;
+  const uid = currentUid(); if (!uid) return;
+  try { localStorage.setItem(pendingKey(uid), JSON.stringify({ rec_id: EXPOSURE.rec_id, client_id: EXPOSURE.client_id, payload: exposurePayload(EXPOSURE, "pagehide") })); }
+  catch (e) { /* 저장 공간 없음 — 복구만 못 할 뿐 */ }
+}
+function clearPendingSnapshot(uid, onlyClientId) {
+  const k = pendingKey(uid || currentUid());
+  try {
+    if (onlyClientId) { const s = JSON.parse(localStorage.getItem(k) || "null"); if (!s || s.client_id !== onlyClientId) return; }
+    localStorage.removeItem(k);
+  } catch (e) { /* 무시 */ }
+}
+function recoverPendingExposure(uid) {
+  if (!uid || DEMO) return;
+  let snap = null;
+  try { snap = JSON.parse(localStorage.getItem(pendingKey(uid)) || "null"); } catch (e) { snap = null; }
+  if (!snap || !snap.payload) return;
+  clearPendingSnapshot(uid);
+  if (!(snap.payload.started || snap.payload.listened_s > 0)) return;
+  logEvent("track_exit", { ...snap.payload, cause: "pagehide", recovered: true }, { rec_id: snap.rec_id ?? null, client_id: snap.client_id });
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { HIDDEN_SINCE_TS = performance.now(); savePendingSnapshot(true); }
+  else if (EXPOSURE) clearPendingSnapshot();                             // 돌아왔다 — 재생은 계속 열려 있다
+});
+window.addEventListener("pagehide", () => {
+  if (EXPOSURE) { savePendingSnapshot(true); closeExposure("pagehide"); }
+  if (personalActive()) rebuildModel("pagehide");                        // §2.3 세션 닫힘
+});
+const seqPos = id => (SEQ_POS[id] ? SEQ_POS[id].position : null);
+
 function setupPlayer(seq) {
+  closeExposure("new_rec");     // B11: 이전 추천의 재생 중 곡을 먼저 닫는다(곡별 누적을 지우기 전에)
+  EXP_INSTANCE = {}; LAST_CLOSED_EXP = null;
   QUEUE = seq.filter(s => s.trackId);
   QUEUE_IDX = 0;
   TRACK_METRICS = {};
@@ -2599,9 +3111,10 @@ function setupPlayer(seq) {
          이제 전환은 타이머가 아니라 "새 곡의 첫 playback_update 가 도착했는가"로 끝난다.
          LOAD = { token, idx, at, wantPlay, playTries } — 요청 번호(token)가 다르면 오래된 응답은 버린다. */
       let LOAD = null, userPaused = false;
-      const goTo = (idx, wantPlayOverride) => {
+      const goTo = (idx, wantPlayOverride, cause) => {
         if (!QUEUE[idx]) return;
-        flushActiveMetric("track_switch");
+        closeExposure(cause || "next");   // [web-personal] 지금 곡을 원인과 함께 닫는다(finishTrack 이 이미 닫았으면 아무 일도 없음)
+        flushActiveMetric();
         const keepPlaying = (wantPlayOverride !== undefined) ? wantPlayOverride : (started || uiPlaying) && !userPaused;
         const prevDur = (QUEUE[QUEUE_IDX] && TRACK_METRICS[QUEUE[QUEUE_IDX].id]) ? TRACK_METRICS[QUEUE[QUEUE_IDX].id].durationSec : 0;
         LOAD = { token: (LOAD ? LOAD.token : 0) + 1, idx, at: performance.now(), wantPlay: keepPlaying, playTries: 0, failed: false, prevDur,
@@ -2611,6 +3124,7 @@ function setupPlayer(seq) {
         if(keepPlaying){ LOAD.playTries=1; LOAD.lastTryAt=performance.now(); LOAD.trace.tries_at_ms.push(0); try{ctrl.play();}catch(e){console.warn("Spotify 다음 곡 자동재생 실패",e)} }
         ensureMetric(QUEUE[idx].id, 0);
         if (TRACK_METRICS[QUEUE[idx].id]) TRACK_METRICS[QUEUE[idx].id]._completed = false;   // 재청취 시 완주 자동전환 다시 허용
+        openExposure(QUEUE[idx], idx);
         setNow(); setNavState(); syncPlayerUI(); setPlayUI(keepPlaying);
       };
       /* 전환 감시: 새 곡 업데이트가 안 와도 버튼이 영원히 잠기지 않게. 백그라운드에서는 이 함수 자체가
@@ -2621,7 +3135,7 @@ function setupPlayer(seq) {
       const traceLog = (outcome) => {
         if(!LOAD || LOAD.traced) return; LOAD.traced = true;
         const T = LOAD.trace, now = performance.now();
-        logEvent("track_transition_trace",{ song_id:QUEUE[QUEUE_IDX]?.id, position:QUEUE_IDX+1, outcome,
+        logEvent("track_transition_trace",{ song_id:QUEUE[QUEUE_IDX]?.id, position:seqPos(QUEUE[QUEUE_IDX]?.id), queue_pos:QUEUE_IDX+1, outcome,
           hidden_at_request:T.hidden_at_request, hidden_now:document.hidden, first_update_ms:T.first_update_ms, first_paused_ms:T.first_paused_ms, first_playing_flag_ms:T.first_playing_flag_ms, started_ms:T.started_ms, visible_ms:T.visible_ms,
           play_tries:LOAD.playTries, tries_at_ms:T.tries_at_ms.map(Math.round), total_ms:Math.round(now-LOAD.at) });
       };
@@ -2637,12 +3151,13 @@ function setupPlayer(seq) {
           if(LOAD.wantPlay && !started && !LOAD.failed){
             LOAD.failed=true; setPlayUI(false);
             const t=$("playerFeedbackToast"); if(t) t.textContent="다음 곡을 자동으로 잇지 못했어요. ▶ 재생을 눌러주세요.";
-            logEvent("track_autoplay_failed",{song_id:QUEUE[QUEUE_IDX]?.id,position:QUEUE_IDX+1});
+            logEvent("track_autoplay_failed",{song_id:QUEUE[QUEUE_IDX]?.id,position:seqPos(QUEUE[QUEUE_IDX]?.id),queue_pos:QUEUE_IDX+1});
+            closeExposure("autoplay_fail");
           }
           traceLog(started ? "started" : "gave_up");
         }
       };
-      ensureMetric(QUEUE[0].id, 0); setNow(); setNavState(); syncPlayerUI(); const ov=$("playOverlay"); if(ov) ov.hidden=false;
+      ensureMetric(QUEUE[0].id, 0); openExposure(QUEUE[0], 0); setNow(); setNavState(); syncPlayerUI(); const ov=$("playOverlay"); if(ov) ov.hidden=false;
 
       const startBtn=$("playerStart"), overlay=$("playOverlay"), playToggle=$("aztPlayToggle");
       let uiPlaying = false;
@@ -2661,13 +3176,16 @@ function setupPlayer(seq) {
       if(startBtn) startBtn.addEventListener("click",startPlayback);
       if(playToggle) playToggle.addEventListener("click",togglePlayback);
       const pv=$("prevTrack"), nx=$("nextTrack");
+      /* 운영 앱이 읽는 track_skip 에도 이번 재생분을 싣는다(§7.2) */
+      const skipFacts = () => { const x = EXPOSURE ? exposurePayload(EXPOSURE, "next") : null;
+        return x ? { listened_s: x.listened_s, completion: x.completion, started: x.started } : {}; };
       const manualJump=dir=>{
         const to=QUEUE_IDX+dir;
         if(to<0||to>=QUEUE.length||advancing)return;
         advancing=true;
         if (QUEUE[QUEUE_IDX]) { const m=ensureMetric(QUEUE[QUEUE_IDX].id, TRACK_METRICS[QUEUE[QUEUE_IDX].id]?.durationSec); m.skipped=true; }
-        logEvent("track_skip",{song_id:QUEUE[QUEUE_IDX].id,position:QUEUE_IDX+1,direction:dir>0?"next":"prev"});
-        goTo(to);
+        logEvent("track_skip",{song_id:QUEUE[QUEUE_IDX].id,position:seqPos(QUEUE[QUEUE_IDX].id),queue_pos:QUEUE_IDX+1,direction:dir>0?"next":"prev",...skipFacts()});
+        goTo(to, undefined, dir>0?"next":"prev");
       };
       if(pv) pv.addEventListener("click",()=>manualJump(-1));
       if(nx) nx.addEventListener("click",()=>manualJump(1));
@@ -2676,8 +3194,8 @@ function setupPlayer(seq) {
         if (to < 0 || to === QUEUE_IDX || advancing) return;
         advancing = true;
         if (QUEUE[QUEUE_IDX]) { const m=ensureMetric(QUEUE[QUEUE_IDX].id, TRACK_METRICS[QUEUE[QUEUE_IDX].id]?.durationSec); m.skipped=true; }
-        logEvent("track_skip",{song_id:QUEUE[QUEUE_IDX].id,position:QUEUE_IDX+1,direction:"jump",to_song_id:songId});
-        goTo(to);
+        logEvent("track_skip",{song_id:QUEUE[QUEUE_IDX].id,position:seqPos(QUEUE[QUEUE_IDX].id),queue_pos:QUEUE_IDX+1,direction:"jump",to_song_id:songId,...skipFacts()});
+        goTo(to, undefined, "jump");
       };
 
       /* 곡 끝 처리 — 한 곳으로 모음. playback_update 의 '위치≥길이' 뿐 아니라, 아래 세 경로가 모두 여기로 온다.
@@ -2685,11 +3203,19 @@ function setupPlayer(seq) {
       const finishTrack = (song, m, how) => {
         if(m._completed || advancing) return;
         m._completed=true;   // 곡당 1회 — 종료 위치에서 업데이트가 반복 와도 중복 로그/전환 방지
-        advancing=true; saveListeningRecord(song.id,m,"complete");
-        logEvent("track_complete",{song_id:song.id,position:QUEUE_IDX+1,completion_rate:Math.min(1,m.listenedSeconds/m.durationSec),detected_by:how});
-        if(QUEUE_IDX+1<QUEUE.length) goTo(QUEUE_IDX+1, !userPaused);
+        advancing=true;
+        /* B12 백그라운드 보정: 끝을 벽시계(watchdog·worker·visible)로 감지했고 숨김 직전 재생 중이었으면
+           마지막 표본 이후 재생분 = min(곡 길이 − 마지막 표본 위치, 숨김 벽시계 초)를 더한다 */
+        if ((how === "watchdog" || how === "worker" || how === "visible") && m._wasPlaying && m._lastSampleTs > 0
+            && (document.hidden || HIDDEN_SINCE_TS >= m._lastSampleTs)) {
+          const credit = Math.max(0, Math.min(m.durationSec - m._lastSamplePos, (performance.now() - m._lastSampleTs) / 1000));
+          if (credit > 0) { m.listenedSeconds += credit; if (EXPOSURE && EXPOSURE.song_id === song.id) EXPOSURE.bg_credit_s += credit; }
+        }
+        logEvent("track_complete",{song_id:song.id,position:seqPos(song.id),queue_pos:QUEUE_IDX+1,completion_rate:Math.min(1,m.listenedSeconds/m.durationSec),detected_by:how});
+        closeExposure("complete");
+        if(QUEUE_IDX+1<QUEUE.length) goTo(QUEUE_IDX+1, !userPaused, "complete");
         else {
-          logEvent("sequence_complete",{minutes:RECOMMEND_MINUTES}); flushActiveMetric("sequence_complete");
+          logEvent("sequence_complete",{minutes:RECOMMEND_MINUTES}); flushActiveMetric();
           advancing=false; LOAD=null; setPlayUI(false);   // 시퀀스 끝: 잠금을 풀어 이전 곡 버튼이 다시 눌리게. 다음 곡 없음 → 여기서 멈춤
         }
       };
@@ -2698,6 +3224,7 @@ function setupPlayer(seq) {
          일시정지 표본이 마지막이면(_wasPlaying=false) 추정하지 않는다 — 사용자가 멈춘 것. */
       const checkEnded = (how) => {
         settleLoad();
+        if (document.hidden) savePendingSnapshot();   // 숨은 동안 탭이 죽어도 다음 실행에서 복구하도록(5초 간격)
         const song=QUEUE[QUEUE_IDX]; if(!song||advancing) return;
         const m=TRACK_METRICS[song.id]; if(!m||!m.durationSec||!m._wasPlaying||!m._lastSampleTs) return;
         const est = m._lastSamplePos + (performance.now()-m._lastSampleTs)/1000;
@@ -2753,14 +3280,19 @@ function setupPlayer(seq) {
         const m=ensureMetric(song.id,dur);
         const now=performance.now();
         const wasPlaying=!!m._wasPlaying;
-        if(!d.isPaused && pos>0.2 && !started){ started=true; if(QUEUE_IDX===0) logEvent("sequence_play_start",{song_id:song.id}); }
+        if(!d.isPaused && pos>0.2 && !started){ started=true; if(QUEUE_IDX===0) logEvent("sequence_play_start",{song_id:song.id,position:seqPos(song.id),queue_pos:1}); }
+        if(!d.isPaused && pos>0.2){
+          /* [web-personal] 닫힌 뒤 다시 재생되면(자동재생 실패 후 ▶, 기록하고 나간 뒤 계속 듣기, 마지막 곡 다시 듣기) 새 재생 회차를 연다 */
+          if(!EXPOSURE && (!m._completed || pos < 3)){ m._completed=false; openExposure(song, QUEUE_IDX); }
+          if(EXPOSURE && EXPOSURE.song_id===song.id) EXPOSURE.started=true;
+        }
         if(!d.isPaused && pos>0.2 && m.skipped){ m.skipped=false; }   // 돌아와서 다시 듣기 시작 → 스킵 상태 해제 (이후 저장 행이 깨끗해짐)
         if(!d.isPaused){
           if(wasPlaying && m._lastSampleTs>0){
             const positionDelta=pos-m._lastSamplePos;
             const wallDelta=Math.max(0,(now-m._lastSampleTs)/1000);
             if(positionDelta>0 && positionDelta <= wallDelta+1.25) m.listenedSeconds += Math.min(positionDelta,wallDelta+1.25);
-            else if(positionDelta>1.25){ m.seekEvents++; logEvent("seek",{song_id:song.id,position:QUEUE_IDX+1,from_seconds:Math.round(m._lastSamplePos),to_seconds:Math.round(pos)}); }
+            else if(positionDelta>1.25){ m.seekEvents++; if(EXPOSURE && EXPOSURE.song_id===song.id) EXPOSURE.seek_fwd_s+=positionDelta; logEvent("seek",{song_id:song.id,position:seqPos(song.id),queue_pos:QUEUE_IDX+1,from_seconds:Math.round(m._lastSamplePos),to_seconds:Math.round(pos)}); }
           }
           m._lastSamplePos=pos; m._lastSampleTs=now; m._wasPlaying=true;
         } else { m._wasPlaying=false; m._lastSamplePos=pos; m._lastSampleTs=now; }
@@ -2769,7 +3301,7 @@ function setupPlayer(seq) {
           m.durationSec=dur;
           const pct=m.listenedSeconds/dur;
           m._fired=m._fired||{};
-          for(const mark of [25,50,75]) if(!m._fired[mark] && pct>=mark/100){m._fired[mark]=true;logEvent("track_milestone",{song_id:song.id,position:QUEUE_IDX+1,milestone:mark,duration_ms:Math.round(d.duration)});}
+          for(const mark of [25,50,75]) if(!m._fired[mark] && pct>=mark/100){m._fired[mark]=true;logEvent("track_milestone",{song_id:song.id,position:seqPos(song.id),queue_pos:QUEUE_IDX+1,milestone:mark,duration_ms:Math.round(d.duration)});}
         }
         syncPlayerUI();
         const toast=$("playerFeedbackToast");
@@ -2798,6 +3330,98 @@ let CUR_VA = null;   // 지금 상태 (첫 탭)
 let TGT_VA = null;   // 목표 상태 (둘째 탭)
 let CUR_MODE = null; // 지금 상태 입력 방식: "tap" | "chip" | "nl"
 let TGT_MODE = null; // 목표 상태 입력 방식
+/* [web-personal] §4.1–4.2 입력 해석: 어떤 단어였나(LABELS) · 보정 전 표 좌표(TABLE_PT) · 이번에 적용한 보정(CALIB) · 사용자가 옮겼나(NUDGED).
+   좌표 보정은 본인이 과거에 끌어 옮긴 만큼만(I4) — 화면에 원래 위치(옅은 고리)와 함께 보이고 "원래 위치로"로 한 번에 되돌린다. */
+let LABELS = { current: null, target: null };
+let TABLE_PT = { current: null, target: null };
+let CALIB = { current: null, target: null };            // { applied:{dv,de}|null, basis:{label,n_edit}|null, prompt }
+let CALIB_REVERTED = { current: false, target: false };
+let NUDGED = { current: false, target: false };
+const DRAG_HIT_PX = 18;   // §4.1.4 — 이미 찍힌 점에서 화면 기준 18px 이내를 누르면 그 점을 끈다(UI 값)
+let DRAG = null;          // { field, pointerId, moved }
+
+const fieldVA = f => f === "current" ? CUR_VA : TGT_VA;
+function setFieldVA(f, p, mode) {
+  if (f === "current") { CUR_VA = p; if (mode !== undefined) CUR_MODE = mode; }
+  else { TGT_VA = p; if (mode !== undefined) TGT_MODE = mode; }
+}
+function clearField(f) {
+  setFieldVA(f, null, null);
+  LABELS[f] = null; TABLE_PT[f] = null; CALIB[f] = null; NUDGED[f] = false; CALIB_REVERTED[f] = false;
+}
+function setFieldTap(f, p) {
+  setFieldVA(f, p, "tap");
+  LABELS[f] = { mode: "tap" }; TABLE_PT[f] = null; CALIB[f] = null; NUDGED[f] = false; CALIB_REVERTED[f] = false;   // 탭은 표 좌표가 없어 관측이 아니다
+}
+const labelName = (f, lab) => {
+  const L = lab || LABELS[f];
+  if (!L) return null;
+  if (L.mode === "chip") return L.chip;
+  if (L.mode === "nl") return Array.isArray(L.nl) ? (L.nl[0] && L.nl[0].label) || null : L.nl || null;
+  return null;
+};
+/* 칩·자연어로 정한 표 좌표 → personal.calibratePoint → 보정된 점. 같은 단어·같은 표 좌표를 다시 적용하면(시트를 열었다 닫음 등)
+   사용자가 끌어 둔 위치를 지킨다. 익명·개인화 끔은 표 좌표 그대로(fix-web 과 같은 좌표). */
+function setFieldFromTable(f, labels, table, mode) {
+  if (!table) { clearField(f); return; }
+  const same = fieldVA(f) && TABLE_PT[f] && TABLE_PT[f].v === table.v && TABLE_PT[f].e === table.e
+               && JSON.stringify(LABELS[f]) === JSON.stringify(labels);
+  if (same) { setFieldVA(f, fieldVA(f), mode); return; }
+  LABELS[f] = labels; TABLE_PT[f] = { v: table.v, e: table.e }; NUDGED[f] = false; CALIB_REVERTED[f] = false;
+  const c = calibrateField(f, labels, TABLE_PT[f]);
+  CALIB[f] = c.applied || c.prompt ? { applied: c.applied, basis: c.basis, prompt: c.prompt } : null;
+  setFieldVA(f, c.point, mode);
+}
+function calibrateField(f, labels, table) {
+  const none = { point: { v: table.v, e: table.e }, applied: null, basis: null, prompt: null };
+  if (!personalActive() || !MODEL || typeof PERSONAL.calibratePoint !== "function") return none;
+  try {
+    /* labels 는 그 필드의 단어({mode, chip|nl})이면서 {current, target} 로도 읽히게 넘긴다 — 명세 §9.2 의 인자 모양을 어느 쪽으로 읽어도 같게 */
+    const arg = { ...labels, current: f === "current" ? labels : LABELS.current, target: f === "target" ? labels : LABELS.target };
+    const r = PERSONAL.calibratePoint(MODEL, f, arg, table, AZT_RULES) || {};
+    const pt = validPt(r.point);
+    if (!pt) return none;
+    const applied = r.applied && (Number(r.applied.dv) || Number(r.applied.de)) ? { dv: Number(r.applied.dv) || 0, de: Number(r.applied.de) || 0 } : null;
+    const key = r.prompt_key || (f + ":" + labelName(f, labels));
+    const prompt = r.prompt && promptAllowed(key) ? String(r.prompt) : null;
+    if (prompt) markPromptSeen(key);
+    return { point: applied ? pt : { v: table.v, e: table.e }, applied, basis: r.basis || null, prompt };
+  } catch (e) { console.warn("[AZT] calibratePoint 실패 — 표 좌표 그대로", e); return none; }
+}
+/* §4.1.5 같은 안내는 wp_personal_v1.calib_prompt_seen 에 적어 prompt_repeat_days 안에 반복하지 않는다 */
+function promptAllowed(key) {
+  const days = Number(PR().calib && PR().calib.prompt_repeat_days);
+  const seen = WP_DOC && WP_DOC.calib_prompt_seen && WP_DOC.calib_prompt_seen[key];
+  return !(seen && isFinite(days) && Date.now() - Number(seen) < days * DAY_MS);
+}
+function markPromptSeen(key) { patchWpDoc({ calib_prompt_seen: { [key]: Date.now() } }); }
+/* "원래 위치로": 점을 표 좌표로 옮기고 nudged = true (0 방향 옮김 관측 — 올바른 신호) + calib_reset 기록 */
+function revertCalib(f) {
+  if (!TABLE_PT[f] || !fieldVA(f)) return;
+  setFieldVA(f, { ...TABLE_PT[f] });
+  NUDGED[f] = true; CALIB_REVERTED[f] = true;
+  logEvent("calib_reset", { field: f, label: labelName(f) });
+  clearPath(); updatePlaneUI();
+}
+function renderCalibNote() {
+  const box = $("calibNote"); if (!box) return;
+  const parts = [];
+  for (const f of ["current", "target"]) {
+    const p = fieldVA(f), t = TABLE_PT[f], c = CALIB[f];
+    if (!p || !t) continue;
+    const who = f === "current" ? "지금" : "목표", name = labelName(f);
+    const moved = p.v !== t.v || p.e !== t.e;
+    if (moved && NUDGED[f]) parts.push("<div><b>" + who + "</b>직접 옮긴 위치예요 · <button type='button' data-calib-reset='" + f + "'>원래 위치로</button></div>");
+    else if (moved && c && c.applied) {
+      const n = c.basis && Number(c.basis.n_edit);
+      parts.push("<div><b>" + who + "</b>내 기준으로 살짝 옮겼어요" + (name && n ? " — ‘" + esc((c.basis && c.basis.label) || name) + "’를 고르실 때 직접 옮기신 " + n + "번 기준" : "")
+        + " · <button type='button' data-calib-reset='" + f + "'>원래 위치로</button></div>");
+    } else if (CALIB_REVERTED[f]) parts.push("<div><b>" + who + "</b>원래 위치로 옮겼어요.</div>");
+    if (c && c.prompt) parts.push("<span class='prompt'>" + esc(c.prompt) + "</span>");
+  }
+  box.innerHTML = parts.join("");
+  box.hidden = !parts.length;
+}
 let SONGS_READY = false;
 const PLANE = { W: 560, H: 380, PAD: 44 };
 const PX = v => PLANE.PAD + v * (PLANE.W - 2 * PLANE.PAD);
@@ -2856,15 +3480,56 @@ function initPlane() {
       e: Math.min(1, Math.max(0, (PLANE.H - PLANE.PAD - y) / (PLANE.H - 2 * PLANE.PAD)))
     };
   };
+  /* [web-personal] §4.1.4 끌기: 이미 찍힌 '지금'/'목표' 점에서 18px(화면 기준) 이내를 누르면 그 점을 끄는 모드.
+     입력 방식(chip/nl)은 그대로 두고(자연어 카드도 유지) NUDGED 만 세운다. 점에서 먼 곳의 탭은 예전과 같다. */
+  const hitPoint = (cx, cy) => {
+    const r = svg.getBoundingClientRect(), sx = r.width / PLANE.W, sy = r.height / PLANE.H;
+    let best = null, bd = Infinity;
+    for (const f of ["target", "current"]) {
+      const p = fieldVA(f); if (!p) continue;
+      const d = Math.hypot(r.left + PX(p.v) * sx - cx, r.top + PY(p.e) * sy - cy);
+      if (d <= DRAG_HIT_PX && d < bd) { bd = d; best = f; }
+    }
+    return best;
+  };
+  /* 점 위에서 시작한 터치만 페이지 스크롤을 막는다(빈 곳을 스치면 평소처럼 스크롤 — 평면 전체 touch-action:none 대신) */
+  svg.addEventListener("touchstart", (ev) => {
+    const t = ev.touches && ev.touches[0];
+    if (t && hitPoint(t.clientX, t.clientY)) ev.preventDefault();
+  }, { passive: false });
   svg.addEventListener("pointerdown", (ev) => {
+    const hit = hitPoint(ev.clientX, ev.clientY);
+    if (hit) {
+      ev.preventDefault();
+      DRAG = { field: hit, pointerId: ev.pointerId, moved: false };
+      try { svg.setPointerCapture(ev.pointerId); } catch (e) { /* 무시 */ }
+      svg.classList.add("dragging");
+      return;
+    }
     const p = fromEvent(ev);
-    if (!CUR_VA) { CUR_VA = p; CUR_MODE = "tap"; }                 // 첫 탭 → 지금
-    else if (!TGT_VA) { TGT_VA = p; TGT_MODE = "tap"; }            // 둘째 탭 → 목표
-    else { CUR_VA = p; CUR_MODE = "tap"; TGT_VA = null; TGT_MODE = null;
+    if (!CUR_VA) setFieldTap("current", p);                        // 첫 탭 → 지금
+    else if (!TGT_VA) setFieldTap("target", p);                    // 둘째 탭 → 목표
+    else { setFieldTap("current", p); clearField("target");
            LAST_NL_TEXT = null; clearPath(); }                     // 셋째 탭 → 리셋 후 새 지금
     updatePlaneUI();
   });
-  // 접근성: 화살표 키는 마지막으로 지정한 점(목표 있으면 목표, 없으면 지금)을 0.05씩 이동
+  svg.addEventListener("pointermove", (ev) => {
+    if (!DRAG || ev.pointerId !== DRAG.pointerId) return;
+    ev.preventDefault();
+    setFieldVA(DRAG.field, fromEvent(ev));
+    DRAG.moved = true; NUDGED[DRAG.field] = true; CALIB_REVERTED[DRAG.field] = false;
+    clearPath(); updatePlaneUI();
+  });
+  const endDrag = (ev) => {
+    if (!DRAG || ev.pointerId !== DRAG.pointerId) return;
+    try { svg.releasePointerCapture(ev.pointerId); } catch (e) { /* 무시 */ }
+    svg.classList.remove("dragging");
+    DRAG = null;
+    updatePlaneUI();
+  };
+  svg.addEventListener("pointerup", endDrag);
+  svg.addEventListener("pointercancel", endDrag);
+  // 접근성: 화살표 키는 마지막으로 지정한 점(목표 있으면 목표, 없으면 지금)을 0.05씩 이동 — 끌기와 같은 NUDGED 를 세운다
   svg.addEventListener("keydown", (ev) => {
     const step = { ArrowLeft:[-0.05,0], ArrowRight:[0.05,0], ArrowUp:[0,0.05], ArrowDown:[0,-0.05] }[ev.key];
     if (!step) return;
@@ -2874,8 +3539,13 @@ function initPlane() {
     const np = { v: Math.min(1, Math.max(0, p.v + step[0])),
                  e: Math.min(1, Math.max(0, p.e + step[1])) };
     if (key === "TGT") TGT_VA = np; else CUR_VA = np;
+    const f = key === "TGT" ? "target" : "current";
+    if (!LABELS[f]) LABELS[f] = { mode: "tap" };
+    NUDGED[f] = true; CALIB_REVERTED[f] = false;
+    clearPath();
     updatePlaneUI();
   });
+
   updatePlaneUI();
 }
 
@@ -2889,16 +3559,25 @@ function updatePlaneUI() {
   const layer = $("markerLayer");
   if (!layer) return;
   let s = "";
+  /* 원래 표 좌표에 옅은 고리 — 점이 보정·끌기로 옮겨졌을 때만 */
+  for (const f of ["current", "target"]) {
+    const p = fieldVA(f), t = TABLE_PT[f];
+    if (p && t && (p.v !== t.v || p.e !== t.e))
+      s += '<circle cx="' + PX(t.v) + '" cy="' + PY(t.e) + '" r="9" fill="none" stroke="var(--muted)" stroke-width="1.3" stroke-dasharray="2 3" opacity=".85"/>';
+  }
   if (CUR_VA) {
     s += '<circle cx="' + PX(CUR_VA.v) + '" cy="' + PY(CUR_VA.e) + '" r="8" fill="var(--ink)"/>'
-      + svgLab(PX(CUR_VA.v), PY(CUR_VA.e) + 26, "지금", 12, "var(--ink)", 600);
+      + svgLab(PX(CUR_VA.v), PY(CUR_VA.e) + 26, "지금", 12, "var(--ink)", 600)
+      + '<circle class="va-handle" cx="' + PX(CUR_VA.v) + '" cy="' + PY(CUR_VA.e) + '" r="16" fill="transparent"/>';
   }
   if (TGT_VA) {
     s += '<circle cx="' + PX(TGT_VA.v) + '" cy="' + PY(TGT_VA.e) + '" r="10" fill="none" stroke="var(--ink)" stroke-width="2"/>'
       + '<circle cx="' + PX(TGT_VA.v) + '" cy="' + PY(TGT_VA.e) + '" r="3.5" fill="var(--ink)"/>'
-      + svgLab(PX(TGT_VA.v), PY(TGT_VA.e) - 16, "목표", 12, "var(--ink)", 600);
+      + svgLab(PX(TGT_VA.v), PY(TGT_VA.e) - 16, "목표", 12, "var(--ink)", 600)
+      + '<circle class="va-handle" cx="' + PX(TGT_VA.v) + '" cy="' + PY(TGT_VA.e) + '" r="16" fill="transparent"/>';
   }
   layer.innerHTML = s;
+  renderCalibNote();
   nlCardSync();   // 자연어 v2 카드: 탭·칩으로 바꾸면 내려가고, 카드 편집이면 다시 그린다
 
   const echo = $("vaEcho");
@@ -2906,10 +3585,10 @@ function updatePlaneUI() {
     if (!CUR_VA)
       echo.innerHTML = "가로: 기분(안 좋음↔좋음) · 세로: 활력(나른함↔들뜸). 먼저 <b>지금 상태</b>를 단어나 좌표로 골라주세요.";
     else if (!TGT_VA)
-      echo.innerHTML = "지금: " + vaWord(CUR_VA) + " — 이어서 <b>도착하고 싶은 목표 상태</b>를 골라주세요.";
+      echo.innerHTML = "지금: " + vaWord(CUR_VA) + " — 이어서 <b>도착하고 싶은 목표 상태</b>를 골라주세요. 점을 끌어서 미세 조정할 수 있어요.";
     else
       echo.innerHTML = "지금: " + vaWord(CUR_VA) + " → 목표: " + vaWord(TGT_VA)
-        + " — 준비 완료! 좌표를 다시 탭하면 처음부터 새로 지정합니다.";
+        + " — 준비 완료! 점을 끌어서 미세 조정할 수 있어요. 빈 곳을 다시 탭하면 처음부터 새로 지정합니다.";
   }
   renderChips();
   renderLinearPreview();
@@ -2970,7 +3649,7 @@ function renderLinearPreview() {
    ISO 이동(동조 후 점진 이동)이 "리스트"가 아니라 "이동"으로 보이게 한다. */
 let EMO_CTX = null;   // { cur, tgt, seq } — 테마 전환·곡 전환 시 재렌더용
 let EMO_CURRENT_ID = null;
-function emotionMapSVG(cur, tgt, seq, currentId) {
+function emotionMapSVG(cur, tgt, seq, currentId, ref) {
   const W = 560, H = 350, PAD = 40;
   const px = v => PAD + v * (W - 2 * PAD);
   const py = e => (H - PAD) - e * (H - 2 * PAD);
@@ -2985,6 +3664,13 @@ function emotionMapSVG(cur, tgt, seq, currentId) {
   s += svgLab(cx, H - 12, "나른함·차분", 10.5);
   s += svgLab(PAD + 28, cy - 8, "기분 ↓", 10.5);
   s += svgLab(W - PAD - 28, cy - 8, "기분 ↑", 10.5);
+  /* [web-personal] 기본 추천과 비교: R 경로(개인 기록 없이 web-personal 이 줄 추천)를 흐린 가는 점선 + 속 빈 네모로 먼저 깐다 */
+  if (ref && ref.length) {
+    const rp = [cur, ...ref.map(o => o._p), tgt];
+    s += '<path d="' + rp.map((p, i) => (i ? "L" : "M") + px(p.v).toFixed(1) + " " + py(p.e).toFixed(1)).join(" ") + '" fill="none" stroke="var(--muted)" stroke-width="1.2" stroke-dasharray="2 4" stroke-linejoin="round"/>';
+    ref.forEach(o => { s += '<rect x="' + (px(o._p.v) - 3.5).toFixed(1) + '" y="' + (py(o._p.e) - 3.5).toFixed(1) + '" width="7" height="7" fill="var(--paper)" stroke="var(--muted)" stroke-width="1.1"/>'; });
+    s += svgLab(W - PAD - 62, H - 12, "□ 기본 추천 경로", 9.5, "var(--muted)");
+  }
   // 경로: 지금 → 곡들 → 목표
   const pts = [cur, ...seq.map(o => o._p), tgt];
   const path = pts.map((p, i) => (i ? "L" : "M") + px(p.v).toFixed(1) + " " + py(p.e).toFixed(1)).join(" ");
@@ -3020,7 +3706,7 @@ function emotionMapSVG(cur, tgt, seq, currentId) {
 function renderEmotionMap() {
   const box = $("emotionMap");
   if (!box || !EMO_CTX) return;
-  box.innerHTML = emotionMapSVG(EMO_CTX.cur, EMO_CTX.tgt, EMO_CTX.seq, EMO_CURRENT_ID);
+  box.innerHTML = emotionMapSVG(EMO_CTX.cur, EMO_CTX.tgt, EMO_CTX.seq, EMO_CURRENT_ID, EMO_CTX.showRef ? EMO_CTX.ref : null);
 }
 function UPDATE_EMOTION_MAP(songId) {
   if (songId !== undefined) {
@@ -3044,9 +3730,9 @@ function renderChips() {
     btn.addEventListener("click", () => {
       const c = (!CUR_VA ? MOOD_CHIPS : GOAL_CHIPS)[Number(btn.dataset.i)];
       if (!c) return;
-      const p = { v: c[1], e: c[2] };
-      if (!CUR_VA) { CUR_VA = p; CUR_MODE = "chip"; }
-      else if (!TGT_VA) { TGT_VA = p; TGT_MODE = "chip"; }
+      const p = { v: c[1], e: c[2] };   // 표 좌표 — 회원이면 내 옮김 기록만큼 보정된 점으로 시작한다(§4.1.3)
+      if (!CUR_VA) setFieldFromTable("current", { mode: "chip", chip: c[0] }, p, "chip");
+      else if (!TGT_VA) setFieldFromTable("target", { mode: "chip", chip: c[0] }, p, "chip");
       clearPath();
       updatePlaneUI();
     });
@@ -3156,8 +3842,9 @@ function applyNLToState() {
   if (!NL_S) return;
   const cur = nlCurrentPoint(NL_S.cur);
   const T = NL_S.tgt ? nlByLabel(NL_GOALS, NL_S.tgt) : null;
-  CUR_VA = cur; CUR_MODE = cur ? "nl" : null;
-  TGT_VA = T ? { v:T.v, e:T.e } : null; TGT_MODE = T ? "nl" : null;
+  /* [web-personal] 표 좌표를 만든 직후 보정(§4.1.3). 두 단어면 personal.js 가 강도 비율로 섞는다 */
+  setFieldFromTable("current", cur ? { mode: "nl", nl: NL_S.cur.map(c => ({ label: c.label, intensity: c.intensity })) } : null, cur, "nl");
+  setFieldFromTable("target", T ? { mode: "nl", nl: T.label } : null, T ? { v:T.v, e:T.e } : null, "nl");
   if (!NL_PRESET) NL_PRESET = { lyric: $("lyric").value, genres: [...SELECTED_GENRES], minutes: RECOMMEND_MINUTES };
   const c = NL_S.cons;
   $("lyric").value = c.lyric || NL_PRESET.lyric;
@@ -3253,6 +3940,11 @@ function nlPick(d) {
   } else return false;
   return true;
 }
+/* 보정 안내의 "원래 위치로" — initPlane 은 테마를 바꿀 때 다시 불리므로 여기서 한 번만 묶는다 */
+$("calibNote").addEventListener("click", (ev) => {
+  const b = ev.target.closest("button[data-calib-reset]");
+  if (b) revertCalib(b.dataset.calibReset);
+});
 $("nlReadBox").addEventListener("click", (ev) => {
   if (!NL_S) return;
   const b = ev.target.closest("button"); if (!b) return;
@@ -3384,6 +4076,105 @@ async function initNL() {
   });
 }
 
+/* ── 조건 완화(§4.12.1) — 경로가 곡 수보다 짧게 끝나면 조건을 하나씩 풀어 다시 만든다. 무엇을 풀었는지 로그(input.relaxed)에 남긴다 ── */
+const RELAX_LABEL = { lyric: "가사 조건", genre: "장르", both: "가사 조건과 장르" };
+function relaxOrder(lyric, personal) {
+  const R = PR().relax || {};
+  const def = Array.isArray(R.order_default) && R.order_default.length ? R.order_default : ["lyric", "genre", "both"];
+  if (!personal || !MODEL) return def;   // 익명·개인화 끔은 기본 순서(76e8bdf 와 같음)
+  /* 가사가 더 중요한 사람(instrumental_only 를 직접 골랐거나 최근 30일 '가사·목소리가 거슬려요' 가 문턱 이상)은 장르를 먼저 푼다 */
+  const vb = Number(MODEL.gates && MODEL.gates.evidence && MODEL.gates.evidence.vocal_bother_w) || 0;
+  const alt = Array.isArray(R.order_vocal_bother) && R.order_vocal_bother.length ? R.order_vocal_bother : def;
+  return (lyric === "instrumental_only" || (R.vocal_bother_min != null && vb >= Number(R.vocal_bother_min))) ? alt : def;
+}
+function relaxRun(run, input, needCount, order) {
+  let result = run(input), used = input, relaxed = null, notice = null;
+  const wantN = result.song_count ? result.song_count.effective : needCount;
+  const hasLyric = (input.gates || []).length > 0, hasGenre = (input.genres || []).length > 0;
+  if (result.sequence.length < wantN && (hasLyric || hasGenre)) {
+    for (const key of order) {
+      if ((key === "lyric" && !hasLyric) || (key === "genre" && !hasGenre) || (key === "both" && !(hasLyric && hasGenre)) || !RELAX_LABEL[key]) continue;
+      const t = { ...input, ...(key !== "genre" ? { gates: [] } : {}), ...(key !== "lyric" ? { genres: [] } : {}) };
+      const r2 = run(t);
+      if (r2.sequence.length > result.sequence.length) {
+        result = r2; used = t; relaxed = key;
+        notice = "지금 조건으로는 " + wantN + "곡을 이을 수 없어서 " + RELAX_LABEL[key] + "을 풀고 골랐어요.";
+        console.warn("[AZT] 후보 부족 → " + RELAX_LABEL[key] + " 해제 (" + r2.sequence.length + "곡)");
+        if (r2.sequence.length >= wantN) break;
+      }
+    }
+  }
+  return { result, input: used, relaxed, notice };
+}
+/* §2.2 3~7: 정책(개인·기준 p0) → 실행 A(완화 포함) → 실행 R(A 가 최종적으로 쓴 입력) → 안전 확인 → 폴백 */
+const PATH_PARAM_KEYS = ["tp", "quit_frac", "start_offset", "start_min_journey", "hold_radius", "hold_min_songs"];
+function revertPathParams(pol, p0) {
+  /* 경로 모수(tp·s·이탈 가드·r)만 P0 로 되돌린 정책 A′ — 취향·전환·다양성은 그대로 둔다 */
+  const q = { ...pol };
+  for (const k of PATH_PARAM_KEYS) if (k in p0) q[k] = p0[k];
+  delete q.digest;
+  try { q.digest = PERSONAL.digest(q); } catch (e) { q.digest = null; }
+  return q;
+}
+function runPersonalRecommend(ctx, baseInput, run, needCount, lyric) {
+  const P = PERSONAL;
+  const out = P.resolvePolicy(MODEL, ctx, AZT_RULES);
+  const ref = P.resolvePolicy(MODEL, ctx, AZT_RULES, { mode: "p0" });
+  if (!out || !out.policy || !ref || !ref.policy) throw new Error("resolvePolicy 결과에 policy 가 없어요");
+  /* 완화 순서는 personal.js 가 정한다(meta.relax_order) — 없으면 같은 규칙으로 앱이 고른다 */
+  const order = out.meta && Array.isArray(out.meta.relax_order) && out.meta.relax_order.length ? out.meta.relax_order : relaxOrder(lyric, true);
+  const ra = relaxRun(run, { ...baseInput, user: out.user, personal: out.policy }, needCount, order);
+  const inputR = { ...ra.input, user: ref.user, personal: ref.policy };   // "개인 기록이 전혀 없을 때 web-personal 이 줄 추천"
+  const resR = run(inputR);
+  let final = { result: ra.result, input: ra.input, out, fallback: null };
+  let safety = P.safetyCheck(ra.result, resR, AZT_RULES);
+  if (safety && safety.ok === false) {
+    let outG = null;
+    try { outG = P.resolvePolicy(MODEL, ctx, AZT_RULES, { mode: "geometry" }); } catch (e) { outG = null; }
+    if (!outG || !outG.policy) outG = { ...out, policy: revertPathParams(out.policy, ref.policy) };
+    const inputA2 = { ...ra.input, user: outG.user || out.user, personal: outG.policy };
+    const resA2 = run(inputA2);
+    const s2 = P.safetyCheck(resA2, resR, AZT_RULES);
+    if (s2 && s2.ok !== false) final = { result: resA2, input: inputA2, out: outG, fallback: "geometry" };
+    else final = { result: resR, input: inputR, out: ref, fallback: "p0" };
+    console.warn("[AZT] 안전 확인 위반", safety.violations, "→", final.fallback);
+    safety = s2 || safety;
+  }
+  return { ...final, personalOut: out, ref, resR, inputR, safety, relaxed: ra.relaxed, notice: ra.notice };
+}
+/* 익명·개인화 끔의 '더 들을 곡'(옛 코드) — B21: 가사 조건(instrumental_only)을 거른다. 숫자는 규칙(personalization.extras)에서 */
+function legacyExtras(pool, seq, tgt, lyric) {
+  const X = PR().extras || {};
+  const fill = Number(X.fill_ratio);
+  if (!(fill > 0)) return [];
+  const estimated = s => Math.max(Number(X.min_duration_s) || 0, Number(s.durationSec) || Number(X.default_duration_s) || 0);
+  const totalTargetSec = RECOMMEND_MINUTES * 60;
+  const used = new Set(seq.map(s => s.id));
+  let total = seq.reduce((a, s) => a + estimated(s), 0);
+  const extras = [];
+  /* 경유 시퀀스는 '이동', 그 뒤 곡은 '도착한 상태 유지' 역할 → 목표 좌표에 가까운 순으로 채운다.
+     (이전엔 카탈로그 순서 그대로였다. 최근 재생 곡은 시퀀스와 같은 이유로 뺀다.) */
+  const recentSet = new Set(recentlyPlayedIds());
+  const dTgt = s => { const p = songVA(s); return p ? Math.hypot(p.v - tgt.v, p.e - tgt.e) : Infinity; };
+  const lyricOk = s => lyric === "instrumental_only" ? songIsInstrumental(s) : true;   // prefer_vocal 은 풀에서 이미 걸렀다
+  const extraPool = pool.filter(s => !used.has(s.id) && !DISLIKED_SONGS.has(s.id) && !recentSet.has(s.id) && lyricOk(s))
+                        .sort((a, b) => dTgt(a) - dTgt(b));
+  for (const c of extraPool) {
+    if (total >= totalTargetSec * fill) break;
+    extras.push(c); used.add(c.id); total += estimated(c);
+  }
+  return extras;
+}
+/* "이번 추천에 반영된 나" 칩 ≤3 — resolvePolicy 가 준 explain(개인 모드). 안전 폴백 A′ 처럼 비어 있으면 실제로 쓴 정책으로 다시 묻는다 */
+function explainChips(out, ctx) {
+  let chips = [];
+  try {
+    chips = Array.isArray(out && out.explain) && out.explain.length ? out.explain
+      : (PERSONAL && typeof PERSONAL.explainPolicy === "function" ? PERSONAL.explainPolicy(out.policy, MODEL, AZT_RULES, ctx) : []);
+  } catch (e) { console.warn("[AZT] explainPolicy 실패", e); }
+  return (chips || []).filter(c => c && c.text).slice(0, 3);
+}
+
 async function recommend() {
   if (!CUR_VA || !TGT_VA) return;
   try { await loadEngine(); }
@@ -3401,6 +4192,12 @@ async function recommend() {
     requestAnimationFrame(() => goScene("results"));   // 조용히 끝내지 않는다
     return;
   }
+  await loadPersonal();
+  buildCatalogIndex();
+  /* §2.3·§7.3 세션 닫힘(다음 추천): 듣던 곡을 new_rec 로 닫고, 이 탭의 기록까지 넣어 모델을 다시 만든다 */
+  closeExposure("new_rec");
+  if (personalActive()) rebuildModel("new_rec");
+
   const lyric = $("lyric").value;
   RECOMMEND_MINUTES = Number($("listenTime").value) || 30;
   SELECTED_GENRES = [...SELECTED_GENRES];
@@ -3455,8 +4252,11 @@ async function recommend() {
   if (lyric === "instrumental_only") gates.push("instrumental_only");
   else if (lyric === "prefer_vocal") gates.push("exclude_instrumental");
 
-  const seed = buildSeed();
-  const engineInput = {
+  const { seed, no: sessionNo } = buildSeed();
+  const recId = newRecId();   // B15: 재생 이벤트 전에 ID 를 정한다
+  /* B20: 감정 여정 속도는 규칙 '사본'(앱의 PACE_TP)이 아니라 inputs.pace 로 넘긴다 — 모든 사용자(익명 포함).
+     전환점 값은 규칙(personalization.pace.manual_tp, 옛 PACE_TP 와 같은 값)에 있고, 개인화 스위치와 무관하게 동작한다. */
+  const baseInput = {
     now:    { V: cur.v, A: cur.e },
     target: { V: tgt.v, A: tgt.e },
     stress: deriveStress(cur),       // 0~4
@@ -3465,102 +4265,233 @@ async function recommend() {
     duration_min: RECOMMEND_MINUTES,
     seed,
     gates,
-    user: buildUserProfile(),
+    pace: PACE_MODE || null,
+  };
+  const runEngine = inp => AZT_ENGINE.recommend(contract, AZT_RULES, inp);
+
+  /* §2.2 2: ctx — 확정 좌표(보정 적용 뒤)와 표 좌표·단어·끌었는지를 함께 든다 */
+  let stressNow = deriveStress(cur);
+  try { if (PERSONAL && typeof PERSONAL.stressOf === "function") stressNow = PERSONAL.stressOf(cur, AZT_RULES); } catch (e) { /* 앱 식과 같은 값 */ }
+  const hiMin = Number(PR().safety && PR().safety.high_stress_min);
+  const ctx = {
+    now: { v: cur.v, e: cur.e }, target: { v: tgt.v, e: tgt.e },
+    now_table: TABLE_PT.current, target_table: TABLE_PT.target,
+    labels: { current: LABELS.current || { mode: "tap" }, target: LABELS.target || { mode: "tap" } },
+    nudged: { current: !!NUDGED.current, target: !!NUDGED.target },
+    minutes: RECOMMEND_MINUTES, lyric, genres: [...SELECTED_GENRES], pace_user: PACE_MODE || null,
+    seed, global_stats: globalStatsForEngine(), disliked_now: [...DISLIKED_SONGS], session_no: sessionNo,
+    calib_applied: { current: (CALIB.current && CALIB.current.applied) || null, target: (CALIB.target && CALIB.target.applied) || null },
   };
 
-  /* 감정 여정 속도: 선택 시에만 전환점을 바꾼 규칙 '사본'으로 실행한다.
-     AZT_RULES 원본은 절대 변형하지 않는다 — 자동 모드는 항상 기본 정책으로 복귀.
-     fast = 시퀀스 절반까지 목표 도달 후 유지 / slow = 마지막 곡에 도달(전체 펼침).
-     ⚠️ 이 분기도 yaml 정식 반영 대상: pace 를 엔진 input + modulator(map: fast/slow →
-        transition_point 프로파일)로 옮기면 Python 검증기가 같은 경로를 재현할 수 있다.
-        그전까지 검증기로 이 기간 로그를 검사할 땐 input.pace_mode 를 함께 읽을 것. */
-  const PACE_TP = {
-    fast: [{ up_to: 999, at: 0.5 }],
-    slow: [{ up_to: 999, at: 1.0 }],
-  };
-  const rulesForRun = PACE_MODE
-    ? { ...AZT_RULES, iso: { ...AZT_RULES.iso, transition_point: PACE_TP[PACE_MODE] } }
-    : AZT_RULES;
-
-  let result = AZT_ENGINE.recommend(contract, rulesForRun, engineInput);
-  /* [2026-09-22] 조건 조합으로 후보가 모자라 경로가 짧게 끝나면(엔진이 정한 곡 수보다 적음) 조건을 하나씩 풀어 다시 만든다.
-     순서: 가사 조건 → 장르 → 둘 다. 무엇을 풀었는지 GENRE_NOTICE 로 결과 화면에 알린다. 조용히 2곡만 내놓지 않는다. */
-  const wantN = result.song_count ? result.song_count.effective : needCount;
-  if (result.sequence.length < wantN && (gates.length || engineInput.genres.length)) {
-    const tries = [];
-    if (gates.length) tries.push({ label: "가사 조건", input: { ...engineInput, gates: [] } });
-    if (engineInput.genres.length) tries.push({ label: "장르", input: { ...engineInput, genres: [] } });
-    if (gates.length && engineInput.genres.length) tries.push({ label: "가사 조건과 장르", input: { ...engineInput, gates: [], genres: [] } });
-    for (const t of tries) {
-      const r2 = AZT_ENGINE.recommend(contract, rulesForRun, t.input);
-      if (r2.sequence.length > result.sequence.length) {
-        result = r2;
-        GENRE_NOTICE = "지금 조건으로는 " + wantN + "곡을 이을 수 없어서 " + t.label + "을 풀고 골랐어요.";
-        console.warn("[AZT] 후보 부족 → " + t.label + " 해제 (" + r2.sequence.length + "곡)");
-        if (r2.sequence.length >= wantN) break;
-      }
-    }
+  /* ① 개인화 경로(회원 · 스위치 켬 · 모델 있음). 어디서든 실패하면 이번 추천만 기본 경로로 — 추천이 멈추지 않게 */
+  let wp = null;
+  if (personalActive() && MODEL) {
+    try { wp = runPersonalRecommend(ctx, baseInput, runEngine, needCount, lyric); }
+    catch (e) { console.error("[AZT] 개인화 추천 실패 — 이번엔 기본 추천(I0)으로 만들어요", e); wp = null; }
   }
+  /* ② 기본 경로(inputs.personal 없음 — 엔진 2.5.1 과 같은 출력, I0) */
+  let result, finalInput, relaxed, notice;
+  if (wp) { result = wp.result; finalInput = wp.input; relaxed = wp.relaxed; notice = wp.notice; }
+  else {
+    const rr = relaxRun(runEngine, { ...baseInput, user: buildUserProfile() }, needCount, relaxOrder(lyric, false));
+    result = rr.result; finalInput = rr.input; relaxed = rr.relaxed; notice = rr.notice;
+  }
+  if (notice) GENRE_NOTICE = notice;
   LAST_ENGINE_RESULT = result;
 
   /* 엔진 결과(곡ID + trace)를 앱의 곡 객체에 다시 붙인다 */
-  const seq = result.sequence.map(r => {
-    const s = byId.get(r.song_id);
-    return s ? { ...s, _p: songVA(s), _trace: r.trace, _why: r.explanations } : null;
-  }).filter(Boolean);
+  const toSong = (id, trace, why) => { const s = byId.get(id); return s ? { ...s, _p: songVA(s), _trace: trace, _why: why } : null; };
+  const seq = result.sequence.map(r => toSong(r.song_id, r.trace, r.explanations)).filter(Boolean);
 
   if (!seq.length) {
     $("results").innerHTML = "<div class='scene-inner result-cabin'><div class='result-placeholder'><h2>맞는 곡이 충분하지 않아요</h2><p>장르나 가사 조건을 조금 넓혀서 다시 만들어 볼까요?</p><button class='ghost' type='button' data-go-scene='stateRoom'>오늘의 음악 다시 만들기</button></div></div>";
     return;
   }
-
-  pushRecentlyPlayed(seq.map(s => s.id));
   if (result.relaxed_steps) {
     console.warn("[AZT] 걸음 상한이 " + result.relaxed_steps + "회 완화됨 — 후보 고갈. 카탈로그 확충 또는 step_limit_scale 재측정 필요");
   }
 
-  /* 시퀀스 뒤에 붙는 '더 들을 곡'은 엔진 경로가 아니므로 role=extra 로 구분해 기록한다 */
-  const estimated = s => Math.max(60, Number(s.durationSec) || 180);
-  const totalTargetSec = RECOMMEND_MINUTES * 60;
-  const used = new Set(seq.map(s => s.id));
-  let total = seq.reduce((a,s)=>a+estimated(s),0);
-  const extras = [];
-  /* 경유 시퀀스는 '이동', 그 뒤 곡은 '도착한 상태 유지' 역할 → 목표 좌표에 가까운 순으로 채운다.
-     (이전엔 카탈로그 순서 그대로였다. 최근 재생 곡은 시퀀스와 같은 이유로 뺀다.) */
-  const recentSet = new Set(recentlyPlayedIds());
-  const dTgt = s => { const p = songVA(s); return p ? Math.hypot(p.v - tgt.v, p.e - tgt.e) : Infinity; };
-  const extraPool = pool.filter(s => !used.has(s.id) && !DISLIKED_SONGS.has(s.id) && !recentSet.has(s.id))
-                        .sort((a, b) => dTgt(a) - dTgt(b));
-  for (const c of extraPool) {
-    if (total >= totalTargetSec * 0.85) break;
-    extras.push(c); used.add(c.id); total += estimated(c);
+  /* §4.11 더 들을 곡: 개인화 경로는 엔진이 목표 근처에서 취향·연결·가수 상한·시드까지 보고 고르고, 재생 큐에 넣는다(D4).
+     경로(result.sequence)는 바뀌지 않는다. 익명·개인화 끔은 옛 코드 + 가사 조건(B21). */
+  let extras = [], extrasOut = null;
+  if (wp) {
+    try {
+      const fill = Number(PR().extras && PR().extras.fill_ratio);
+      extrasOut = AZT_ENGINE.recommendExtras(contract, AZT_RULES, finalInput, result, { target_sec: RECOMMEND_MINUTES * 60 * fill });
+      extras = ((extrasOut && extrasOut.extras) || []).map(x => { const s = toSong(x.song_id, x.trace, x.explanations); if (s) s._role = "extra"; return s; }).filter(Boolean);
+    } catch (e) { console.warn("[AZT] 더 들을 곡을 만들지 못했어요 — 경로만 들려줘요", e); extrasOut = { extras: [], total_sec: 0, soft_relaxed: false }; extras = []; }
+  } else {
+    extras = legacyExtras(pool, seq, tgt, lyric);
   }
+  pushRecentlyPlayed([...seq, ...extras].map(s => s.id));   // 익명·개인화 끔의 로컬 최근 목록(이제 더 들을 곡 포함)
+
   /* 10/30/60분의 차이는 고정 곡 수가 아니라 목표 총 청취시간을 기준으로 만든다.
      짧은 세션은 전환을 압축하고, 긴 세션은 목표 상태 구간을 충분히 유지한다. */
   const list = [...seq, ...extras];
   const stepOf = {}; seq.forEach((s,i)=>stepOf[s.id]=i+1);
+  const rowsApp = seqRowsFromResult(result, extras);
+  SEQ_POS = {};
+  rowsApp.forEach(r => { SEQ_POS[r.song_id] = { position: r.position, role: r.role, phase: r.phase }; });
   drawPath(cur, tgt, seq);
-  /* [2026-09-22] 자연어 문장에서 읽은 조건(가사·장르·시간)은 이번 추천에만 쓴다.
-     기본값으로 저장하지 않고(그러면 "가사 없는 걸로"가 계정 설정에 눌러앉는다), 추천이 끝나면 원래 설정으로 되돌린다. */
+
+  /* ── §7.1 추천 문서 ── */
   const nlApplied = !!(NL_S && NL_PRESET);
-  persistPreferencePatch(nlApplied
-    ? { preferred_genres: NL_PRESET.genres, recommend_minutes: NL_PRESET.minutes, lyric_preference_default: NL_PRESET.lyric }
-    : { preferred_genres: SELECTED_GENRES, recommend_minutes: RECOMMEND_MINUTES, lyric_preference_default: lyric });
+  const effective = { lyric, genres: [...SELECTED_GENRES], minutes: RECOMMEND_MINUTES };   // B18: 자연어 사전설정을 되돌리기 전, 실제로 쓴 값
+  if (wp) {
+    const lb = wp.out.user && wp.out.user.like_base;
+    const n = lb ? (Number(lb.pos) || 0) + (Number(lb.neg) || 0) : 0;
+    LAST_PERSONAL_SNAPSHOT = { mode: "wp", heard: n, liked: lb ? lb.pos : 0, like_rate: n ? Number(((lb.pos + 1) / (n + 2)).toFixed(4)) : null };
+  }
+  const legacyInput = {
+    lyric_preference: lyric,
+    genres: [...SELECTED_GENRES],
+    recommend_minutes: RECOMMEND_MINUTES,
+    current_va: round3(cur),   // 이번 추천에 실제로 쓴 지금 좌표(보정·끌기 반영 뒤)
+    target_va: round3(tgt),
+    input_mode: { current: CUR_MODE, target: TGT_MODE },   // 점별 입력 방식: tap | chip | nl
+    filters: LAST_FILTER_SNAPSHOT,             // { lyric, genres, genre_applied, genre_pool(고른 장르의 곡 수), pool(최종 후보 수) }
+    personalization: LAST_PERSONAL_SNAPSHOT,   // { mode, heard(들어본 곡), liked, like_rate(내 평균 좋아요 비율) } — 개인화 효과 분석용
+    pace_mode: PACE_MODE || "auto",   // 감정 여정 속도: auto | fast | slow — 경로 재현·분석용
+    nl_text: LAST_NL_TEXT,     // 자연어 원문 (해석 품질 감사용, 미사용 시 null)
+    nl_model: LAST_NL_TEXT ? GEMINI_MODEL : null,  // 어떤 모델이 해석했는지
+    nl_v2: buildNLLog()        // v2: AI가 고른 단어(parsed) · 사용자가 고친 뒤(final) · 고친 내역(corrections)
+  };
+  const appInput = {         // 앱만 아는 값 — 익명 문서에도 채운다(§7.1)
+    app: "web-personal", env: WP_ENV.env, seed, session_no: sessionNo, effective,
+    minutes_base: MIN_SUGGEST ? MIN_SUGGEST.base : null,
+    minutes_suggested: MIN_SUGGEST && MIN_SUGGEST.applied ? MIN_SUGGEST.minutes : null,
+    relaxed: relaxed || null, pace_user: PACE_MODE || null,
+    stress: stressNow, high_stress: isFinite(hiMin) ? stressNow >= hiMin : null,
+    labels: ctx.labels, table_point: { current: TABLE_PT.current, target: TABLE_PT.target },
+    calib_applied: { current: (CALIB.current && CALIB.current.applied) || null, target: (CALIB.target && CALIB.target.applied) || null },
+    nudged: { ...ctx.nudged },
+  };
+  let input = null, sequence = null;
+  if (PERSONAL && typeof PERSONAL.buildRecLog === "function") {
+    try {
+      const log = PERSONAL.buildRecLog({
+        ctx: { ...ctx, ...appInput, global_stats_digest: globalStatsDigest(),
+               log_extra: { input_mode: legacyInput.input_mode, filters: legacyInput.filters, personalization: legacyInput.personalization,
+                            nl_text: legacyInput.nl_text, nl_model: legacyInput.nl_model, nl_v2: legacyInput.nl_v2 } },
+        policyOut: wp ? wp.personalOut : null, usedOut: wp ? wp.out : null, refOut: wp ? wp.ref : null,
+        resA: result, resR: wp ? wp.resR : null,
+        extras: wp ? extrasOut : extras.map(x => ({ song_id: x.id, trace: {} })),
+        safety: wp ? wp.safety : null, fallback: wp ? wp.fallback : null,
+        env: { app: "web-personal", env: WP_ENV.env }, catalogIndex: CATALOG_INDEX, rules: AZT_RULES,
+      });
+      if (log && log.input && Array.isArray(log.sequence)) { input = log.input; sequence = log.sequence; }
+    } catch (e) { console.warn("[AZT] buildRecLog 실패 — 앱이 같은 모양으로 남겨요", e); }
+  }
+  if (!input) {
+    input = { ...legacyInput, ...appInput, personal_policy: null, personal_meta: null, user_affinity: null };
+    if (wp) {
+      const rIds = wp.resR.sequence.map(r => r.song_id);
+      input.personal_policy = wp.out.policy;
+      input.personal_meta = { schema: "wp-meta/1", app_built: true, personal_version: PERSONAL.PERSONAL_VERSION || null,
+        engine_version: AZT_ENGINE.ENGINE_VERSION, rules_hash: AZT_RULES.rules_hash, model_digest: MODEL && MODEL.digest || null,
+        policy_digest: wp.out.policy.digest || null, params: (wp.out.meta && wp.out.meta.params) || null, fallback: wp.fallback,
+        safety: wp.safety ? { A: wp.safety.A, R: wp.safety.R, violations: wp.safety.violations || [] } : null,
+        reference_ids: rIds, changed_n: result.sequence.filter(r => !rIds.includes(r.song_id)).length,
+        catalog_n: CATALOG_INDEX.n, catalog_digest: CATALOG_INDEX.digest, global_stats_digest: globalStatsDigest() };
+    }
+    sequence = rowsApp;
+  }
+  /* B2: 추천 때 preferred_genres·recommend_minutes·lyric_preference_default 를 계정에 덮어쓰지 않는다
+     (세션 장르가 '좋아요'로 세이던 오염 · 기본 시간은 감상 시간 제안 §4.5 가 맡는다).
+     [2026-09-22] 자연어 문장에서 읽은 조건(가사·장르·시간)은 이번 추천에만 쓰고, 끝나면 원래 설정으로 되돌린다. */
   if (nlApplied) {
     $("lyric").value = NL_PRESET.lyric; SELECTED_GENRES = [...NL_PRESET.genres]; RECOMMEND_MINUTES = NL_PRESET.minutes;
     const lt = $("listenTime"); if (lt) { lt.value = NL_PRESET.minutes; const o = $("listenTimeOut"); if (o) o.textContent = NL_PRESET.minutes; }
     if (typeof renderGenreChips === "function") renderGenreChips();
   }
-  logRecommendation({ lyric, cur, tgt, genres:SELECTED_GENRES, minutes:RECOMMEND_MINUTES }, seq, extras);
-  renderResults(list, seq, cur, tgt, pool.length, stepOf);
+  LAST_REC_ID = recId;
+  LAST_PATH_IDS = seq.map(s => s.id);
+  LAST_CUR_VA = round3(cur);
+  LAST_TGT_VA = round3(tgt);
+  writeRecDoc(recId, input, sequence, !!wp);
+
+  /* §4.12.3 설명 층 · 기본 추천과 비교(R 경로) · 소프트 게이트 */
+  const holdAt = rowsApp.findIndex(r => r.role === "path" && r.phase === "hold");
+  if (wp) {
+    const rIds = new Set(wp.resR.sequence.map(r => r.song_id));
+    const changed = wp.fallback === "p0" ? [] : result.sequence.filter(r => !rIds.has(r.song_id)).map(r => r.song_id);
+    const pm = input.personal_meta;
+    LAST_WP = {
+      mode: "wp", fallback: wp.fallback,
+      chips: wp.fallback === "p0" ? [] : explainChips(wp.out, ctx),
+      refSeq: wp.resR.sequence.map(r => toSong(r.song_id, r.trace, r.explanations)).filter(Boolean),
+      changed: new Set(changed),
+      changedN: pm && Number.isFinite(Number(pm.changed_n)) ? Number(pm.changed_n) : changed.length,
+      gates: (wp.out.policy && Array.isArray(wp.out.policy.soft_gates)) ? wp.out.policy.soft_gates : [],
+      holdAt,
+    };
+  } else {
+    LAST_WP = { mode: !personalUser() ? "anon" : personalSwitchesOn() ? "pending" : "off", holdAt };
+  }
+  renderResults(list, seq, cur, tgt, pool.length, stepOf, { queue: wp ? list : seq, wp: LAST_WP });
 }
-function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
+/* ── §4.12.3 결과 상단 "이번 추천에 반영된 나"(칩 ≤3, explainPolicy) · 기본 추천과 비교(R 경로) · 소프트 게이트 [끄기] · 데모 가상 청취 ── */
+const WP_GATE_LABEL = { exclude_spoken: "말 많은 곡" };
+function wpPanelHTML(wp, nPath) {
+  if (!wp) return "";
+  if (wp.mode === "anon") return "<p class='wp-note'>로그인하면 들을수록 나에게 맞춰져요.</p>";
+  if (wp.mode === "off") return "<p class='wp-note'>개인화가 꺼져 있어 기본 추천으로 골랐어요 · 내 방에서 다시 켤 수 있어요.</p>";
+  if (wp.mode === "pending") return "<p class='wp-note'>내 기록을 불러오는 중이라 이번엔 기본 추천으로 골랐어요.</p>";
+  let h = "<div class='wp-me' id='wpMe'><div class='wp-me-head'><b>이번 추천에 반영된 나</b>"
+    + (wp.refSeq && wp.refSeq.length ? "<button type='button' class='wp-toggle' id='wpCompare' aria-pressed='false'>기본 추천과 비교</button>" : "") + "</div>";
+  if (wp.fallback === "p0") h += "<p class='wp-note'>이번엔 기본 추천을 그대로 썼어요 (안전 기준)</p>";
+  /* 소프트 게이트가 켜져 있으면 그 칩에 [끄기]. 칩 셋 안에 게이트 설명이 없으면 따로 한 칩(§4.9) */
+  const gates = new Set(wp.gates || []);
+  const chips = (wp.chips || []).map(c => {
+    const g = /gate/i.test(String(c.procedure || c.id || "")) && gates.size ? [...gates][0] : null;
+    if (g) gates.delete(g);
+    return "<span class='wp-chip'>" + esc(c.text) + (g ? "<button type='button' data-gate-off='" + esc(g) + "' aria-label='자동 제외 끄기'>끄기</button>" : "") + "</span>";
+  });
+  for (const g of gates) chips.push("<span class='wp-chip'>자동: " + esc(WP_GATE_LABEL[g] || g) + " 빼는 중<button type='button' data-gate-off='" + esc(g) + "' aria-label='자동 제외 끄기'>끄기</button></span>");
+  if (chips.length) h += "<div class='wp-chips'>" + chips.join("") + "</div>";
+  else if (wp.fallback !== "p0") h += "<p class='wp-note'>아직은 기본값 그대로예요. 들을수록 나에게 맞춰져요.</p>";
+  const cmp = wp.fallback === "p0" ? "이번엔 기본 추천을 그대로 썼어요 (안전 기준)"
+    : wp.changedN > 0 ? nPath + "곡 중 " + wp.changedN + "곡이 나에게 맞게 바뀌었어요" + (wp.fallback === "geometry" ? " · 여정 모양은 안전 기준으로 기본값을 썼어요" : "")
+    : "이번엔 기본 추천과 같은 곡들이에요";
+  h += "<p class='wp-note' id='wpCompareNote' hidden><b>" + esc(cmp) + "</b> — 감정 변화 지도의 흐린 점선이 기본 추천 경로예요.</p>";
+  if (DEMO) h += "<div class='wp-demo-row'><button type='button' class='wp-toggle' id='wpDemoListen'>가상 청취 1회</button><span class='wp-note' id='wpDemoStatus'>합성 사용자가 이 추천을 듣고 반응한 기록을 이 탭 메모리에만 쌓아요.</span></div>";
+  return h + "</div>";
+}
+function wireWpPanel(box, wp) {
+  const cmp = $("wpCompare");
+  if (cmp) cmp.addEventListener("click", () => {
+    const on = cmp.getAttribute("aria-pressed") !== "true";
+    cmp.setAttribute("aria-pressed", String(on));
+    const note = $("wpCompareNote"); if (note) note.hidden = !on;
+    box.querySelectorAll("[data-wp-mine]").forEach(el => { el.hidden = !on; });
+    if (EMO_CTX) { EMO_CTX.showRef = on; renderEmotionMap(); }
+    if (on) { const card = $("emotionCard"); if (card) card.open = true; logEvent("compare_view", { changed_n: wp.changedN }); }
+  });
+  box.querySelectorAll("[data-gate-off]").forEach(b => b.addEventListener("click", () => gateOff(b.dataset.gateOff, b)));
+  const demoBtn = $("wpDemoListen");
+  if (demoBtn) demoBtn.addEventListener("click", () => demoVirtualListen(demoBtn));
+}
+/* §4.9 사용자가 끄면 auto_gate_off 기록 + wp_personal_v1.gate_off_until[gate] = 지금 + user_off_days */
+async function gateOff(gate, btn) {
+  const days = Number(PR().gates && PR().gates.user_off_days);
+  const chip = btn.closest(".wp-chip");
+  btn.disabled = true;
+  logEvent("auto_gate_off", { gate });
+  if (isFinite(days) && days > 0) await patchWpDoc({ gate_off_until: { [gate]: Date.now() + days * DAY_MS } });
+  rebuildModel("gate_off");
+  if (chip) chip.textContent = "자동 제외를 껐어요 — 다음 추천부터 " + (WP_GATE_LABEL[gate] || gate) + "도 골라요";
+}
+
+function renderResults(list, seq, cur, tgt, poolSize, stepOf, view) {
   const box = $("results");
   if (!list.length) { box.innerHTML = "<div class='scene-inner result-cabin'><div class='result-placeholder'><h2>오늘은 맞는 곡을 찾지 못했어요</h2><p>장르나 가사 조건을 조금 넓혀서 다시 찾아볼까요?</p></div></div>"; return; }
-  const playable = seq.filter(s=>s.trackId);
+  /* [web-personal] 개인화 경로는 더 들을 곡까지 재생 큐에 넣는다(D4) — 그래야 track_exit·좋아요가 생긴다 */
+  const queue = (view && view.queue) || seq, wp = view && view.wp;
+  const playable = queue.filter(s=>s.trackId);
   let html = "<div class='section-shell'><div class='section-head'><div><h2>오늘의 음악</h2><p>"+esc(vaWord(cur))+" → "+esc(vaWord(tgt))+" · "+RECOMMEND_MINUTES+"분의 여정</p>"
     + (SELECTED_GENRES.length && !GENRE_NOTICE ? "<p class='plane-note'>" + esc(SELECTED_GENRES.join(" · ")) + " 장르에서만 골랐어요.</p>" : "")
     + (GENRE_NOTICE ? "<p class='plane-note' style='font-weight:700'>" + esc(GENRE_NOTICE) + "</p>" : "")
+    + wpPanelHTML(wp, seq.length)
     + "</div></div><div class='results-wrap'>";
   if(playable.length){
     const first=playable[0];
@@ -3575,7 +4506,7 @@ function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
     const reasons = (s._why || []);
     const metric=TRACK_METRICS[s.id], ready=!!(metric&&metric.listenedSeconds>=HEARD_MIN_SECONDS);
     const jumpable = playable.some(p => p.id === s.id);   // 재생 큐에 있는 곡은 눌러서 바로 이동
-    html += "<article class='song"+(jumpable?" in-queue":"")+"' data-song-card='"+esc(s.id)+"'"+(jumpable?" data-jump-song='"+esc(s.id)+"' role='button' tabindex='0' aria-label='"+esc(s.title)+" 재생으로 이동'":"")+"><div class='top'><div>"+(stepOf[s.id]?"<span class='step'>"+stepOf[s.id]+"</span>":"")+"<span class='title'>"+esc(s.title)+"</span> <span class='artist'>"+esc(s.artist)+"</span></div><span class='score'>"+esc(s._trace&&s._trace.quadrant?s._trace.quadrant:"")+"</span></div><div class='reasons'>";
+    html += "<article class='song"+(jumpable?" in-queue":"")+"' data-song-card='"+esc(s.id)+"'"+(jumpable?" data-jump-song='"+esc(s.id)+"' role='button' tabindex='0' aria-label='"+esc(s.title)+" 재생으로 이동'":"")+"><div class='top'><div>"+(stepOf[s.id]?"<span class='step'>"+stepOf[s.id]+"</span>":"")+"<span class='title'>"+esc(s.title)+"</span> <span class='artist'>"+esc(s.artist)+"</span>"+(wp && wp.changed && wp.changed.has(s.id) ? "<span class='wp-badge' data-wp-mine hidden>나에게 맞춤</span>" : "")+"</div><span class='score'>"+esc(s._trace&&s._trace.quadrant?s._trace.quadrant:"")+"</span></div><div class='reasons'>";
     for(const r of reasons) html += "<div class='reason'><span>"+esc(r)+"</span></div>";
     html += "</div><div class='song-actions'><button type='button' class='song-action' data-action='like' data-song-id='"+esc(s.id)+"' disabled>"+(LIKED_SONGS.has(s.id)?"♥ 좋아요":ready?"♡ 좋아요":"10초 후 좋아요")+"</button><button type='button' class='song-action dislike' data-action='dislike' data-song-id='"+esc(s.id)+"'>"+(DISLIKED_SONGS.has(s.id)?"싫어요 취소":"싫어요")+"</button><button type='button' class='song-action' data-action='playlist' data-song-id='"+esc(s.id)+"'>"+(PLAYLIST_SONGS.has(s.id)?"✓ 벽에 붙어 있음":"＋ 벽에 붙이기")+"</button></div>";
     if(s.spotifyUrl) html += "<a class='spotify' data-song-id='"+esc(s.id)+"' href='"+s.spotifyUrl+"' target='_blank' rel='noopener'>Spotify에서 열기 ↗</a>";
@@ -3583,7 +4514,7 @@ function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
     li++;
   }
   if (list.length > 3) html += "</div><button id='songListToggle' class='list-toggle' type='button'>나머지 "+(list.length-3)+"곡 자세히 보기</button>";
-  html += "</div><details class='emotion-card' id='emotionCard' open><summary><span>감정 변화</span><span class='fold'>접기 · 펼치기</span></summary><div class='emo-body'><div id='emotionMap'></div><p class='plane-note'>재생 중인 곡을 따라 점이 목표 쪽으로 이동해요.</p></div></details></div></div></div>";
+  html += "</div><details class='emotion-card' id='emotionCard' open><summary><span>감정 변화</span><span class='fold'>접기 · 펼치기</span></summary><div class='emo-body'><div id='emotionMap'></div><p class='plane-note'>재생 중인 곡을 따라 점이 목표 쪽으로 이동해요."+(wp && wp.holdAt >= 0 ? " "+(wp.holdAt+1)+"번째 곡부터 목표 분위기에 머물러요." : "")+"</p></div></details></div></div></div>";
   /* 청취 후 변화 기록: 실제로 듣지 않은 채 남기는 무의미한 응답을 막기 위해
      재생 가능한 곡이 있으면 실청취 AFTER_UNLOCK_SECONDS초를 채워야 열린다.
      (재생 불가 곡뿐이면 측정할 수 없으므로 처음부터 열어둔다) */
@@ -3599,6 +4530,9 @@ function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
         + "</div><p class='plane-note' id='exportStatus' role='status'></p>"
         + "<div class='export-help'><button type='button' id='exportHelpOpen'>못 찾은 곡이 있다면?</button></div></div>";
   html += "<div class='after-card' id='afterCard'><h3>듣고 난 뒤</h3><p class='plane-note'>듣기 전과 비교해 지금은 어떤가요?</p><div class='stress-wrap'><input type='range' id='afterChange' min='-2' max='2' step='1' value='0'"+gateAttr+" aria-describedby='afterEcho' aria-label='청취 전 대비 상태 변화'/><div class='stress-labels'><span>더 힘들어짐</span><span>그대로</span><span>한결 편안함</span></div><div id='afterEcho' style='margin-top:10px;font-weight:800'>선택: <b>그대로예요</b></div></div>"
+        /* [web-personal] §4.3 속도 답 — 늘 보이는 한 줄. 방향이 있는 신호만 속도(π)를 움직인다 */
+        + "<fieldset class='fb-block' id='afterPaceBox'"+gateAttr+"><legend>목표에 닿는 빠르기는 어땠나요? <span class='fb-hint'>하나만 눌러 주세요</span></legend><div class='fb-chips' id='afterPace' role='group' aria-label='여정 빠르기 답'>"
+        + "<button type='button' aria-pressed='false' data-pace-answer='faster'>더 빨리 도착했으면</button><button type='button' aria-pressed='false' data-pace-answer='ok'>딱 좋았어요</button><button type='button' aria-pressed='false' data-pace-answer='slower'>더 천천히</button></div></fieldset>"
         /* 2026-09-22: 소감을 먼저 적고, AI가 읽어 아쉬웠던 점 칩을 대신 고른다. 사람이 칩을 고치면 누가 골랐는지(ai/user)가 남는다. */
         + "<fieldset class='fb-block' id='afterExtra'"+gateAttr+" data-song-count='"+seq.length+"'><legend><label for='afterNote'>들으면서 어땠는지 편하게 적어주세요</label> <span class='fb-hint'>선택</span></legend>"
         + "<div class='fb-nl'><textarea id='afterNote' class='fb-note' rows='2' maxlength='"+SESSION_NOTE_MAX+"' placeholder='예: 세 번째 곡에서 갑자기 분위기가 바뀌어서 집중이 깨졌어요'></textarea>"
@@ -3608,7 +4542,10 @@ function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
         + "<div class='fb-label' style='margin-top:14px'>아쉬웠던 점 <span class='fb-hint'>" + (NL_AVAILABLE ? "AI가 고른 걸 눌러서 바꿀 수 있어요" : "여러 개 골라도 되고, 없으면 건너뛰세요") + "</span></div>"
         + "<div class='fb-chips' id='afterReasons'>"
         + MISFIT_REASONS.map(r => "<button type='button' aria-pressed='false' data-reason='"+r[0]+"'>"+esc(r[1])+"</button>").join("")
-        + "</div></fieldset>"
+        + "</div>"
+        /* §4.5 '길이가 안 맞아요'를 고르면 바로 아래 방향 칩 — 방향 없는 길이 불만은 표가 아니다 */
+        + "<div class='fb-chips fb-sub' id='afterLengthDir' role='group' aria-label='길이 방향' hidden><span class='fb-hint'>어느 쪽이었나요?</span><button type='button' aria-pressed='false' data-length-dir='long'>길었어요</button><button type='button' aria-pressed='false' data-length-dir='short'>짧았어요</button></div>"
+        + "</fieldset>"
         + "<button id='afterSubmit' class='after-btn'"+gateAttr+">기록하고 나가기</button><p id='afterGate' class='plane-note'>"+gateMsg+"</p><p id='afterThanks' class='plane-note' hidden>기록됐어요. 다음에 더 잘 맞춰볼게요.</p></div></div>";
   box.innerHTML="<div class='scene-inner result-cabin'>"+html+"</div>";
   box.classList.add("scene-active");
@@ -3622,10 +4559,11 @@ function renderResults(list, seq, cur, tgt, poolSize, stepOf) {
     el.addEventListener("keydown",(e)=>{ if ((e.key==="Enter"||e.key===" ") && e.target===el) { e.preventDefault(); jump(el.dataset.jumpSong); } });
   });
   applyMemberGate();   // 비회원이면 곡 액션 버튼 전체 비활성화
-  EMO_CTX = { cur, tgt, seq };
+  EMO_CTX = { cur, tgt, seq, ref: (wp && wp.refSeq) || null, showRef: false };
   EMO_CURRENT_ID = playable.length ? playable[0].id : null;
   renderEmotionMap();
-  if(playable.length) setupPlayer(seq);
+  wireWpPanel(box, wp || {});
+  if(playable.length) setupPlayer(queue);
   setupAfterInput();
   setupExport(seq);
   requestAnimationFrame(()=>goScene("results"));
@@ -3826,8 +4764,35 @@ const CHANGE_WORDS = { "-2":"훨씬 나빠졌어요", "-1":"조금 나빠졌어�
 function setupAfterInput() {
   const slider = $("afterChange");
   if (!slider) return;
+  /* B17: 슬라이더 기본 0 을 안 건드린 것과 "그대로예요"를 구분한다 */
+  let touched = false;
   slider.addEventListener("input", () => {
+    touched = true;
     $("afterEcho").innerHTML = "선택: <b>" + CHANGE_WORDS[slider.value] + "</b>";
+  });
+  /* §4.3 속도 답: 하나만(다시 누르면 해제) */
+  let paceAnswer = null;
+  const paceBox = $("afterPace");
+  if (paceBox) paceBox.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-pace-answer]");
+    if (!b) return;
+    paceAnswer = paceAnswer === b.dataset.paceAnswer ? null : b.dataset.paceAnswer;
+    paceBox.querySelectorAll("button[data-pace-answer]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.paceAnswer === paceAnswer)));
+  });
+  /* §4.5 길이 방향: '길이가 안 맞아요'가 켜져 있을 때만 보이고, 꺼지면 답도 지운다 */
+  let lengthDir = null;
+  const lenBox = $("afterLengthDir");
+  const syncLengthDir = () => {
+    const on = !!(reasonsBox && reasonsBox.querySelector("button[data-reason='length'][aria-pressed='true']"));
+    if (lenBox) lenBox.hidden = !on;
+    if (!on) lengthDir = null;
+    if (lenBox) lenBox.querySelectorAll("button[data-length-dir]").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.lengthDir === lengthDir)));
+  };
+  if (lenBox) lenBox.addEventListener("click", (e) => {
+    const b = e.target.closest("button[data-length-dir]");
+    if (!b) return;
+    lengthDir = lengthDir === b.dataset.lengthDir ? null : b.dataset.lengthDir;
+    syncLengthDir();
   });
   const reasonsBox = $("afterReasons"), note = $("afterNote"), extra = $("afterExtra");
   if (reasonsBox) reasonsBox.addEventListener("click", (e) => {
@@ -3837,6 +4802,7 @@ function setupAfterInput() {
     b.setAttribute("aria-pressed", on ? "true" : "false");
     b.dataset.by = on ? "user" : "";                       // 사람이 켠 것은 user, 끄면 표시 제거
     const tag = b.querySelector("small"); if (tag) tag.remove();
+    syncLengthDir();
   });
   if (note) note.addEventListener("input", () => { const c = $("afterNoteCount"); if (c) c.textContent = note.value.length; });
 
@@ -3873,6 +4839,7 @@ function setupAfterInput() {
           b.insertAdjacentHTML("beforeend", "<small>AI가 고름</small>");
         }
       });
+      syncLengthDir();   // AI 가 '길이'를 골랐으면 방향 칩을 연다(방향은 사람이 고른다)
       if (heard) heard.innerHTML = "<div class='fb-heard'><b>이렇게 들었어요</b>" + esc(AFTER_AI.echo || "소감을 읽었어요.")
         + (AFTER_AI.liked ? "<div class='good'>좋았던 점: " + esc(AFTER_AI.liked) + "</div>" : "")
         + (!AFTER_AI.codes.length ? "<div class='good'>아쉬운 점은 따로 없는 걸로 읽었어요. 있으면 아래에서 골라주세요.</div>" : "") + "</div>";
@@ -3891,8 +4858,16 @@ function setupAfterInput() {
     const reasons = reasonsBox
       ? [...reasonsBox.querySelectorAll("button[aria-pressed='true']")].map(b => b.dataset.reason) : [];
     const text = note ? note.value.trim().slice(0, SESSION_NOTE_MAX) : "";
+    /* 곡별로 실제 들은 초(재생 큐 전체) — 학습은 (rec_id, song_id) 로 잇는다(B14) */
+    const heardMap = {};
+    for (const [id, m] of Object.entries(TRACK_METRICS)) if (m && m.listenedSeconds > 0) heardMap[id] = Math.round(m.listenedSeconds);
     logEvent("post_change", {
-      change: Number(slider.value),   // -2 ~ +2
+      change: Number(slider.value),   // -2 ~ +2 (학습에 쓰지 않는다 — 평가·song_stats 전용, D12)
+      touched,                        // B17
+      pace_answer: paceAnswer,        // faster | ok | slower | null (§4.3)
+      length_dir: reasons.includes("length") ? lengthDir : null,   // long | short | null (§4.5)
+      rec_id: LAST_REC_ID,
+      heard: heardMap,
       va_before: LAST_CUR_VA,         // 추천 시점의 지금 좌표 (맥락)
       va_target: LAST_TGT_VA,         // 목표 좌표 (맥락)
       listened_seconds: Math.round(totalListenedSeconds()),  // 이 응답의 근거가 된 실청취량
@@ -3905,17 +4880,23 @@ function setupAfterInput() {
       note_ai: AFTER_AI            // { echo, codes, other, positions, tone, liked } 또는 null
     });
     if (extra) extra.disabled = true;
+    const pb = $("afterPaceBox"); if (pb) pb.disabled = true;
     slider.disabled = true;
     ab.disabled = true;
     ab.textContent = "기록 완료";
     $("afterThanks").hidden = false;
+    /* §7.3 「기록하고 나가기」 = 세션 끝: 듣던 곡을 session_end 로 닫고 음악을 멈춘 뒤, 이 탭 기록으로 모델을 다시 만든다(§2.3) */
+    closeExposure("session_end");
+    try { if (EMBED_CTRL) EMBED_CTRL.pause(); } catch (e) { /* 무시 */ }
+    if (!MIN_TOUCHED) MIN_SUGGEST = null;   // 다음 세션의 기본 시간을 새 기록으로 다시 제안(직접 고른 시간이 있으면 그대로)
+    if (personalActive()) rebuildModel("session_end");
   });
 }
 
 // Spotify 클릭도 약한 청취 신호로 기록 (위임 리스너 — 재렌더링과 무관하게 1회 등록)
 $("results").addEventListener("click", (e) => {
   const a = e.target.closest ? e.target.closest("a.spotify") : null;
-  if (a && a.dataset.songId) logEvent("spotify_click", { song_id: a.dataset.songId });
+  if (a && a.dataset.songId) logEvent("spotify_click", { song_id: a.dataset.songId, position: seqPos(a.dataset.songId) });
   const b = e.target.closest ? e.target.closest("[data-action][data-song-id]") : null;
   if (b && b.dataset.action) {
     const id = b.dataset.songId, action = b.dataset.action;
@@ -3932,7 +4913,10 @@ $("wallPanelClose")?.addEventListener("click", closeWallPanel);
 $("wallPanelDone")?.addEventListener("click", closeWallPanel);
 document.addEventListener("keydown", e => { if (e.key === "Escape" && $("wallPanel") && !$("wallPanel").hidden) closeWallPanel(); });
 $("myGuestLogin")?.addEventListener("click", () => openAuthModal("login"));
-$("listenTime").addEventListener("input", () => { RECOMMEND_MINUTES=Number($("listenTime").value)||30; const o=$("listenTimeOut"); if(o) o.textContent=$("listenTime").value; });
+$("listenTime").addEventListener("input", () => {
+  RECOMMEND_MINUTES=Number($("listenTime").value)||30; const o=$("listenTimeOut"); if(o) o.textContent=$("listenTime").value;
+  MIN_TOUCHED = true; renderMinuteNote();   // 사용자 선언이 이긴다(I4) — 제안 안내는 내린다
+});
 $("paceChips").addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-pace]");
   if (!btn) return;
@@ -3940,13 +4924,53 @@ $("paceChips").addEventListener("click", (e) => {
   PACE_MODE = (PACE_MODE === picked) ? null : picked;   // 같은 걸 다시 누르면 해제(자동)
   for (const b of $("paceChips").querySelectorAll("button[data-pace]"))
     b.setAttribute("aria-pressed", String(b.dataset.pace === PACE_MODE));
-  const note = $("paceNote");
-  if (note) note.textContent = PACE_MODE === "fast"
-    ? "초반에 목표 상태로 옮겨가고, 남은 시간은 그 상태를 유지해요."
-    : PACE_MODE === "slow"
-    ? "마지막 곡까지 조금씩 이동하며 천천히 변화를 만들어가요."
-    : "선택하지 않으면 감상 시간에 맞춰 알아서 조절해요. 같은 버튼을 다시 누르면 해제됩니다.";
+  renderPaceNote();
+  /* §4.3.1 속도 표: 버튼을 누를 때 기록(가중 w_chip). suggested = 그때 자동이었다면 쓸 π */
+  logEvent("pace_choice", { choice: PACE_MODE, suggested: suggestedPi(), source: "user" });
 });
+/* ── §4.3 속도 안내(#paceNote): 버튼을 누르면 그게 이긴다. 자동이 개인화됐으면 "자동(나에게 맞춤)" 문장(내 취향 모델의 속도 카드) ── */
+function suggestedPi() {
+  if (!personalActive() || !MODEL || !MODEL.pace) return null;
+  const pi = Number(MODEL.pace.pi) || 0, abs = Number(PR().pace && PR().pace.apply_abs);
+  return Math.round((isFinite(abs) && Math.abs(pi) >= abs ? pi : 0) * 1000) / 1000;   // 적용 문턱 미만이면 0(규칙 표 그대로)
+}
+function renderPaceNote() {
+  const note = $("paceNote"); if (!note) return;
+  if (PACE_MODE === "fast") { note.textContent = "초반에 목표 상태로 옮겨가고, 남은 시간은 그 상태를 유지해요."; return; }
+  if (PACE_MODE === "slow") { note.textContent = "마지막 곡까지 조금씩 이동하며 천천히 변화를 만들어가요."; return; }
+  const c = personalActive() && MODEL ? cardFor("pace") : null;
+  const t = c && !c.is_default && c.text ? (/^자동/.test(c.text) ? c.text : "자동(나에게 맞춤): " + c.text) : null;
+  note.textContent = t
+    ? t + " — 버튼을 누르면 그게 우선이에요. 같은 버튼을 다시 누르면 해제됩니다."
+    : "선택하지 않으면 감상 시간에 맞춰 알아서 조절해요. 같은 버튼을 다시 누르면 해제됩니다.";
+}
+/* ── §4.5 기본 감상 시간 제안: 선언을 조용히 바꾸지 않고 다음 세션의 기본값만 미리 둔다(보이고, 되돌릴 수 있다) ── */
+let MIN_SUGGEST = null;      // { minutes, base, prev, applied }
+let MIN_TOUCHED = false;     // 이번 방문에서 사용자가 시간 슬라이더를 직접 움직였나
+function maybeSuggestMinutes() {
+  if (MIN_SUGGEST || MIN_TOUCHED || !personalActive() || !MODEL || typeof PERSONAL.suggestMinutes !== "function") return;
+  if (NL_S && NL_S.cons && NL_S.cons.minutes) return;          // 자연어가 이번 시간을 정했으면 그대로
+  const base = Number(MODEL.length && MODEL.length.base_minutes) || Number(USER_PROFILE && USER_PROFILE.recommend_minutes) || RECOMMEND_MINUTES;
+  let r = null;
+  try { r = PERSONAL.suggestMinutes(MODEL, base, AZT_RULES); } catch (e) { console.warn("[AZT] suggestMinutes 실패", e); return; }
+  const m = Number(r && r.minutes);
+  if (!isFinite(m) || m <= 0) return;
+  MIN_SUGGEST = { minutes: m, base, prev: RECOMMEND_MINUTES, applied: !!r.applied };
+  RECOMMEND_MINUTES = m; syncMinuteReadouts();
+  renderMinuteNote();
+}
+function renderMinuteNote() {
+  const el = $("minuteNote"); if (!el) return;
+  if (!MIN_SUGGEST || !MIN_SUGGEST.applied || MIN_TOUCHED || RECOMMEND_MINUTES !== MIN_SUGGEST.minutes) { el.hidden = true; el.innerHTML = ""; return; }
+  const c = (MODEL && MODEL.counts_for_explain && MODEL.counts_for_explain.length) || {};
+  const cnt = [c.long ? "‘길었어요’ " + c.long + "번" : "", c.short ? "‘짧았어요’ " + c.short + "번" : ""].filter(Boolean).join(" · ");
+  el.innerHTML = (cnt ? "지난 " + esc(cnt) + " → " : "내 기록에 맞춰 ") + MIN_SUGGEST.minutes + "분으로 맞춰 뒀어요"
+    + " · <button type='button' id='minuteUndo'>되돌리기</button>";
+  el.hidden = false;
+  $("minuteUndo").addEventListener("click", () => {
+    RECOMMEND_MINUTES = MIN_SUGGEST.prev; MIN_TOUCHED = true; syncMinuteReadouts(); renderMinuteNote();
+  });
+}
 $("myRecommendMinutes")?.addEventListener("input", () => { const o=$("myRecommendMinutesOut"); if(o) o.textContent=$("myRecommendMinutes").value; });
 
 /* ── 화면 테마 (라이트/다크): 이 기기 기준으로 저장 ── */
@@ -3972,7 +4996,8 @@ $("themeDark")?.addEventListener("click", () => applyTheme("dark"));
 $("deleteMyData").addEventListener("click", async () => {
   const user=firebase.auth().currentUser;
   if(!user || user.isAnonymous){ alert("로그인 계정이 없어요."); return; }
-  if(!confirm("AZT에 저장된 취향·좋아요·플레이리스트·청취 기록과 계정을 모두 삭제할까요?")) return;
+  /* B30: 추천·이벤트 로그는 보안규칙이 삭제를 막아 남는다 — 확인 문구에 그 사실을 적는다(wp_personal_v1 은 users 문서째 지워진다) */
+  if(!confirm("AZT에 저장된 취향·좋아요·벽·청취 기록·개인화 설정과 계정을 모두 삭제할까요?\n\n※ 추천을 받은 기록과 재생·반응 기록(추천 로그·이벤트 로그)은 보안 규칙상 앱에서 지울 수 없어 남아요.")) return;
   try{
     const ref=firebase.firestore().collection("users").doc(user.uid);
     const hist=await ref.collection("listeningHistory").get();
@@ -3989,6 +5014,233 @@ function esc(t) {
 }
 
 $("saveMyPrefs")?.addEventListener("click", saveMyPrefs);
+
+/* =====================================================================
+   [web-personal] 내 방 "내 취향 모델" 패널 (§4.12.3) — personal.explainModel 카드
+   카드마다 한 줄 문장 · 근거 횟수 · 확신 점(1~5) · "기본값" · "지난 추천 이후 바뀜" · 최근 추천들의 값 추이 · [초기화].
+   문구는 횟수로 말한다(점수로 말하지 않는다). 전역 "개인화 끄기"는 wp_personal_v1.opt_out.
+   ===================================================================== */
+function sparkSVG(series) {
+  const vals = (Array.isArray(series) ? series : []).map(x => typeof x === "number" ? x : x && (x.value ?? x.v ?? x.y)).map(Number).filter(isFinite);
+  if (vals.length < 2) return "";
+  const W = 64, H = 16, lo = Math.min(...vals), hi = Math.max(...vals), span = hi - lo || 1;
+  const pts = vals.map((v, i) => (i * W / (vals.length - 1)).toFixed(1) + "," + (H - 2 - (v - lo) / span * (H - 4)).toFixed(1)).join(" ");
+  return "<svg class='wp-spark' viewBox='0 0 " + W + " " + H + "' role='img' aria-label='최근 추천들의 값 추이'><polyline points='" + pts + "' fill='none' stroke='var(--ink)' stroke-width='1.3'/></svg>";
+}
+function evidenceText(ev) {
+  if (ev == null || ev === "") return "";
+  if (typeof ev === "number") return "근거 " + ev + "번";
+  if (typeof ev === "string") return ev;
+  if (typeof ev === "object") return Object.entries(ev).filter(([, v]) => v != null && v !== "").map(([k, v]) => k + " " + v).join(" · ");
+  return String(ev);
+}
+function cardHTML(c) {
+  const conf = Math.max(0, Math.min(5, Math.round(Number(c.confidence) || 0)));
+  let dots = ""; for (let i = 1; i <= 5; i++) dots += "<i class='" + (i <= conf ? "on" : "") + "'></i>";
+  const ev = evidenceText(c.evidence);
+  return "<article class='wp-card'><div class='wp-card-top'><b>" + esc(c.title || c.id || "") + "</b>"
+    + (c.is_default ? "<span class='wp-tag'>기본값</span>" : "")
+    + (c.changed ? "<span class='wp-tag changed'>지난 추천 이후 바뀜</span>" : "") + "</div>"
+    + "<p>" + esc(c.text || "") + "</p>"
+    + "<div class='wp-card-foot'>" + (ev ? "<span>" + esc(ev) + "</span>" : "")
+    + "<span class='wp-dots' role='img' aria-label='확신 " + conf + " / 5'>" + dots + "</span>" + sparkSVG(c.series)
+    + (!c.is_default && c.reset_procedure ? "<button type='button' class='mini-btn' data-wp-reset='" + esc(c.reset_procedure) + "'>초기화</button>" : "")
+    + "</div></article>";
+}
+function renderModelPanel() {
+  const body = $("wpModelBody"), btn = $("wpOptBtn");
+  if (!body) return;
+  if (!personalUser()) { body.innerHTML = "<p>로그인하면 들을수록 나에게 맞춰져요.</p>"; if (btn) btn.hidden = true; return; }
+  const optOut = !!(WP_DOC && WP_DOC.opt_out);
+  if (btn) {
+    btn.hidden = false;
+    btn.textContent = optOut ? "개인화 다시 켜기" : "개인화 끄기";
+    btn.setAttribute("aria-pressed", String(optOut));
+  }
+  if (optOut) { body.innerHTML = "<p>개인화를 꺼 두었어요. 지금은 모든 추천이 기본값(내 기록을 쓰지 않는 추천)으로 나가요.</p>"; return; }
+  if (!PERSONAL) { body.innerHTML = "<p>개인화 모듈을 아직 불러오지 못했어요. 추천은 기본값으로 나가요.</p>"; return; }
+  if (!personalSwitchesOn()) { body.innerHTML = "<p>이 주소에서는 개인화가 꺼져 있어요(주소의 ?personal=0 또는 규칙 스위치). 추천은 기본값으로 나가요.</p>"; return; }
+  if (!MODEL) { body.innerHTML = "<p>내 기록을 불러오는 중이에요…</p>"; return; }
+  const cards = modelCards();
+  if (!cards.length) { body.innerHTML = "<p>아직 보여 줄 값이 없어요. 들을수록 채워져요.</p>"; return; }
+  const E = MODEL.evidence && MODEL.evidence.E;
+  body.innerHTML = "<div class='wp-cards'>" + cards.map(cardHTML).join("") + "</div>"
+    + ((WP_ENV.debug || DEMO) ? "<p class='plane-note'>모델 " + esc(String(MODEL.digest || "")) + " · 근거량 E " + esc(String(E ?? "")) + " · 빌드 " + esc(String(MODEL_INFO.ms ?? "")) + "ms</p>" : "");
+  body.querySelectorAll("[data-wp-reset]").forEach(b => b.addEventListener("click", () => personalReset(b.dataset.wpReset)));
+}
+/* 카드별 [초기화]: personal_reset{procedure} 기록 + wp_personal_v1.resets[procedure] = 지금 → 그 학습기는 이전 근거를 무시한다 */
+async function personalReset(procedure) {
+  if (!procedure || !confirm("이 항목을 기본값으로 되돌릴까요? 지금까지의 기록은 이 항목에서만 쓰지 않아요.")) return;
+  logEvent("personal_reset", { procedure });
+  await patchWpDoc({ resets: { [procedure]: Date.now() } });
+  rebuildModel("reset");
+}
+async function togglePersonal() {
+  if (!personalUser()) return;
+  const optOut = !(WP_DOC && WP_DOC.opt_out);
+  await patchWpDoc({ opt_out: optOut });
+  logEvent("personal_toggle", { on: !optOut });
+  rebuildModel("toggle");
+}
+$("wpOptBtn")?.addEventListener("click", togglePersonal);
+
+/* =====================================================================
+   [web-personal] 데모 모드 ?demo=<persona> (§4.12.4)
+   demo/personas/<id>.json(TOOLS 가 만든 합성 RawFacts)을 메모리에 올린다. 모든 Firestore 쓰기는 무효(WP_ENV.writes=false)이고
+   결과는 SESSION_LOG 에만 쌓여 모델이 바로 다시 만들어진다. "가상 청취 1회"는 tools/sim/behavior.mjs(순수 ESM)로 지금 추천을 듣고 기록을 접는다.
+   ===================================================================== */
+async function loadDemo(id) {
+  try {
+    const r = await fetch("demo/personas/" + encodeURIComponent(id) + ".json?v=300", { cache: "no-cache" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const raw = await r.json();
+    DEMO_RAW = raw;
+    /* demo_personas.mjs 는 페르소나 id 를 raw.demo.persona_id 에 싣는다(반복 번호는 늘 0 — uid "sim-<id>-r0") */
+    const dm = raw.demo || {};
+    DEMO = { id, uid: raw.uid || ("demo-" + id), persona_id: dm.persona_id || raw.persona_id || (raw.persona && raw.persona.id) || id,
+             rep: Number(dm.rep ?? raw.rep ?? (raw.persona && raw.persona.rep) ?? 0) || 0 };
+    /* RawFacts 의 profile 은 users 문서가 아니다 — 벽 가수는 pinned_artists_resolved(이미 카탈로그 표기)로만 온다.
+       applyProfile 은 users 문서의 wallArtists 를 읽으므로 옮겨 준다(안 하면 P5 '벽 아이유' 같은 가수 핀이 데모에서 사라진다). */
+    const prof = raw.profile || {};
+    applyProfile(Array.isArray(prof.wallArtists) ? prof
+      : { ...prof, wallArtists: (prof.pinned_artists_resolved || []).map(name => ({ name, src: "search", at: null })) });
+    renderEnvBar();
+    scheduleModelBuild();
+    if (typeof renderMyAzt === "function") renderMyAzt();
+    applyMemberGate();
+    console.info("[AZT] 데모 프로필", DEMO);
+  } catch (e) {
+    console.warn("[AZT] 데모 프로필을 불러오지 못했어요 — 일반 모드로 계속", e);
+    DEMO = null; DEMO_RAW = null;
+    renderEnvBar("데모 프로필(" + id + ")을 불러오지 못했어요 · 쓰기는 꺼져 있어요");
+  }
+}
+async function demoPersona() {
+  if (DEMO_RAW && DEMO_RAW.persona && DEMO_RAW.persona.taste) return DEMO_RAW.persona;
+  const P = await import("./tools/sim/personas.mjs?v=300");
+  const base = typeof P.personaById === "function" ? P.personaById(DEMO.persona_id)
+    : (Array.isArray(P.PERSONAS) ? P.PERSONAS.find(x => x.id === DEMO.persona_id) : null);
+  if (!base) throw new Error("페르소나 " + DEMO.persona_id + " 를 찾지 못했어요");
+  return typeof P.materializePersona === "function" ? P.materializePersona(base, DEMO.rep) : base;
+}
+function demoHistory(recId) {
+  const recs = [...SESSION_LOG.recommendations, ...((DEMO_RAW && DEMO_RAW.recommendations) || [])].filter(r => r.id !== recId);
+  const evs = [...SESSION_LOG.events, ...((DEMO_RAW && DEMO_RAW.events) || [])];
+  const heard = new Set();
+  for (const e of evs) if (e && e.payload && e.payload.song_id && ((e.type === "track_exit" && Number(e.payload.listened_s) >= HEARD_MIN_SECONDS) || e.type === "track_complete")) heard.add(e.payload.song_id);
+  return {
+    recent_sessions: recs.map(r => (r.sequence || []).map(x => x.song_id)),
+    liked_ids: [...LIKED_SONGS], wall_ids: [...PLAYLIST_SONGS], disliked_ids: [...DISLIKED_SONGS], heard_ids: [...heard],
+    env: "demo",
+  };
+}
+async function demoVirtualListen(btn) {
+  const status = $("wpDemoStatus");
+  const rec = SESSION_LOG.recommendations.find(r => r.id === LAST_REC_ID);
+  if (!DEMO || !rec) { if (status) status.textContent = "먼저 오늘의 음악을 만들어 주세요."; return; }
+  btn.disabled = true;
+  if (status) status.textContent = "가상으로 듣는 중…";
+  try {
+    const [B, persona] = await Promise.all([import("./tools/sim/behavior.mjs?v=300"), demoPersona()]);
+    closeExposure("new_rec");   // 화면에서 듣던 재생은 닫고 가상 청취로 대신한다
+    const out = B.respond(persona, rec, CATALOG_INDEX, { rngKey: "demo:" + DEMO.id + ":" + rec.id, history: demoHistory(rec.id) }) || {};
+    const t0 = Number(rec.created_at_ms) || Date.now();
+    let n = 0;
+    for (const ev of out.events || []) {
+      const at = t0 + Math.round((Number(ev.t_s) || 0) * 1000);
+      const payload = { ...(ev.payload || {}) };
+      const id = payload.client_id || [rec.id, ev.type, payload.song_id || "", "sim", ++n].join("|");
+      SESSION_LOG.events.unshift({ id, user_id: DEMO.uid, rec_id: ev.rec_id ?? rec.id, type: ev.type, payload, created_at: at, created_at_ms: at });
+      /* 좋아요·싫어요는 '지금 상태'(profile)도 바꾼다 — 모델은 상태 + 시각(이벤트)을 함께 본다 */
+      const sid = payload.song_id;
+      if (sid && ev.type === "like") { if (payload.on !== false) { LIKED_SONGS.add(sid); DISLIKED_SONGS.delete(sid); } else LIKED_SONGS.delete(sid); }
+      if (sid && ev.type === "dislike") { if (payload.on !== false) { DISLIKED_SONGS.add(sid); LIKED_SONGS.delete(sid); } else DISLIKED_SONGS.delete(sid); }
+      if (sid && ev.type === "dislike_reason") patchWpDoc({ dislike_reasons: { [sid]: { reason: payload.reason, at_ms: at } } });
+    }
+    /* 끌기 결정(nudges)은 그 추천의 입력에 접는다 — 좌표 보정 학습기가 '사용자가 옮긴 점'으로 본다 */
+    for (const f of ["current", "target"]) {
+      const d = out.nudges && out.nudges[f];
+      if (d && d.nudged && d.point && rec.input) {
+        rec.input.nudged = { ...(rec.input.nudged || {}), [f]: true };
+        rec.input[f === "current" ? "current_va" : "target_va"] = { v: d.point.v, e: d.point.e };
+      }
+    }
+    rebuildModel("demo_listen");
+    const played = (out.played || []).length, A = out.answers || {};
+    if (status) status.textContent = "가상 청취를 기록했어요 — " + played + "곡 재생"
+      + (A.pace_answer ? " · 빠르기 답 ‘" + ({ faster: "더 빨리", ok: "딱 좋았어요", slower: "더 천천히" }[A.pace_answer] || A.pace_answer) + "’" : "")
+      + ". 다시 오늘의 음악을 만들면 변화가 보여요.";
+    renderMyAzt();
+  } catch (e) {
+    console.warn("[AZT] 가상 청취 실패", e);
+    if (status) status.textContent = "가상 청취를 하지 못했어요(" + (e.message || e) + ").";
+    btn.disabled = false;
+  }
+}
+
+/* =====================================================================
+   [web-personal] 개발 픽스처 ?fixture=<name> (§11 H2) — tools/sim/fixtures/<name>.json 으로 모델·정책 digest 를 찍는다(쓰기 끔).
+   Node 와 브라우저가 같은 personal.js 로 같은 digest 를 내는지 확인한다. 결과: 콘솔 + window.AZT_FIXTURE_RESULT
+   ===================================================================== */
+async function runFixture(name) {
+  try {
+    await loadEngine(); await loadPersonal(); buildCatalogIndex();
+    if (!PERSONAL || !CATALOG_INDEX) throw new Error("personal.js 또는 카탈로그가 준비되지 않았어요");
+    const r = await fetch("tools/sim/fixtures/" + encodeURIComponent(name) + ".json", { cache: "no-store" });
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    const fx = await r.json();
+    const raw = fx.schema === "wp-raw/1" ? fx : (fx.raw || fx);
+    const as_of_ms = Number(fx.as_of_ms ?? raw.as_of_ms);
+    const norm = PERSONAL.normalizeLogs(raw, CATALOG_INDEX, AZT_RULES);
+    const model = PERSONAL.buildPersonalModel(norm, CATALOG_INDEX, AZT_RULES, { as_of_ms });
+    const out = { fixture: name, catalog_n: CATALOG_INDEX.n, catalog_digest: CATALOG_INDEX.digest, model_digest: model.digest || PERSONAL.digest(model) };
+    if (fx.ctx) {
+      const pol = PERSONAL.resolvePolicy(model, fx.ctx, AZT_RULES, fx.mode ? { mode: fx.mode } : undefined);
+      out.policy_digest = (pol && pol.policy && pol.policy.digest) || PERSONAL.digest(pol.policy);
+    }
+    window.AZT_FIXTURE_RESULT = out;
+    console.info("[AZT fixture]", JSON.stringify(out));
+    renderEnvBar("개발 픽스처 " + name + " · 모델 " + out.model_digest + (out.policy_digest ? " · 정책 " + out.policy_digest : "") + " · 쓰기 꺼짐");
+  } catch (e) {
+    window.AZT_FIXTURE_RESULT = { fixture: name, error: String(e && e.message || e) };
+    console.warn("[AZT fixture] 실패", e);
+    renderEnvBar("개발 픽스처 " + name + " 실패 — " + (e.message || e));
+  }
+}
+
+/* ── 실행 띠: 데모·픽스처·로컬(쓰기 꺼짐)을 화면 맨 위에 늘 보여 준다 ── */
+function renderEnvBar(textOverride) {
+  let text = textOverride || null;
+  if (!text) {
+    if (DEMO) text = "데모 프로필(합성 사용자) · " + DEMO.id + " · 기록은 저장되지 않아요";
+    else if (WP_URL.get("demo")) text = "데모 프로필(합성 사용자) 불러오는 중 · 기록은 저장되지 않아요";
+    else if (WP_URL.get("fixture")) text = "개발 픽스처 · " + WP_URL.get("fixture") + " · 쓰기 꺼짐";
+    else if (WP_ENV.writes === false) text = "로컬 실행 · 기록은 저장되지 않아요(쓰기 꺼짐)";
+  }
+  let bar = $("wpEnvBar");
+  if (!text) { if (bar) bar.remove(); document.documentElement.classList.remove("wp-has-bar"); return; }
+  if (!bar) { bar = document.createElement("div"); bar.id = "wpEnvBar"; bar.className = "wp-envbar"; bar.setAttribute("role", "status"); document.body.prepend(bar); }
+  bar.textContent = text;
+  document.documentElement.classList.add("wp-has-bar");
+}
+
+/* ── 콘솔 진단 추가: 계약 곡 덤프(§6.2 — 도구의 카탈로그 로더와 비교), 쓰기 카운터, 이 탭 기록, 모델 ── */
+Object.assign(window.AZT_DEBUG, {
+  dumpContract(ids) {
+    const list = Array.isArray(ids) && ids.length ? ids : SONGS.slice(0, 200).map(s => s.id);
+    return list.map(id => {
+      const c = CATALOG_INDEX && CATALOG_INDEX.byId.get(id);
+      if (c) return JSON.parse(JSON.stringify(c));
+      const s = songById(id); return s ? contractWithBins(s) : null;
+    }).filter(Boolean);
+  },
+  writes() { return { ...WP_WRITES, writes_enabled: WP_ENV.writes !== false, env: WP_ENV.env }; },
+  sessionLog() { return SESSION_LOG; },
+  exits() { const rows = SESSION_LOG.events.filter(e => e.type === "track_exit").map(e => ({ rec: e.rec_id, ...e.payload })); console.table(rows); return rows.length; },
+  model() { return MODEL; },
+  raw() { return assembleRaw(Date.now()); },
+  personal() { return { active: personalActive(), switches: personalSwitchesOn(), user: personalUser(), model_digest: MODEL && MODEL.digest, model_ms: MODEL_INFO.ms, catalog_digest: CATALOG_INDEX && CATALOG_INDEX.digest }; },
+});
 
 /* =====================================================================
    AZT v10 — 페이지 컨트롤러 (단일 구현)
@@ -4039,6 +5291,8 @@ applyScenes();
 
 /* 앱 초기화 */
 $("go").addEventListener("click", recommend);
+renderEnvBar();   // [web-personal] 데모·픽스처·로컬(쓰기 꺼짐) 띠
+if (WP_URL.get("demo")) loadDemo(WP_URL.get("demo"));   // §4.12.4 합성 사용자 — 메모리에만
 renderGenreChips();
 initPlane();   // 감정 좌표 입력 (네트워크와 무관하게 즉시)
 initNL();      // 자연어 입력 (서버에 키 없으면 자동 숨김)

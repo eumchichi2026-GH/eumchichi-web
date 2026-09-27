@@ -1,0 +1,1 @@
+{"version":"0.0.1","configurations":[{"name":"web-personal","runtimeExecutable":"node","runtimeArgs":["server.mjs"],"port":5180}]}

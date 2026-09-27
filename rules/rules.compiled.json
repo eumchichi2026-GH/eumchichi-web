@@ -1,7 +1,7 @@
 {
  "schema_version": 2,
- "rules_version": "v2.4.0",
- "note": "숫자는 전부 설계 사전값(prior). 골드셋 채점으로 재추정 대상. | v2.3.0 (2026-09-22): preference.implicit(완주·스킵·벽 표), preference.pref_weight(μ, 0) 추가 — 엔진 2.5.0. rules_hash 는 tools/rules_hash.mjs --write 로 갱신할 것. | v2.4.0 (2026-09-22): preference.band 0.05→0.025, 도착 구간 실거리 정렬(엔진 2.5.1). rules_hash 갱신 필요.",
+ "rules_version": "v2.5.0-wp",
+ "note": "숫자는 전부 설계 사전값(prior). 골드셋 채점으로 재추정 대상. | v2.3.0 (2026-09-22): preference.implicit(완주·스킵·벽 표), preference.pref_weight(μ, 0) 추가 — 엔진 2.5.0. rules_hash 는 tools/rules_hash.mjs --write 로 갱신할 것. | v2.4.0 (2026-09-22): preference.band 0.05→0.025, 도착 구간 실거리 정렬(엔진 2.5.1). rules_hash 갱신 필요. | v2.5.0-wp (2026-09-27): personalization 절 추가(web-personal 전용, 엔진 2.6.0-wp). 기존 절 값 불변 — personal 이 없으면 2.5.1 과 같은 출력.",
  "coordinate_space": "percentile",
  "coordinate_note": "퍼센타일 좌표 p(x) = (x보다 작은 곡 수 + 같은 값 곡 수의 절반) / 전체. 기준선이 계산 없이 0.5 가 되고, \"거리 0.1\" 이 \"카탈로그의 10%\" 라는 뜻이 되어 희소 구간(휴식 사분면)에서도 후보가 고갈되지 않습니다. 화면에 그리는 좌표는 원 V/A 유지.\n",
  "inputs": {
@@ -349,9 +349,47 @@
    "binds": [
     "va_source"
    ]
+  },
+  {
+   "id": "p_smooth",
+   "when": {
+    "trace_key": "p_smooth",
+    "equals": true
+   },
+   "template": "앞 곡과 {p_smooth_basis} 흐름을 이어 골랐어요.",
+   "binds": [
+    "p_smooth_basis"
+   ]
+  },
+  {
+   "id": "p_discovery",
+   "when": {
+    "trace_key": "p_discovery",
+    "equals": true
+   },
+   "template": "이번엔 아직 안 들어본 가수의 곡도 하나 넣어 봤어요.",
+   "binds": []
+  },
+  {
+   "id": "p_replay",
+   "when": {
+    "trace_key": "p_replay",
+    "equals": true
+   },
+   "template": "좋아요한 곡을 오랜만에 다시 넣었어요.",
+   "binds": []
+  },
+  {
+   "id": "p_extra",
+   "when": {
+    "trace_key": "p_extra",
+    "equals": true
+   },
+   "template": "목표 분위기를 이어 가는 곡이에요.",
+   "binds": []
   }
  ],
- "rules_hash": "7a9dc8823c84",
+ "rules_hash": "856fd0b556a2",
  "trace_keys": [
   "artist",
   "band_size",
@@ -360,7 +398,23 @@
   "gates_failed",
   "gates_passed",
   "jitter",
+  "p_adj",
+  "p_adj_x",
+  "p_bpm_diff",
+  "p_chosen_by",
+  "p_corridor",
+  "p_discovery",
+  "p_extra",
+  "p_geo_best",
+  "p_pers",
+  "p_phase",
+  "p_pmarg",
+  "p_replay",
+  "p_smooth",
+  "p_smooth_basis",
+  "p_soft_relaxed",
   "path_cost",
+  "phase",
   "pool_size",
   "pref_basis",
   "pref_bucket",
@@ -381,5 +435,116 @@
   "wp_A",
   "wp_V"
  ],
- "sensitivity_2026_09_21": "one-at-a-time 민감도 분석(실카탈로그 4,117곡, 시나리오 400). 최대 전환 거리 변동폭: iso.transition_point 0.063 > path.jump_weight 0.030 > search.expand_per_step 0.022 > iso.min_step_span 0.016 > search.beam_width 0.008 = preference.band 0.008 > step_limit 0.001 = path.progress_weight 0.000 = selection.region.radius 0.000. 도착 오차 변동폭은 preference.band 0.043 이 최대(0.025 에서 0.023 으로 개선되나 선호 레인 작동 폭과 상충하여 보류). 채택: 보폭 제약 제거, λ=0.1, 나머지 현재값 유지."
+ "sensitivity_2026_09_21": "one-at-a-time 민감도 분석(실카탈로그 4,117곡, 시나리오 400). 최대 전환 거리 변동폭: iso.transition_point 0.063 > path.jump_weight 0.030 > search.expand_per_step 0.022 > iso.min_step_span 0.016 > search.beam_width 0.008 = preference.band 0.008 > step_limit 0.001 = path.progress_weight 0.000 = selection.region.radius 0.000. 도착 오차 변동폭은 preference.band 0.043 이 최대(0.025 에서 0.023 으로 개선되나 선호 레인 작동 폭과 상충하여 보류). 채택: 보폭 제약 제거, λ=0.1, 나머지 현재값 유지.",
+ "personalization": {
+  "schema": "wp-policy/1",
+  "enabled": true,
+  "members_only": true,
+  "p0_for_anonymous": false,
+  "evidence": "[agreed] web-personal 전용. 로그인 사용자에게만 inputs.personal 을 만든다(9/17 결정: 익명은 개인화 없음). enabled=false 이거나 personal 이 없으면 엔진은 2.5.1 과 같은 출력(I0). p0_for_anonymous 는 익명에게 모집단 기본 정책(머묾 반경·기본 전환 비용)을 줄지 — 팀 결정 전까지 false.",
+  "load": {
+   "recs": 100, "event_pages": 3, "event_page_size": 400, "history_rows": 300, "orphan_window_h": 3, "rerequest_window_s": 600,
+   "load_evidence": "[prior] 읽기 비용과 400건 창 유실(B16) 사이의 절충. recs 100·events 400 은 기존 loadPersonalFeedback 값, 쪽수 3 은 약 30~60세션을 덮는 양. orphan 3시간은 rec_id 없는 옛 이벤트를 붙이는 창."
+  },
+  "decay": {
+   "session_gamma": 0.85, "calib_half_life_days": 60, "transition_half_life_days": 45, "lookback_sessions": 10,
+   "decay_evidence": "[prior] 취향 감쇠는 preference.decay.half_life_days(14)를 그대로 쓴다. 방향 신호(속도·길이)는 세션 단위 0.85(약 4세션 반감). 좌표 습관은 하루 기분보다 느리게 변한다고 보고 60일, 전환 민감도는 45일. 규칙형 학습기는 최근 10세션만 본다."
+  },
+  "outcome": {
+   "exposure_min_s": 3, "heard_min_s": 10, "skip_below": 0.30, "keep_from": 0.70, "engaged_prev_min": 0.5,
+   "preview_max_duration_s": 31, "preview_catalog_min_s": 45, "preview_factor": 0.5, "legacy_factor": 0.5, "quit_gap_s": 1800,
+   "outcome_evidence": "[agreed] 30%·70% 는 9/20 합의 문턱. heard 10초는 좋아요 버튼이 열리는 HEARD_MIN_SECONDS 와 같음. [prior] 노출 3초(실수 두 번 누름·자동재생 끊김 제외), 미리듣기 판정 31초/45초, 미리듣기·옛 기록 반값, 앞 곡 몰입 0.5, 이탈 판정 30분.",
+   "legacy_skip_c": 0.1, "ai_code_weight": 0.5, "mismatch_max_position": 2,
+   "outcome_extra_evidence": "[prior] 명세 본문 값을 규칙으로 옮김(I8, 통합 때): legacy_skip_c 0.1 = 옛 track_skip 에 track_milestone 이 없을 때의 완주율(§3.1), ai_code_weight 0.5 = AI 가 고르고 사용자가 지우지 않은 이유 코드의 가중(§3.3·§4.6·§4.9·§4.10), mismatch_max_position 2 = mood_mismatch 를 시작점 불만으로 보는 곡 위치 상한(§4.1.5·§4.4)."
+  },
+  "listen_vote": {
+   "unit": 0.25, "per_song_cap": 1.0, "skip_causes": ["next", "jump"],
+   "no_vote_causes": ["prev", "pagehide", "new_rec", "session_end", "autoplay_fail", "unknown"],
+   "listen_vote_evidence": "[agreed] 9/20 합의: 청취 30% 미만 약한 −, 30~70% 0, 70% 이상 +, 크기는 좋아요의 1/4. [derived] 부정 표는 실제 넘김(next/jump)일 때만 — 탭 닫힘·새 추천은 취향이 아니다. [prior] 곡당 암묵 표 합 1(자주 나온 곡 과대표 방지)."
+  },
+  "safety": {
+   "stress_w_v": 0.6, "stress_w_a": 0.4, "high_stress_min": 3,
+   "high_stress": { "faster_pace_allowed": false, "discovery": false, "hold_radius_max": 0.035, "start_offset_max": 0.075, "adj_mult_min": 1.0 },
+   "corridor_bands": 1, "j_move_bands": 1.5, "j_hold": 0.0125,
+   "envelope": { "arrival_abs": 0.040, "arrival_over_ref": 0.012, "max_jump_abs": 0.25, "max_jump_over_ref": 0.05, "reversal_eps": 0.01, "turn_min": 0.02,
+     "turn_min_evidence": "[measured] 90° 꺾임 판정에서 두 걸음이 모두 이 거리보다 크게 움직일 때만 센다 — iso_path_quality.mjs(20260926) 의 TURN_MIN 과 같은 값(명세 §11 B3). 통합 때 personal.js 의 명세 보충값에서 규칙으로 옮김(I8)." },
+   "safety_evidence": "[prior] 스트레스 식은 앱 deriveStress(0.6/0.4)와 같음 — 불안·짜증·답답·걱정 칩이 3. 고긴장 안전 집합은 팀 결정 D5. 코리도어 1 밴드·J 1.5 밴드면 개인 항이 최선 밴드보다 2 밴드 이상 나쁜 곡을 고를 수 없다(명세 §3.8 정리). 머묾 J 0.0125 는 band 의 절반. [measured] 봉투 기준: 2.5.1 도착 오차 90% 0.035, r=0.035 제안 0.035(iso_path_quality_20260926), 최대 전환 중앙 0.145."
+  },
+  "calib": {
+   "k_user": 4, "k_label": 2, "max_axis": 0.10, "cross_neutral_min_edits": 4, "min_edits_label": 2, "min_edits_global": 4,
+   "edit_eps": 0.01, "w_edit": 1.0, "w_accept": 0.25, "clamp": [0.04, 0.96], "prompt_after_mismatch": 2, "prompt_repeat_days": 7,
+   "nl": { "substitution": false, "subst_min_n": 3, "subst_min_rate": 0.6, "intensity_bias": false, "intensity_apply_abs": 0.5 },
+   "calib_evidence": "[prior] 두 층 축소(개인 전체 k=4, 단어 k=2 — preference.shrinkage.personal_k 와 같은 라플라스 무게). 관측은 항상 표 좌표 기준 o=최종−표. 한 축 0.10 상한은 칩 사이 간격(0.05~0.10) 수준. clamp [0.04,0.96] 은 기존 nlClamp. [measured] 화살표 한 칸 0.05(L2869). 자연어 치환·강도 편향은 P2, 기본 꺼짐."
+  },
+  "pace": {
+   "manual_tp": { "fast": 0.5, "slow": 1.0 }, "tp_fast": 0.5, "tp_slow": 1.0,
+   "vote_step": 0.5, "w_chip": 1.5, "w_answer": 1.0, "k0": 1.0, "apply_abs": 0.15, "small_n_max": 3, "small_n_min_tp": 0.75,
+   "quit_guard": { "enabled": true, "min_sessions": 5, "prior_sessions": 2, "apply_below": 0.9, "min_arrival_song": 2,
+     "min_arrival_song_evidence": "[derived] 엔진 상한 K = max(min_arrival_song, floor(f_med·n)) — 첫 곡에서 곧바로 도착하지 않게 도착 곡 번호의 하한은 2번째 곡(명세 §4.3.4). tp 상한의 하한 0.5 는 bounds.tp[0]." },
+   "pace_evidence": "[measured] manual_tp 는 앱 PACE_TP(L3477) 값을 그대로 옮김(fast 0.5 → 30분 8곡 중 5번째 도착, slow 1.0 → 8번째; personalization_probe_20260926). [prior] 표 크기 0.5·가중 1.5/1·k0 1·적용 문턱 0.15. n≤3 에서 tp≥0.75 는 t=0,1,1 퇴화 방지(iso.min_step_span_evidence). 이탈 가드는 5세션 이상·가상 2세션(f=1)·중앙 도달 0.9 미만일 때."
+  },
+  "start": {
+   "arms": [0, 0.075, 0.15], "min_journey": 0.15, "min_first_songs": 5, "ratio_up": 1.5, "pop_first_ratio": 1.2, "down_mismatch_n": 2,
+   "start_evidence": "[prior] ISO 시작 일치는 치료 전제라 기본 0, 최대 여정의 15%(고긴장 7.5%). 팀 결정 D2(음악중재 자문). 첫 곡 거절률을 나머지 곡 대비·취향 기대 거절률로 표준화하고 모집단 기저비 1.2(누구나 첫 곡을 조금 더 넘김 — 실제 로그로 재추정)로 나눈 값이 1.5 이상이고 mood_mismatch 명시 확인이 있을 때만 올린다."
+  },
+  "length": {
+   "base_sessions": 5, "vote_step_log2": 0.3, "k0": 1.0, "clamp_log2": [-0.5, 0.5], "apply_abs_log2": 0.1, "round_minutes": 5, "minutes_range": [5, 90],
+   "length_evidence": "[prior] 감상 시간은 사용자 선언이라 바꾸지 않고 다음 기본값만 제안한다. 표 크기 0.3(≈23%)을 기준 시간(무게 1)과 평균하므로 한 번 답에 약 11% 이동(30분→27분→5분 단위 25분), 최대 ±41%(0.5). 5분 단위·5~90분은 기존 슬라이더 범위."
+  },
+  "hold": {
+   "p0_radius": 0.035, "arms": [0, 0.02, 0.035, 0.05], "min_songs": 5, "order": "last_fixed_progress", "smooth_max_tail": 6,
+   "arrival_mismatch_min": 2, "repetitive_min": 2,
+   "hold_evidence": "[measured] hold_segment_proposal_20260925·iso_path_quality_20260926: 2.5.1 은 같은 곡으로 끝남 100%·머묾 겹침 100%. r=0.035 → 25.3%·31.9%, 도착 오차 중앙 30·45분 0.015(1,224세션 전체 0.021), 15분 0.030. 거리 순 재배열은 꺾임 18.5%, 진행 방향 순(제안 B)은 8.3% 이지만 마지막 곡이 가장 가깝지 않음 46%. 그래서 마지막 곡(최소 fit) 고정 + 나머지 진행 방향 순. min_songs 5: 15분(4곡)은 도착 걸음이 1곡뿐이라 반경만큼 오차가 커진다. [prior] 개인 계단 문턱 2회."
+  },
+  "taste": {
+   "mu_max": 0.5, "k_mu": 8, "pin_evidence_w": 0.5,
+   "dislike_scope_add": { "arrival_mismatch": [], "length": [] },
+   "extra_features": [],
+   "extra_features_available": [ { "id": "popularity", "field": "popularity", "bins": 3, "label": "알려진 정도", "zero_is_unknown": true } ],
+   "discovery": { "min_mu": 0.15, "min_E": 4, "min_moving_steps": 3, "pause_after_skips": 3, "pause_sessions": 3 },
+   "taste_evidence": "[measured] personalization_probe_20260926: μ=0 이면 취향이 곡을 거의 못 바꿈(연주곡 사용자 0%), μ=0.5 는 100% 이지만 도착 오차 0.006→0.019·최대 전환 0.180→0.220 — 결합 제한(safety) 안에서만 쓴다. [prior] μ=0.5·E/(E+8): 기록이 쌓일수록 커지는 결정식(보상 학습 없음). dislike_scope_add 는 도착·길이 불만을 취향 싫어요로 세던 문제(B1) 수정 — 기본 절은 그대로. 인기도는 P2(0=모름, 약 9%)."
+  },
+  "adjacency": {
+   "base_weights_bands": { "tempo": 0.4, "vocal": 0.3, "spoken": 0.15, "genre": 0.15 }, "scale": 0.5,
+   "bpm_scale": 60, "spoken_scale": 0.5, "half_double_fold": false,
+   "large": { "tempo_bpm": 30, "spoken": 0.25, "va": 0.15 },
+   "theta0": -1.73, "theta_margin": 3.0, "kappa": 2, "iterations": 20, "mult_range": [0.5, 2.0], "z_apply": 1.28,
+   "min_large": 8, "min_transitions": 12, "attrib_max": 0.8, "lambda_range": [0.1, 0.25],
+   "adjacency_evidence": "[measured] adjacent_similarity_20260925(660회): 추천 인접 쌍 BPM 차 중앙 28.3/90% 74.9(무작위 29.7/68.3), 보컬↔연주 11.3%(무작위 27.8%), 2개 이상 어긋남 36.6%, 말 비중 차 중앙 0.278. BPM 은 빠르기 태그×150+50 — 측정 지표와 같은 정의. large.tempo 30 은 무작위 중앙, va 0.15 는 이동 구간 중앙 0.135 근처. λ 상한 0.25: 2026-09-21 λ 스윕에서 0.25 이상 최대 전환 평탄. [prior] 기본 가중(합 1 밴드). [measured] scale·half_double_fold 는 D7 스윕으로 정함(scale_evidence). θ0=logit 0.15, θ_m=3, κ=2, 적용 문턱 z=1.28(80%), 최소 8·12 는 사전값 — 실제 로그가 쌓이면 모집단 적합으로 재추정.",
+   "scale_evidence": "[measured] D7 스윕 sweep_20260928 — node tools/sim/sweep.mjs --param adjacency.scale --values 0,0.5,1,1.5,2 --param2 adjacency.half_double_fold --values2 false,true --grid adj660,iso1224 (합성 격자 adj660 660·iso1224 1224, 신규 사용자 P0). 표: scale/fold → [adj660] BPM 차 중앙/90%·보컬↔연주·2개 이상·서로 다른 곡·C 점수 | [iso1224] 도착 중앙/90%·최대 전환 중앙·꺾임·같은 곡 끝·머묾 곡(봉투): 0/false·true(같음) 29.0/70.2·12.9%·36.8%·721·C1 | 0.008/0.035·0.145·14.5%·47.3%·14.5(B3·B5 밖); 0.5/false 6.7/27.0·3.2%·4.2%·480·C3 | 0.008/0.035·0.150·9.5%·92.8%·11.8(B5 밖); 0.5/true 9.0/71.7·3.2%·7.2%·500·C2 | 0.008/0.035·0.148·12.8%·94.6%·12.4(B3·B5 밖); 1/false 6.0/25.0·3.2%·3.1%·484·C3 | 0.009/0.035·0.151·15.4%·94.4%·12.0(B3·B5 밖); 1/true 9.0/74.2·3.4%·6.3%·484·C2 | 0.008/0.035·0.151·15.0%·93.5%·13.3(B3·B5 밖); 1.5/false 6.1/32.2·2.8%·4.4%·482·C3 | 0.009/0.035·0.152·20.6%·89.3%·12.6(B3·B5 밖); 1.5/true 9.0/74.2·3.1%·6.1%·473·C2 | 0.008/0.035·0.152·19.4%·92.8%·12.8(B3·B5 밖); 2/false 6.1/40.2·2.9%·5.1%·487·C3 | 0.008/0.035·0.153·25.3%·84.4%·13.3(B3·B5 밖); 2/true 9.2/74.2·3.1%·5.8%·472·C2 | 0.008/0.035·0.152·22.7%·89.1%·13.3(B3·B5 밖). 2.5.1 참고: 28.3/74.9·11.0%·36.5%·668 | 0.007/0.035·0.145·6.5%·100.0%·4.1. 봉투(B1–B5)를 모두 지키는 조합이 없다 — scale=0(전환 비용 없음)도 꺾임 14.5%·같은 곡 끝 47.3% 로 밖이라 이 값으로는 봉투를 되찾을 수 없다(머묾 반경·순서 쪽). 봉투는 완화하지 않고(§11) 어긋난 봉투 기준이 가장 적은 조합(0.5/false 하나만 B5 한 항목) 중 구성 목표 C1 을 가장 많이 달성한 가장 작은 값 → scale 0.5 · half_double_fold false 채택(sweep.mjs 의 선택 규칙). fold=true 는 BPM 차 90% 가 68 을 넘어 C 가 늘 1 낮다. 남은 차이 — B5(같은 곡으로 끝남 92.8% > 35%, 목표 칩당 머묾 곡 11.8 < 12)와 C1d(서로 다른 곡 480 < 600) — 는 팀 결정 필요(docs/personal_eval_20260927.md).",
+   "bpm_offset": 50, "bpm_per_tag": 150,
+   "bpm_map_evidence": "[derived] 빠르기 태그(0~1) → BPM = bpm_offset + bpm_per_tag × tempo. 앱 songTempo01(BPM 50~200 → 0~1)의 역변환이고 adjacent_similarity_20260925 측정 지표(tempo×150)와 같은 정의. 학습값이 아니라 엔진 sanitizePersonal 이 정책에 이 규칙 값을 채운다(adjFeatures 가 정책 하나만 받기 때문).",
+   "smooth_min_dx": 0.25,
+   "feature_labels": { "tempo": "빠르기", "vocal": "목소리 유무", "spoken": "말 비중", "genre": "장르" },
+   "smooth_evidence": "[prior] 곡 설명 p_smooth 조건(명세 §6.8): 그 걸음의 선택 이유가 전환 비용(p_chosen_by = transition)이고, 기하 최선곡(p_geo_best)보다 쌍 특징 x 가 smooth_min_dx(0.25) 이상 작은 특징이 있을 때만 — 그 특징 이름(feature_labels)을 문구에 넣는다."
+  },
+  "gates": {
+   "soft_spoken": { "vocal_bother_min": 2, "window_days": 30, "rate_ratio_max": 0.5, "min_n": 6, "expire_days": 30 },
+   "soft_min_pool": 24, "user_off_days": 30,
+   "gates_evidence": "[derived] soft_min_pool 24 = selection.region.min_pool(48)/2. 문턱 자체는 기존 게이트 exclude_spoken(상위 20% 제외)을 그대로 쓴다 — 태그는 문턱으로만(원칙 9). [prior] 켜짐 2회·30일, 비율 p0 의 절반·표 6, 만료 30일(게이트가 반대 근거를 가리는 흡수 상태 방지)."
+  },
+  "diversity": {
+   "recent_window": 60, "recent_window_repetitive": 120, "repetitive_sessions_for_window": 2,
+   "artist_cap_low": 1, "repetitive_sessions_for_cap": 2,
+   "replay": { "cooldown_days": 7, "max_per_session": 1, "song_block_days": 30, "pause_after_skips": 2, "pause_sessions": 5 },
+   "diversity_evidence": "[measured] recent_window 60 은 앱 RECENT_MAX 값을 옮김(이제 기기 무관·노출 기준). [prior] 반복 불만 2세션이면 창 2배·가수 상한 1. 좋아요 곡은 7일 뒤 시퀀스당 1곡까지 다시 넣을 수 있다."
+  },
+  "extras": {
+   "fill_ratio": 0.85, "radius": 0.05, "default_duration_s": 210, "min_duration_s": 60, "max_songs": 12,
+   "extras_evidence": "[measured] fill 0.85 는 앱 L3535 값, 곡 길이 210초는 toContractSong 기본값, 최소 60초는 앱 estimated 값. [prior] 더 들을 곡 반경 0.05(머묾 반경의 최대 팔), 최대 12곡."
+  },
+  "relax": {
+   "order_default": ["lyric", "genre", "both"], "order_vocal_bother": ["genre", "lyric", "both"], "vocal_bother_min": 2,
+   "relax_evidence": "[measured] 기본 순서는 앱 L3489–3503 그대로. [prior] 가사에 민감한 사람(instrumental_only 직접 선택 또는 30일 vocal_bother 2회)은 장르를 먼저 푼다. 소프트 게이트는 엔진이 걸음마다 먼저 푼다."
+  },
+  "bounds": {
+   "tp": [0.5, 1.0], "quit_frac": [0, 1], "start_offset": [0, 0.15], "start_min_journey": [0.15, 1.0],
+   "hold_radius": [0, 0.05], "hold_min_songs": [3, 9], "corridor_bands": [0, 2], "j_move_bands": [0, 1.5], "j_hold": [0, 0.0125],
+   "adj_w_bands_each": [0, 2.0], "bpm_scale": [30, 120], "spoken_scale": [0.25, 1.0], "lambda_max": 0.25,
+   "soft_min_pool": [12, 48], "exclude_ids_max": 150, "replay_ids_max": 50, "replay_max": [0, 1], "calib_axis": [-0.10, 0.10],
+   "bounds_evidence": "[derived] sanitizePersonal 이 받은 정책을 여기에 맞춰 자른다(잘못된 로그·앱 버그에 대한 이중 방어). μ 상한은 max(taste.mu_max, preference.pref_weight), λ 하한은 min(0.1, path.jump_weight), 가수 상한은 [1, diversity.max_per_artist] — 기존 절에서 읽는다.",
+   "stress": [0, 4], "taste_features_max": 3,
+   "bounds_extra_evidence": "[derived] stress 는 앱 deriveStress 척도(round(4·…), 0~4). taste_features_max 3 은 명세 §6.5 의 taste_features ≤ 3. λ 하한의 0.1 은 adjacency.lambda_range[0]."
+  }
+ }
 }

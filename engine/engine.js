@@ -29,8 +29,19 @@
                        밴드로 뭉치지 않고 실제 거리를 그대로 쓴다(밴드는 이동 구간에서만). (2) 그리디 탐색은 먼저 뽑힌 곡이
                        가장 가깝고 뒤로 갈수록 남은 후보 중 상대적으로 먼 곡이 걸리는 구조라, 이 구간만 사후에 '먼 것→가까운
                        것'으로 재배열해 마지막 곡이 항상 가장 가깝게(=도착) 끝나도록 한다. 곡 집합은 그대로, 순서만 바뀐다.
-                       preference.band 0.05→0.025 (2026-09-21 스윕 근거, μ 도입으로 '동률 폭 축소' 트레이드오프가 사라져 반영). */
-export const ENGINE_VERSION = "2.5.1";
+                       preference.band 0.05→0.025 (2026-09-21 스윕 근거, μ 도입으로 '동률 폭 축소' 트레이드오프가 사라져 반영).
+   2.6.0-wp (2026-09-27): web-personal 개인화 (명세 docs/personalization_spec_20260927.md §6.6).
+                       inputs.personal(PersonalPolicy)을 받으면 sanitizePersonal 로 경계·고긴장 규칙을 다시 적용한 동결 사본을 쓴다.
+                       (1) 개인 비용 결합 제한 — 걸음마다 pers = clamp(μ·취향여백 + 인접 전환 비용, −J, +J), 가점은 코리도어 안에서만(§3.8).
+                       (2) 인접 전환 비용 adjCost(빠르기·보컬 전환·말 비중·장르) · 개인 λ.
+                       (3) 머묾 반경 r(반경 안은 거리 0) + 마지막 곡 고정 진행 방향 순 재배열.
+                       (4) 속도 tp·이탈 가드·시작 오프셋 — 경유지를 바꾸는 경로 모수(두 레인 I3).
+                       (5) 가수 상한 키 단위(B27) · 기기 무관 최근 창(exclude_ids) · 좋아요 곡 다시 넣기 · 새 가수 발견 칸 · 소프트 게이트.
+                       (6) recommendExtras — 더 들을 곡을 엔진이 고른다(경로는 바꾸지 않음).
+                       inputs.pace(fast/slow)는 개인화와 무관하게 rules.personalization.pace.manual_tp 로 처리(앱 PACE_TP 이관, B20).
+                       inputs.personal 이 없거나 personalization.enabled !== true 이면 출력은 2.5.1 과 같다(I0) —
+                       P === null 분기는 2.5.1 식을 글자 그대로(덧셈 순서 포함) 둔다. */
+export const ENGINE_VERSION = "2.6.0-wp";
 
 const R9 = (x) => Math.round(x * 1e9) / 1e9;
 const R6 = (x) => Math.round(x * 1e6) / 1e6;
@@ -48,18 +59,26 @@ function bisectRight(a, x) {
 
 // ── 시드 난수 (engine.py 와 비트 단위로 동일해야 함) ────
 const TE = new TextEncoder();
-function fnv1a32(text) {
+export function fnv1a32(text) {
   let h = 2166136261;
   for (const b of TE.encode(text)) { h ^= b; h = Math.imul(h, 16777619) >>> 0; }
   return h >>> 0;
 }
-function jitterOf(seed, songId, step) {
-  if (!seed) return 0;
-  let x = fnv1a32(`${seed}|${songId}|${step}`) || 0x9e3779b9;
+function xorshift32(x) {
   x = (x ^ (x << 13)) >>> 0;
   x = (x ^ (x >>> 17)) >>> 0;
   x = (x ^ (x << 5)) >>> 0;
-  return x / 4294967296;
+  return x;
+}
+function jitterOf(seed, songId, step) {
+  if (!seed) return 0;
+  return xorshift32(fnv1a32(`${seed}|${songId}|${step}`) || 0x9e3779b9) / 4294967296;
+}
+/* [2.6.0-wp] 시드 균등 난수 [0, 1) — jitterOf 와 같은 계열. '§' 접두어로 곡 단위 지터와 겹치지 않는다(명세 §3.7).
+   시드가 없으면 0.5. 이 엔진에서 무작위는 이것(과 jitterOf)뿐이다 — 시스템 난수·현재 시각은 쓰지 않는다(I7). */
+export function seededUniform(seed, ...keys) {
+  if (!seed) return 0.5;
+  return xorshift32(fnv1a32(`${seed}|§${keys.join("|")}`) || 0x9e3779b9) / 4294967296;
 }
 
 export function median(values) {
@@ -112,6 +131,11 @@ function prepare(catalog, rules) {
     }
   }
   return { sv, sa, pct, coords, base, th };
+}
+
+/* [2.6.0-wp] 작업 좌표(퍼센타일) — prepare 의 ecdf 와 같은 값. personal.js·도구가 곡 사이 거리를 엔진과 같은 공간에서 잴 때 쓴다. */
+export function workingCoords(catalog, rules) {
+  return prepare(catalog, rules).coords;
 }
 
 function toCoord(ctx, p) {
@@ -181,12 +205,14 @@ export function artistKeys(artist) {
    ⚠️ 반드시 '전체 카탈로그'로 만들 것. 장르·가사 조건으로 걸러낸 풀로 만들면 조건마다 경계가 달라져
       같은 좋아요가 다른 묶음으로 들어간다. */
 const BIN_NAMES = { 2: ["low", "high"], 3: ["low", "mid", "high"] };
-export function makeFeatureBinner(fullCatalog, rules) {
-  const specs = (rules.preference && rules.preference.features) || [];
+/* 묶음 함수 본체 — makeFeatureBinner(규칙의 preference.features)와 makeExtraBinner(개인 전용 추가 특징)가 같이 쓴다.
+   [2.6.0-wp] spec.zero_is_unknown 이면 0 은 '모름'이라 경계 계산에서도 빼고 묶지도 않는다(인기도 0 이 '낮음'으로 묶이지 않게, 명세 §4.7.5). */
+function binnerOf(fullCatalog, specs) {
   const cuts = {};
   for (const f of specs) {
     if (f.bins === "boolean") continue;
-    const vals = fullCatalog.map((s) => s[f.field]).filter((x) => typeof x === "number" && Number.isFinite(x)).sort((a, b) => a - b);
+    const vals = fullCatalog.map((s) => s[f.field])
+      .filter((x) => typeof x === "number" && Number.isFinite(x) && !(f.zero_is_unknown && x === 0)).sort((a, b) => a - b);
     const nb = Number(f.bins);
     cuts[f.id] = vals.length ? Array.from({ length: nb - 1 }, (_, i) => vals[Math.min(vals.length - 1, Math.floor(vals.length * (i + 1) / nb))]) : null;
   }
@@ -196,6 +222,7 @@ export function makeFeatureBinner(fullCatalog, rules) {
       const v = song[f.field];
       if (f.bins === "boolean") { if (typeof v === "boolean") out[f.id] = v ? "yes" : "no"; continue; }
       if (typeof v !== "number" || !Number.isFinite(v) || !cuts[f.id]) continue;   // 값을 모르면 묶지 않는다(중간으로 치지 않는다)
+      if (f.zero_is_unknown && v === 0) continue;
       let i = 0; while (i < cuts[f.id].length && v >= cuts[f.id][i]) i++;
       out[f.id] = (BIN_NAMES[Number(f.bins)] || [])[i] ?? String(i);
     }
@@ -204,12 +231,21 @@ export function makeFeatureBinner(fullCatalog, rules) {
   bin.cuts = cuts;
   return bin;
 }
+export function makeFeatureBinner(fullCatalog, rules) {
+  return binnerOf(fullCatalog, (rules.preference && rules.preference.features) || []);
+}
+/* [2.6.0-wp] 개인 전용 추가 특징(rules.personalization.taste.extra_features — 예: 인기도)의 묶음. 결과는 곡의 feature_bins_p 에 넣는다.
+   preference.features·feature_bins 와 섞지 않으므로 기본 경로(P 없음)는 그대로다. */
+export function makeExtraBinner(fullCatalog, specs) {
+  return binnerOf(fullCatalog, Array.isArray(specs) ? specs : []);
+}
 
 /* ── 들은 곡·좋아요 → 가수·특징별 '좋아요 비율' 집계 ─────────
    items: 사용자가 **실제로 들어본 곡**(좋아요를 누를 수 있었던 곡) 한 곡당 하나.
      { song_id?, liked: bool, disliked?: bool, reason?: 싫어요 이유 코드|null,
        completion?: 0~1 완주율, skipped?: bool, pinned?: bool(벽에 붙임),
-       artist?, genres?: [], feature_bins?: {id: bin}, days?: 경과일 }
+       vote?: { pos, neg, pin } (2.6.0-wp 청취 표 — 있으면 이 표를 그대로 쓴다),
+       artist?, genres?: [], feature_bins?: {id: bin}, feature_bins_p?: {id: bin}, days?: 경과일 }
    각 가수·특징 묶음마다 "들어본 곡 N개 중 좋아요한 곡 M개" 를 센다 (pos = M, neg = N − M).
 
    [2.5.0] 한 곡이 주는 표 (rules.preference.implicit):
@@ -220,6 +256,7 @@ export function makeFeatureBinner(fullCatalog, rules) {
      끝까지 들음(completion ≥ completion_min), 좋아요 없음 → pos completion_weight, neg 1 − completion_weight
      들었지만 아무 반응 없음         → neg 1 (2.4.0 과 같음)
    완주·스킵 값을 안 주면(옛 앱) 2.4.0 과 똑같이 센다.
+   [2.6.0-wp] vote 가 있는 항목은 위 판단보다 먼저 그 표를 쓴다 — 9/20 합의 청취 표(명세 §3.2)는 personal.js 가 계산해 넘긴다.
 
    왜 '좋아요 수'가 아니라 '들은 것 중 비율'인가 —
      좋아요만 세면 흔한 묶음이 무조건 이긴다. 카탈로그의 90% 가 보컬곡이면 좋아요의 90% 도 보컬곡이라
@@ -229,10 +266,15 @@ export function makeFeatureBinner(fullCatalog, rules) {
      취향(not_my_taste·이유 없음) → 모든 묶음에서 '좋아하지 않음' 1건
      가사·목소리(vocal_bother)    → 말 비중·연주곡 여부에서만 1건, 나머지 묶음에서는 세지 않음
      경로·기분·반복               → 어느 묶음에서도 세지 않음 (그 곡의 가수·특징 탓이 아니다)
+   opts (2.6.0-wp, 없으면 2.5.1 과 같음):
+     scope_add          이유별 범위 덧붙임 — 예 { arrival_mismatch: [], length: [] } (규칙 기본 절은 그대로, B1)
+     extra_feature_ids  feature_bins_p 의 이 특징들에도 표를 준다(개인 전용 추가 특징)
    반환: { like_base:{pos,neg}, song_likes, artist_affinity, genre_affinity, feature_affinity } */
-export function aggregateAffinity(items, rules) {
-  const scopeMap = (rules.preference && rules.preference.dislike_scope) || {};
+export function aggregateAffinity(items, rules, opts = undefined) {
+  const baseScope = (rules.preference && rules.preference.dislike_scope) || {};
+  const scopeMap = opts && opts.scope_add ? { ...baseScope, ...opts.scope_add } : baseScope;
   const featIds = ((rules.preference && rules.preference.features) || []).map((f) => f.id);
+  const extraIds = (opts && Array.isArray(opts.extra_feature_ids)) ? opts.extra_feature_ids : [];
   const imp = (rules.preference && rules.preference.implicit) || {};
   const CW = Number(imp.completion_weight ?? 0.5), CMIN = Number(imp.completion_min ?? 0.8);
   const SW = Number(imp.skip_weight ?? 1), PW = Number(imp.pinned_weight ?? 1);
@@ -254,7 +296,8 @@ export function aggregateAffinity(items, rules) {
     }
     /* 이 곡이 주는 표 */
     let v;
-    if (it.pinned) v = { pos: 0, neg: 0, pin: PW };
+    if (it.vote) v = { pos: +it.vote.pos || 0, neg: +it.vote.neg || 0, pin: +it.vote.pin || 0 };
+    else if (it.pinned) v = { pos: 0, neg: 0, pin: PW };
     else if (liked) v = { pos: 1, neg: 0, pin: 0 };
     else if (it.disliked) v = { pos: 0, neg: 1, pin: 0 };
     else if (it.skipped) v = { pos: 0, neg: SW, pin: 0 };
@@ -267,6 +310,10 @@ export function aggregateAffinity(items, rules) {
     if (has("genre")) for (const g of it.genres || []) vote(out.genre_affinity, g, v, it.days);
     for (const id of featIds) {
       const b = it.feature_bins && it.feature_bins[id];
+      if (b !== undefined && (has("features") || has(id))) vote(out.feature_affinity, id + ":" + b, v, it.days);
+    }
+    for (const id of extraIds) {   // [2.6.0-wp] 개인 전용 추가 특징 — opts 가 없으면 빈 목록이라 2.5.1 과 같다
+      const b = it.feature_bins_p && it.feature_bins_p[id];
       if (b !== undefined && (has("features") || has(id))) vote(out.feature_affinity, id + ":" + b, v, it.days);
     }
   }
@@ -284,8 +331,9 @@ function likeBaseRate(user) {
   return n > 0 ? ((b.pos || 0) + 1) / (n + 2) : null;
 }
 
-/* 선호 점수와 그 근거를 함께 돌려준다. { score, neutral(이 사용자의 중립점), basis:[{id, score}] } */
-function prefDetail(song, rules, user) {
+/* 선호 점수와 그 근거를 함께 돌려준다. { score, neutral(이 사용자의 중립점), basis:[{id, score}] }
+   [2.6.0-wp] extraSpecs(개인 전용 추가 특징 spec 목록)가 있으면 곡의 feature_bins_p 묶음도 같은 방식으로 평균에 넣는다(P 모드에서만). */
+function prefDetail(song, rules, user, extraSpecs = null) {
   const p = rules.preference;
   if (!p || !user) return { score: 0.5, neutral: 0.5, basis: [] };
   const pk = p.shrinkage.personal_k, gk = p.shrinkage.global_k;
@@ -321,6 +369,10 @@ function prefDetail(song, rules, user) {
     const fa = user.feature_affinity || {};
     for (const f of p.features || []) {
       const b = song.feature_bins && song.feature_bins[f.id];
+      if (b !== undefined) rate(f.id, fa[f.id + ":" + b]);
+    }
+    for (const f of extraSpecs || []) {   // [2.6.0-wp] 개인 전용 추가 특징(feature_bins_p)
+      const b = song.feature_bins_p && song.feature_bins_p[f.id];
       if (b !== undefined) rate(f.id, fa[f.id + ":" + b]);
     }
     return { score: basis.reduce((a, x) => a + x.score, 0) / basis.length, neutral: p0, basis };
@@ -363,11 +415,204 @@ function cmpKeys(a, b) {
   return 0;
 }
 
+// ── 개인 정책 (2.6.0-wp) ────────────────────────────────
+/* 정책을 받으면 모르는 키를 버리고, rules.personalization.bounds 로 자르고, 고긴장 안전 집합(I5)을 다시 적용한 동결 사본을 만든다.
+   빠진 필드는 **중립값**(2.5.1 과 같은 동작)으로 채운다 — 일부만 채운 정책도 나머지 절차는 2.5.1 그대로다.
+   rules.personalization.enabled !== true 이거나 p 가 없으면 null → I0 경로(2.5.1 과 같은 출력).
+   env = { duration_min, pace } — 고긴장 속도 하한(at_def)과 '천천히'를 누른 세션의 이탈 가드 끄기에 쓴다.
+   고긴장은 정책의 stress·high_stress 로만 판단한다(엔진의 inputs.stress 는 읽지 않는다 — 스트레스·부하 분리 유지). */
+const HOLD_ORDERS = ["fit", "last_fixed_progress", "last_fixed_smooth"];
+const ADJ_FEATURES = ["tempo", "vocal", "spoken", "genre"];
+function deepFreeze(o) {
+  if (o && typeof o === "object" && !Object.isFrozen(o)) {
+    Object.freeze(o);
+    for (const v of Object.values(o)) deepFreeze(v);
+  }
+  return o;
+}
+export function sanitizePersonal(p, rules, env = {}) {
+  const Z = rules && rules.personalization;
+  if (!Z || Z.enabled !== true || !p || typeof p !== "object" || Array.isArray(p)) return null;
+  const B = Z.bounds || {}, S = Z.safety || {}, HS = S.high_stress || {};
+  const ZA = Z.adjacency || {};
+  const band = Number(rules.preference.band);
+  const num = (x) => (typeof x === "number" && Number.isFinite(x) ? x : null);
+  const clamp = (x, lo, hi) => Math.max(lo, Math.min(hi, x));
+  const rng = (x, r, dflt) => (num(x) === null ? dflt : clamp(x, Number(r[0]), Number(r[1])));
+  const ids = (a, max) => {   // 문자열 곡 ID 만, 중복 없이, 앞(최신)에서부터 max 개
+    const seen = new Set(), out = [];
+    for (const x of Array.isArray(a) ? a : []) {
+      if (typeof x !== "string" || seen.has(x)) continue;
+      seen.add(x); out.push(x);
+      if (out.length >= max) break;
+    }
+    return out;
+  };
+  const dur = env.duration_min ?? 30;
+  const atDef = transitionAt(rules, dur);
+
+  /* 고긴장(명세 §3.5, I5) — stressOf(지금 좌표) ≥ safety.high_stress_min */
+  const stress = num(p.stress) === null ? null : clamp(Math.round(p.stress), Number(B.stress[0]), Number(B.stress[1]));
+  const high = p.high_stress === true || (stress !== null && stress >= Number(S.high_stress_min));
+  const noFaster = high && HS.faster_pace_allowed !== true;
+
+  /* 속도 — 자동 tp 는 고긴장이면 표 값보다 빠를 수 없다. 이탈 가드는 '천천히'를 직접 눌렀거나 고긴장이면 끈다(§4.3.4). */
+  let tp = num(p.tp) === null ? null : clamp(p.tp, Number(B.tp[0]), Number(B.tp[1]));
+  if (noFaster && tp !== null) tp = Math.max(tp, atDef);
+  const qg = (Z.pace && Z.pace.quit_guard) || {};
+  let quit = num(p.quit_frac) === null ? null : clamp(p.quit_frac, Number(B.quit_frac[0]), Number(B.quit_frac[1]));
+  if (qg.enabled !== true || noFaster || env.pace === "slow") quit = null;
+
+  /* 시작 오프셋·머묾 반경 — 고긴장 상한 */
+  let start = rng(p.start_offset, B.start_offset, 0);
+  if (high) start = Math.min(start, Number(HS.start_offset_max));
+  let hold = rng(p.hold_radius, B.hold_radius, 0);
+  if (high) hold = Math.min(hold, Number(HS.hold_radius_max));
+
+  /* 인접 전환 비용 — 절대 비용(밴드 × 기본 가중 × scale × 배수). 고긴장이면 배수 ≥ adj_mult_min(더 엄격하게만). */
+  const wLo = Number(B.adj_w_bands_each[0]) * band, wHi = Number(B.adj_w_bands_each[1]) * band;
+  const adjIn = p.adj_w && typeof p.adj_w === "object" ? p.adj_w : {};
+  const adj_w = {};
+  for (const f of ADJ_FEATURES) {
+    let w = num(adjIn[f]) === null ? 0 : clamp(adjIn[f], wLo, wHi);
+    if (high) w = Math.min(wHi, Math.max(w, band * Number((ZA.base_weights_bands || {})[f] || 0) * Number(ZA.scale) * Number(HS.adj_mult_min)));
+    adj_w[f] = w;
+  }
+  const jw = Number(rules.path.jump_weight || 0);
+  let lambda = rng(p.lambda, [Math.min(Number(ZA.lambda_range[0]), jw), Number(B.lambda_max)], jw);
+  if (high) lambda = Math.min(Number(B.lambda_max), Math.max(lambda, jw * Number(HS.adj_mult_min)));
+
+  const muMax = Math.max(Number(Z.taste.mu_max), Number(rules.preference.pref_weight || 0));
+  const gateIds = new Set((rules.gates || []).map((g) => g.id));
+  const maxCap = Number(rules.diversity.max_per_artist);
+  const tf = Array.isArray(p.taste_features)
+    ? p.taste_features.filter((f) => f && typeof f === "object" && typeof f.id === "string" && typeof f.field === "string"
+        && (f.bins === "boolean" || f.bins === 2 || f.bins === 3))
+      .slice(0, Number(B.taste_features_max))
+      .map((f) => ({ id: f.id, field: f.field, bins: f.bins, label: typeof f.label === "string" ? f.label : f.id, zero_is_unknown: f.zero_is_unknown === true }))
+    : [];
+  const u = num(p.discovery_u);
+
+  return deepFreeze({
+    v: 1,
+    schema: Z.schema ?? null,
+    digest: typeof p.digest === "string" ? p.digest : null,
+    model_digest: typeof p.model_digest === "string" ? p.model_digest : null,
+    stress,
+    high_stress: high,
+    tp,
+    quit_frac: quit,
+    start_offset: start,
+    start_min_journey: rng(p.start_min_journey, B.start_min_journey, Number(Z.start.min_journey)),
+    hold_radius: hold,
+    hold_min_songs: Math.round(rng(p.hold_min_songs, B.hold_min_songs, Number(Z.hold.min_songs))),
+    hold_order: HOLD_ORDERS.includes(p.hold_order) ? p.hold_order : "fit",
+    corridor_bands: num(p.corridor_bands) === null ? null : clamp(p.corridor_bands, Number(B.corridor_bands[0]), Number(B.corridor_bands[1])),
+    j_move: num(p.j_move) === null ? null : clamp(p.j_move, Number(B.j_move_bands[0]) * band, Number(B.j_move_bands[1]) * band),
+    j_hold: num(p.j_hold) === null ? null : clamp(p.j_hold, Number(B.j_hold[0]), Number(B.j_hold[1])),
+    mu: rng(p.mu, [0, muMax], Number(rules.preference.pref_weight || 0)),
+    taste_features: tf.length ? tf : null,
+    adj_w,
+    bpm_scale: rng(p.bpm_scale, B.bpm_scale, Number(ZA.bpm_scale)),
+    spoken_scale: rng(p.spoken_scale, B.spoken_scale, Number(ZA.spoken_scale)),
+    half_double_fold: typeof p.half_double_fold === "boolean" ? p.half_double_fold : ZA.half_double_fold === true,
+    /* 빠르기 태그 → BPM 환산은 학습값이 아니라 규칙 값이다(정책에 무엇이 오든 규칙에서 채운다). */
+    bpm_offset: Number(ZA.bpm_offset),
+    bpm_per_tag: Number(ZA.bpm_per_tag),
+    lambda,
+    discovery_u: high && HS.discovery !== true ? null : (u !== null && u >= 0 && u < 1 ? u : null),
+    soft_gates: [...new Set(Array.isArray(p.soft_gates) ? p.soft_gates.filter((g) => gateIds.has(g)) : [])],
+    soft_min_pool: Math.round(rng(p.soft_min_pool, B.soft_min_pool, Number(Z.gates.soft_min_pool))),
+    artist_cap: Math.max(1, Math.round(rng(p.artist_cap, [1, maxCap], maxCap))),   // 상한 0 은 곡이 없다는 뜻이라 구조적 하한 1
+    artist_cap_by_key: p.artist_cap_by_key === true,
+    exclude_ids: Array.isArray(p.exclude_ids) ? ids(p.exclude_ids, Number(B.exclude_ids_max)) : null,
+    replay_ids: ids(p.replay_ids, Number(B.replay_ids_max)),
+    replay_max: Math.round(rng(p.replay_max, B.replay_max, 0)),
+  });
+}
+
+/* [2.6.0-wp] 인접 두 곡의 쌍 특징 x_f ∈ [0, 1] (명세 §4.8.1). 값을 모르면 0.
+   tempo  = min(1, |BPM 차| / bpm_scale), BPM = bpm_offset + bpm_per_tag × 빠르기 태그(측정 지표와 같은 정의).
+            half_double_fold 면 반/배 박자(|2a−b|, |a−2b|)도 같은 빠르기로 본다.
+   vocal  = 둘 다 연주곡 여부를 알고 서로 다르면 1
+   spoken = min(1, |말 비중 차| / spoken_scale)
+   genre  = 둘 다 버튼 장르가 있고 하나도 겹치지 않으면 1
+   bpm_diff = 쓰인 BPM 차(정수) | null */
+/* BPM 환산의 기본값 — rules.personalization.adjacency.bpm_offset·bpm_per_tag 와 같은 값(앱 songTempo01 의 역변환).
+   sanitizePersonal 을 거친 정책은 규칙 값을 들고 오므로 이 값은 쓰이지 않는다. personal.js 가 학습용(큰 변화 표시 L_if)으로
+   정규화 전 정책을 넘겨도 빠르기 특징이 조용히 0 이 되지 않게 두는 대비값이다. */
+const BPM_MAP_FALLBACK = { offset: 50, per_tag: 150 };
+export function adjFeatures(a, b, P) {
+  const out = { tempo: 0, vocal: 0, spoken: 0, genre: 0, bpm_diff: null };
+  if (!a || !b) return out;
+  const Q = P || {};
+  const fin = (x) => typeof x === "number" && Number.isFinite(x);
+  if (fin(a.tempo) && fin(b.tempo) && fin(Q.bpm_scale) && Q.bpm_scale > 0) {
+    const off = fin(Q.bpm_offset) ? Q.bpm_offset : BPM_MAP_FALLBACK.offset;
+    const per = fin(Q.bpm_per_tag) ? Q.bpm_per_tag : BPM_MAP_FALLBACK.per_tag;
+    const ba = off + per * a.tempo, bb = off + per * b.tempo;
+    let d = Math.abs(ba - bb);
+    if (Q.half_double_fold === true) d = Math.min(d, Math.abs(2 * ba - bb), Math.abs(ba - 2 * bb));
+    out.tempo = R9(Math.min(1, d / Q.bpm_scale));
+    out.bpm_diff = Math.round(d);
+  }
+  if (typeof a.instrumental === "boolean" && typeof b.instrumental === "boolean" && a.instrumental !== b.instrumental) out.vocal = 1;
+  if (fin(a.spokenness) && fin(b.spokenness) && fin(Q.spoken_scale) && Q.spoken_scale > 0)
+    out.spoken = R9(Math.min(1, Math.abs(a.spokenness - b.spokenness) / Q.spoken_scale));
+  const ga = Array.isArray(a.genres) ? a.genres : [], gb = Array.isArray(b.genres) ? b.genres : [];
+  if (ga.length && gb.length && !ga.some((g) => gb.includes(g))) out.genre = 1;
+  return out;
+}
+function adjCostOf(x, P) {
+  const w = (P && P.adj_w) || {};
+  let c = 0;
+  for (const f of ADJ_FEATURES) c += (Number(w[f]) || 0) * x[f];
+  return R9(c);
+}
+/* [2.6.0-wp] 인접 전환 비용 = Σ_f adj_w[f] · x_f(a, b) — λ 와 같은 '전환 비용'이지 적합도가 아니다(원칙 9). 항상 ≥ 0. */
+export function adjCost(a, b, P) {
+  return adjCostOf(adjFeatures(a, b, P), P);
+}
+
+/* [2.6.0-wp] §3.8 개인 비용의 결합 제한 — 걸음 하나·후보 하나.
+   x = { distCost, fit, bandIdx, bestBand, arrival, rEff, taste(= μ·pmarg, 발견 칸이면 0), adj }
+   가점(pers < 0)은 코리도어 안에서만: 이동 = 최선 밴드 + corridor_bands 이내, 머묾 = 반경 rEff 이내. 감점은 어디서나.
+   J(이동 j_move · 머묾 j_hold)로 양쪽을 자른다. 중립 정책(corridor·J = null)은 자르지 않아 2.5.1 과 같은 부동소수가 나온다.
+   정리(이동): J ≤ 1.5·band, corridor_bands = 1 이면 bandIdx ≥ bestBand + 2 인 후보의 key 는 최선 밴드 모든 후보의 key 보다 크다.
+   시험(엔진 단위 시험 10만 조합)을 위해 export 한다. */
+export function personalKey(x, P) {
+  const bonusOK = P.corridor_bands == null ? true
+    : x.arrival ? x.fit <= x.rEff : x.bandIdx <= x.bestBand + P.corridor_bands;
+  let pers = x.taste + x.adj;
+  if (!bonusOK && pers < 0) pers = 0;
+  const J = x.arrival ? P.j_hold : P.j_move;
+  pers = J == null ? pers : R9(Math.max(-J, Math.min(J, pers)));
+  return { pers, bonusOK, key: R9(x.distCost + pers) };
+}
+
+/* P 모드 후보 허용: 가수 상한(키 단위면 참여 가수 중 한 명이라도 상한에 닿으면 제외, B27) · 다시 넣기 한도. */
+function personalAllows(s, state, PR, cap) {
+  const P = PR.P;
+  if (P.artist_cap_by_key) {
+    const ks = artistKeys(s.artist);
+    if (ks.length ? ks.some((k) => (state.keyCount[k] || 0) >= cap) : (state.artistCount[s.artist] || 0) >= cap) return false;
+  } else if ((state.artistCount[s.artist] || 0) >= cap) return false;
+  if (PR.replay.has(s.song_id) && state.replays >= P.replay_max) return false;
+  return true;
+}
+function keyCountAfter(kc, s) {
+  const out = { ...kc };
+  for (const k of new Set(artistKeys(s.artist))) out[k] = (out[k] || 0) + 1;
+  return out;
+}
+
 // ── 후보 생성 ───────────────────────────────────────────
-function eligibleUniverse(catalog, rules, ctx, inputs, gates) {
+function eligibleUniverse(catalog, rules, ctx, inputs, gates, P = null) {
   const user = inputs.user || {};
   const disliked = new Set(user.disliked || []);
-  const recent = new Set(rules.diversity.exclude_recent_played ? user.recent_played || [] : []);
+  /* [2.6.0-wp] P 모드: 기기 무관 최근 창(exclude_ids). 중립 정책의 null 이면 기존 목록. 다시 넣을 좋아요 곡은 창에서 뺀다. */
+  const recent = new Set(rules.diversity.exclude_recent_played ? (P && P.exclude_ids ? P.exclude_ids : user.recent_played || []) : []);
+  if (P) for (const id of P.replay_ids) recent.delete(id);
 
   const uni = [];
   let blocked = 0;
@@ -399,14 +644,58 @@ function regionPool(universe, ctx, wp, term, rules) {
   return pool.length ? pool : universe;
 }
 
+/* [2.6.0-wp] 소프트 게이트(§4.9): 통과한 곡만 남기되, 걸러서 soft_min_pool 미만이 되면 그 걸음(또는 더 들을 곡)은 게이트 없이 쓴다. */
+function softFilter(pool, softGates, ctx, minPool) {
+  if (!softGates.length) return { pool, relaxed: false };
+  const f = pool.filter((s) => softGates.every((g) => passesGate(s, g, ctx.th)));
+  if (f.length === pool.length || f.length >= minPool) return { pool: f, relaxed: false };
+  return { pool, relaxed: true };
+}
+
 // ── ISO ─────────────────────────────────────────────────
-function songCount(rules, durationMin) {
+export function songCount(rules, durationMin) {
   const c = rules.iso.song_count;
   return Math.max(c.min, Math.min(c.max, Math.floor(durationMin / c.per_minutes)));
 }
-function transitionAt(rules, durationMin) {
+export function transitionAt(rules, durationMin) {
   for (const row of rules.iso.transition_point) if (durationMin <= row.up_to) return Number(row.at);
   return Number(rules.iso.transition_point.at(-1).at);
+}
+/* 경유 곡 수 = max(min, min(시간 기준, floor(여정거리 / min_step_span) + 1))
+   지금·목표가 가까운데 곡을 많이 끼우면 한 걸음이 preference.band 보다 잘게 쪼개져
+   순위가 곡을 구분하지 못하고, 경로가 좁은 덩어리 안을 맴돈다(rules 의 min_step_span_evidence).
+   여정거리는 band 와 같은 작업 좌표계(coordinate_space)에서 잰다 — band 가 그 좌표계의 폭이기 때문.
+   (2.6.0-wp: recommend·recommendExtras 가 같이 쓰도록 함수로 뺐다. 식·계산 순서는 2.5.1 그대로.) */
+function songPlan(rules, term, nowC, tgtC, dur) {
+  const byTime = songCount(rules, dur);
+  const journey = R9(dist(nowC, tgtC, term));
+  const span = Number(rules.iso.min_step_span || 0);
+  const byJourney = span > 0 ? Math.floor(journey / span) + 1 : byTime;
+  const n = Math.max(Number(rules.iso.song_count.min), Math.min(byTime, byJourney));
+  return { n, journey, songCountOut: { by_time: byTime, by_journey: byJourney, effective: n, journey: R6(journey) } };
+}
+/* [2.6.0-wp] 전환점(도착 시점) tp 결정 — 명세 §4.3.3 우선순위.
+   inputs.pace(사용자가 누른 속도 버튼)가 있으면 personalization.pace.manual_tp — 개인화 스위치와 무관(선언이 이긴다, I4).
+   없고 P 가 있으면 P.tp(null 이면 규칙 표) → 이탈 가드 상한(quit_frac) → n ≤ small_n_max 퇴화 방지 → 고긴장 하한(at_def).
+   퇴화 방지는 개인화가 tp 를 바꾼 경우에만 건다(규칙 표 값은 2.5.1 그대로 — 중립 정책 항등, I1).
+   둘 다 없으면 transitionAt(rules, dur) — 2.5.1 식 그대로. */
+function arrivalAt(rules, dur, n, pace, P) {
+  const Z = rules.personalization || {};
+  const manual = (Z.pace && Z.pace.manual_tp) || {};
+  if (typeof pace === "string" && Object.prototype.hasOwnProperty.call(manual, pace)) return Number(manual[pace]);
+  const atDef = transitionAt(rules, dur);
+  if (!P) return atDef;
+  let at = P.tp != null ? P.tp : atDef;
+  let personalized = P.tp != null;
+  if (P.quit_frac != null && n > 1) {
+    /* 이탈 가드(§4.3.4): 보통 K 번째 곡쯤에서 멈추면 K 번째 곡 전에 도착 — 도착 곡 번호 ceil(tp·(n−1)) + 1 ≤ K */
+    const K = Math.max(Number(Z.pace.quit_guard.min_arrival_song), Math.floor(P.quit_frac * n));
+    const cap = Math.max(Number(Z.bounds.tp[0]), (K - 1) / (n - 1));
+    if (at > cap) { at = cap; personalized = true; }
+  }
+  if (personalized && n <= Number(Z.pace.small_n_max)) at = Math.max(at, Number(Z.pace.small_n_min_tp));
+  if (P.high_stress && Z.safety.high_stress.faster_pace_allowed !== true) at = Math.max(at, atDef);
+  return at;
 }
 /* [2.5.1] arrival: 그 걸음이 '이동'인지 '도착 후 머무름'인지. raw(양자화 전 t)가 1 이상이면 머무름 —
    그 경유지는 전부 목표 좌표 그 자체라, 밴드로 뭉치면 실제로 더 가까운 곡을 놔두고 먼 곡을 고르는 지그재그가 생긴다. */
@@ -423,33 +712,37 @@ function waypoints(nowC, tgtC, n, at) {
 
 // ── 탐색 ────────────────────────────────────────────────
 function stepCandidates(pool, state, ctx, wp, tgtC, term, rules, inputs, band, nExpand,
-                       stepI = 0, seed = null, pbucket = 0, mu = 0, arrival = false) {
+                       stepI = 0, seed = null, pbucket = 0, mu = 0, arrival = false, PR = null, discStep = false) {
   /* pool = 이 걸음의 영역 후보. 같은 걸음의 빔 상태들은 경유지가 같아 영역 풀도 같으므로
-     recommend() 가 걸음당 1회만 계산해 넘긴다 (결과 동일, 속도만 개선). */
-  const cap = Number(rules.diversity.max_per_artist);
+     recommend() 가 걸음당 1회만 계산해 넘긴다 (결과 동일, 속도만 개선).
+     [2.6.0-wp] PR = { P, replay, aa, rEff } — P 모드에서만. null 이면 2.5.1 과 같은 계산. */
+  const P = PR ? PR.P : null;
+  const cap = P ? P.artist_cap : Number(rules.diversity.max_per_artist);
 
   let cands = [];
   for (const s of pool) {
     if (state.used.includes(s.song_id)) continue;
-    if ((state.artistCount[s.artist] || 0) >= cap) continue;
+    if (!P) { if ((state.artistCount[s.artist] || 0) >= cap) continue; }
+    else if (!personalAllows(s, state, PR, cap)) continue;
     cands.push(s);
   }
   const relaxed = false;   // 걸음 상한이 없어졌으므로 항상 false. trace 호환용으로 한 버전 유지 후 제거 예정.
   if (!cands.length) return { cands: [], bandSize: 0, relaxed };
 
-  const scored = cands.map((s) => {
+  let scored = cands.map((s) => {
     const c = ctx.coords.get(s.song_id);
     const fit = R9(dist(c, wp, term));
     const prog = state.prev
       ? R9(Math.max(0, dist(c, tgtC, term) - dist(state.prev, tgtC, term)))
       : 0;
     const jump = state.prev ? R9(dist(c, state.prev, term)) : 0;   // 인접 곡 전환 거리 (transition cost 대상)
-    const pd = prefDetail(s, rules, inputs.user);
+    const pd = prefDetail(s, rules, inputs.user, P ? P.taste_features : null);
     const pref = pd.score;
     const pmarg = R9((pd.neutral ?? 0.5) - pref);   // 내 중립점 − 선호. 좋아하는 곡일수록 음수 → 비용 감소 (2.5.0 μ 항)
     const bandIdx = band > 0 ? Math.floor(fit / band) : 0;
-    /* [2.5.1] 머무름 구간(arrival)은 밴드로 뭉치지 않고 실제 거리(fit)를 그대로 비용에 쓴다 — 가까운 곡부터 순서대로 나오게. */
-    const distCost = arrival ? fit : bandIdx * band;
+    /* [2.5.1] 머무름 구간(arrival)은 밴드로 뭉치지 않고 실제 거리(fit)를 그대로 비용에 쓴다 — 가까운 곡부터 순서대로 나오게.
+       [2.6.0-wp] P 모드: 머묾 반경 rEff 안은 거리 0 — 목표 근처 곡들 사이에서는 취향·전환·시드가 고른다(같은 곡으로 끝남 100% 해소, B28). */
+    const distCost = arrival ? (P && fit <= PR.rEff ? 0 : fit) : bandIdx * band;
     return {
       song: s, fit, prog, jump, pref, pmarg, basis: pd.basis, neutral: pd.neutral,
       band: bandIdx, distCost,
@@ -461,15 +754,93 @@ function stepCandidates(pool, state, ctx, wp, tgtC, term, rules, inputs, band, n
   const bestBand = Math.min(...scored.map((x) => x.band));
   const bandSize = scored.filter((x) => x.band === bestBand).length;
 
+  /* [2.6.0-wp] P 모드 개인 비용(§3.8). bestBand 를 먼저 구한 뒤(코리도어 판정) 걸음별 기하 최선곡 p_geo_best 를 기록하고,
+     발견 칸이면 코리도어 안의 새 가수 곡으로 좁힌 뒤 그 걸음의 취향 항을 0 으로 둔다(없으면 평소대로). */
+  let geo = null, disc = false;
+  if (P) {
+    for (const x of scored) {
+      x.adj_x = state.prevSong ? adjFeatures(state.prevSong, x.song, P) : null;
+      x.adj = x.adj_x ? adjCostOf(x.adj_x, P) : 0;
+      x.taste = P.mu * x.pmarg;
+      Object.assign(x, personalKey({ distCost: x.distCost, fit: x.fit, bandIdx: x.band, bestBand, arrival, rEff: PR.rEff, taste: x.taste, adj: x.adj }, P));
+    }
+    const geoKey = (x) => [R9(x.distCost), x.jitter, ...tiebreakKeys(x.song, rules), String(x.song.song_id)];
+    geo = scored.reduce((a, b) => (cmpKeys(geoKey(b), geoKey(a)) < 0 ? b : a));
+    if (discStep) {
+      const isNew = (s) => { const ks = artistKeys(s.artist); return ks.length > 0 && ks.every((k) => !Object.prototype.hasOwnProperty.call(PR.aa, k)); };
+      const pick = scored.filter((x) => x.bonusOK && isNew(x.song));
+      if (pick.length) {
+        disc = true;
+        scored = pick.map((x) => ({ ...x, taste: 0,
+          ...personalKey({ distCost: x.distCost, fit: x.fit, bandIdx: x.band, bestBand, arrival, rEff: PR.rEff, taste: 0, adj: x.adj }, P) }));
+      }
+    }
+  }
+
   // 우선순위: 기하 밴드(+μ 선호 비용) > 선호 버킷 > 시드 변이 > 결정론적 동점처리
   // [2.5.0] μ>0 이면 후보 확장 단계에서도 선호가 밴드와 함께 계산된다 — 그래야 좋아하는 곡이 한 밴드 밖에 있어도 빔에 들어올 수 있다.
   //         μ=0 이면 키가 밴드 값 그대로라 2.4.0 과 동일.
-  const key = (x) => R9(x.distCost + mu * x.pmarg);   // [2.5.1] 이동 구간은 밴드값, 머무름 구간은 실거리
+  // [2.6.0-wp] P 모드는 결합 제한을 거친 개인 비용 pers(취향 + 전환)를 더한다.
+  const key = P ? (x) => R9(x.distCost + x.pers) : (x) => R9(x.distCost + mu * x.pmarg);   // [2.5.1] 이동 구간은 밴드값, 머무름 구간은 실거리
   scored.sort((a, b) =>
     cmpKeys([key(a), -a.pbucket, a.jitter, ...tiebreakKeys(a.song, rules), String(a.song.song_id)],
             [key(b), -b.pbucket, b.jitter, ...tiebreakKeys(b.song, rules), String(b.song.song_id)]));
 
-  return { cands: scored.slice(0, nExpand), bandSize, relaxed };
+  const top = scored.slice(0, nExpand);
+  if (P) top.forEach((x, i) => { x.rank = i; });
+  return { cands: top, bandSize, relaxed, geo, disc };
+}
+
+/* [2.6.0-wp] 걸음별 선택 이유(p_chosen_by) — 기하 최선곡(p_geo_best) 대비 무엇이 순위를 바꿨나. 설명·진단 전용(학습에 쓰지 않음). */
+function chosenByOf(c, geo, disc, PR) {
+  if (c.song.song_id === geo.song.song_id) return "geometry";
+  if (disc) return "discovery";
+  if (PR.replay.has(c.song.song_id)) return "replay";
+  if (c.rank > 0) return "beam";   // 걸음 안 1등이 아닌데 경로 전체 비용(진행·λ·뒤 걸음)으로 뽑힘
+  const tAdv = geo.taste - c.taste, aAdv = geo.adj - c.adj;
+  if (aAdv > 0 && aAdv >= tAdv) return "transition";
+  if (tAdv > 0) return "taste";
+  return c.pbucket > geo.pbucket ? "taste" : "beam";
+}
+
+/* [2.6.0-wp] 머묾 구간 재배열(§4.6.1). 곡 집합은 그대로, 순서만 바꾼다.
+   fit                  2.5.1 그대로 — 먼 것 → 가까운 것(중립 정책)
+   last_fixed_progress  fit 이 가장 작은 곡을 마지막에 고정(지그재그 0% 구조 보장), 나머지는 진행 방향 투영
+                        along = (c − 지금)·(목표 − 지금) 오름차순(같으면 fit 내림, 그다음 song_id)
+   last_fixed_smooth    (P2) 나머지가 hold.smooth_max_tail − 1 곡 이하이면 Σ(adjCost + λ·jump) 최소 순열(동점은 진행 방향 순) */
+function orderHold(tail, P, ctx, nowC, tgtC, term, before, rules) {
+  if (P.hold_order !== "last_fixed_progress" && P.hold_order !== "last_fixed_smooth") return tail.slice().sort((a, b) => b.fit - a.fit);
+  const dir = [tgtC[0] - nowC[0], tgtC[1] - nowC[1]];
+  const alongOf = (pk) => { const c = ctx.coords.get(pk.song.song_id); return R9((c[0] - nowC[0]) * dir[0] + (c[1] - nowC[1]) * dir[1]); };
+  const cmpId = (a, b) => cmpKeys([String(a.song.song_id)], [String(b.song.song_id)]);
+  let li = 0;
+  for (let i = 1; i < tail.length; i++) if (tail[i].fit < tail[li].fit || (tail[i].fit === tail[li].fit && cmpId(tail[i], tail[li]) < 0)) li = i;
+  const last = tail[li];
+  const rest = tail.filter((_, i) => i !== li).map((pk) => ({ pk, along: alongOf(pk) }))
+    .sort((a, b) => a.along - b.along || b.pk.fit - a.pk.fit || cmpId(a.pk, b.pk)).map((x) => x.pk);
+  const maxTail = Number(((rules.personalization || {}).hold || {}).smooth_max_tail || 0);
+  if (P.hold_order === "last_fixed_smooth" && rest.length > 1 && rest.length <= maxTail - 1) {
+    const costOf = (seq) => {
+      let c = 0;
+      for (let i = 1; i < seq.length; i++) {
+        const a = seq[i - 1], b = seq[i];
+        c += adjCost(a.song, b.song, P) + P.lambda * R9(dist(ctx.coords.get(a.song.song_id), ctx.coords.get(b.song.song_id), term));
+      }
+      return R9(c);
+    };
+    let best = rest, bestCost = costOf([...(before ? [before] : []), ...rest, last]);
+    const perm = (pre, left) => {   // 진행 방향 순의 사전식 순서로 훑어 첫 최소를 남긴다(동점은 진행 방향 순)
+      if (!left.length) {
+        const c = costOf([...(before ? [before] : []), ...pre, last]);
+        if (c < bestCost) { best = pre; bestCost = c; }
+        return;
+      }
+      for (let i = 0; i < left.length; i++) perm([...pre, left[i]], [...left.slice(0, i), ...left.slice(i + 1)]);
+    };
+    perm([], rest);
+    return [...best, last];
+  }
+  return [...rest, last];
 }
 
 export function renderExplanations(rules, trace) {
@@ -483,72 +854,135 @@ export function renderExplanations(rules, trace) {
   return msgs;
 }
 
+/* [2.6.0-wp] 곡별 P 모드 trace(p_*) — 명세 §6.8. */
+function adjXOut(x) {
+  return x ? { tempo: R6(x.tempo), vocal: R6(x.vocal), spoken: R6(x.spoken), genre: R6(x.genre) } : { tempo: 0, vocal: 0, spoken: 0, genre: 0 };
+}
+function smoothBasis(pk, rules) {
+  if (pk.chosenBy !== "transition" || !pk.adj_x || !pk.geo.adj_x) return null;
+  const ZA = (rules.personalization || {}).adjacency || {};
+  const dx = Number(ZA.smooth_min_dx), labels = ZA.feature_labels || {};
+  const fs = ADJ_FEATURES.filter((f) => pk.geo.adj_x[f] - pk.adj_x[f] >= dx);
+  return fs.length ? fs.map((f) => labels[f] || f).join("·") : null;
+}
+function personalTrace(pk, rules) {
+  const basis = smoothBasis(pk, rules);
+  return {
+    p_phase: pk.phase,
+    p_pmarg: R6(pk.pmarg),
+    p_pers: R6(pk.pers),
+    p_adj: R6(pk.adj),
+    p_adj_x: adjXOut(pk.adj_x),
+    p_bpm_diff: pk.adj_x ? pk.adj_x.bpm_diff : null,
+    p_geo_best: pk.geo.song.song_id,
+    p_chosen_by: pk.chosenBy,
+    p_corridor: pk.corridor,
+    p_smooth: basis !== null,
+    p_smooth_basis: basis,
+    p_discovery: pk.discovery,
+    p_replay: pk.replay,
+    p_soft_relaxed: pk.softRelaxed,
+    p_extra: false,
+  };
+}
+
 export function recommend(catalog, rules, inputsIn) {
   const term = rules.ranking.terms[0];
   const ctx = prepare(catalog, rules);
 
   const dur = inputsIn.duration_min ?? 30;
+  /* [2.6.0-wp] 개인 정책. 없거나 personalization.enabled !== true 이면 null → 아래 모든 P 분기가 2.5.1 식 그대로(I0). */
+  const P = sanitizePersonal(inputsIn.personal, rules, { duration_min: dur, pace: inputsIn.pace });
   const nowC = toCoord(ctx, inputsIn.now), tgtC = toCoord(ctx, inputsIn.target);
 
-  /* 경유 곡 수 = max(min, min(시간 기준, floor(여정거리 / min_step_span) + 1))
-     지금·목표가 가까운데 곡을 많이 끼우면 한 걸음이 preference.band 보다 잘게 쪼개져
-     순위가 곡을 구분하지 못하고, 경로가 좁은 덩어리 안을 맴돈다(rules 의 min_step_span_evidence).
-     여정거리는 band 와 같은 작업 좌표계(coordinate_space)에서 잰다 — band 가 그 좌표계의 폭이기 때문. */
-  const byTime = songCount(rules, dur);
-  const journey = R9(dist(nowC, tgtC, term));
-  const span = Number(rules.iso.min_step_span || 0);
-  const byJourney = span > 0 ? Math.floor(journey / span) + 1 : byTime;
-  const n = Math.max(Number(rules.iso.song_count.min), Math.min(byTime, byJourney));
-  const songCountOut = { by_time: byTime, by_journey: byJourney, effective: n, journey: R6(journey) };
+  const { n, journey, songCountOut } = songPlan(rules, term, nowC, tgtC, dur);
   const inputs = { ...inputsIn, _n_songs: n };
 
   const { active } = applyModulators(rules, inputs);
   const gateIds = new Set([...active, ...(inputs.gates || [])]);
   const gates = rules.gates.filter((g) => gateIds.has(g.id));
-  const { uni: universe, blocked, genreApplied } = eligibleUniverse(catalog, rules, ctx, inputs, gates);
+  const { uni: universe, blocked, genreApplied } = eligibleUniverse(catalog, rules, ctx, inputs, gates, P);
+
+  /* [2.6.0-wp] 경로 모수(경유지를 바꾸는 것 — 두 레인 I3): 전환점 tp(속도·이탈 가드), 시작 오프셋 s(§4.4).
+     곡 수·진행 페널티·머묾 정렬은 계속 nowC 기준. */
+  const at = arrivalAt(rules, dur, n, inputsIn.pace, P);
+  const s0 = P && P.start_offset > 0 && journey >= P.start_min_journey ? P.start_offset : 0;
+  const startC = s0 > 0 ? [nowC[0] + (tgtC[0] - nowC[0]) * s0, nowC[1] + (tgtC[1] - nowC[1]) * s0] : nowC;
+  const rEff = P && n >= P.hold_min_songs ? P.hold_radius : 0;
+  const personalOut = (best, discStep) => ({
+    digest: P.digest,
+    discovery_step: best && discStep >= 0 && best.picks[discStep] && best.picks[discStep].discovery ? discStep + 1 : null,
+    soft_relaxed_steps: best ? best.picks.filter((pk) => pk.softRelaxed).length : 0,
+    tp_used: R6(at),
+    start_offset_used: s0,
+    hold_radius_used: rEff,
+  });
 
   const baseOut = {};
   for (const [k, v] of Object.entries(ctx.base)) baseOut[k] = R6(v);
   if (!universe.length) {
     return { rules_version: rules.rules_version, rules_hash: rules.rules_hash, engine_version: ENGINE_VERSION,
-             baselines: baseOut, song_count: songCountOut, sequence: [] };
+             baselines: baseOut, song_count: songCountOut, sequence: [], ...(P ? { personal: personalOut(null, -1) } : {}) };
   }
 
-  const { pts: wps, arrival: arrivalMask } = waypoints(nowC, tgtC, n, transitionAt(rules, dur));
+  const { pts: wps, arrival: arrivalMask } = waypoints(startC, tgtC, n, at);
 
   const band = Number(rules.preference.band);
   const varc = rules.variation || {};
   const seed = varc.enabled ? inputs[varc.seed_input || "seed"] ?? null : null;
   const pbucket = varc.enabled ? Number(varc.pref_bucket || 0) : 0;
   const pw = Number(rules.path.progress_weight);
-  const jw = Number(rules.path.jump_weight || 0);   // 전환 비용 λ (2.4.0)
-  const mu = Number(rules.preference.pref_weight || 0);   // 선호 비용 μ (2.5.0). 0 이면 동률 깨기만 (2.4.0 동일)
+  const jw = P ? P.lambda : Number(rules.path.jump_weight || 0);   // 전환 비용 λ (2.4.0) · [2.6.0-wp] 개인 λ(§4.8.5)
+  const mu = P ? P.mu : Number(rules.preference.pref_weight || 0);   // 선호 비용 μ (2.5.0). 0 이면 동률 깨기만 (2.4.0 동일) · [2.6.0-wp] 개인 μ(§4.7.3)
   const strategy = rules.search.strategy;
   const beamW = strategy === "beam" ? Number(rules.search.beam_width) : 1;
   const nExpand = strategy === "beam" ? Number(rules.search.expand_per_step) : 1;
 
-  let beam = [{ used: [], artistCount: {}, prev: null, cost: 0, prefSum: 0, pbSum: 0, jitSum: 0, picks: [] }];
+  /* [2.6.0-wp] P 모드 실행 문맥. 새 가수 발견 칸(§4.7.4): 이동 걸음 수 n_move ≥ min_moving_steps 이면
+     걸음 1 + floor(u·(n_move − 1)) (0부터 센 걸음 — 첫 곡·머묾 제외). */
+  let discStep = -1, PR = null;
+  if (P) {
+    const nMove = arrivalMask.filter((a) => !a).length;
+    const minMove = Number(rules.personalization.taste.discovery.min_moving_steps);
+    if (P.discovery_u != null && nMove >= minMove) discStep = 1 + Math.floor(P.discovery_u * (nMove - 1));
+    PR = { P, replay: new Set(P.replay_ids), aa: (inputs.user && inputs.user.artist_affinity) || {}, rEff,
+           softGates: rules.gates.filter((g) => P.soft_gates.includes(g.id)) };
+  }
+
+  let beam = [{ used: [], artistCount: {}, prev: null, cost: 0, prefSum: 0, pbSum: 0, jitSum: 0, picks: [],
+                prevSong: null, keyCount: {}, replays: 0 }];   // [2.6.0-wp] prevSong·keyCount·replays 는 P 모드용(출력 무관)
 
   for (let wi = 0; wi < wps.length; wi++) {
     const wp = wps[wi];
     const next = [];
     const stepPool = regionPool(universe, ctx, wp, term, rules);   // 걸음당 1회
+    const soft = PR ? softFilter(stepPool, PR.softGates, ctx, P.soft_min_pool) : { pool: stepPool, relaxed: false };
     const isArrival = arrivalMask[wi];
     for (const st of beam) {
-      const { cands, bandSize, relaxed } = stepCandidates(stepPool, st, ctx, wp, tgtC, term, rules, inputs, band, nExpand, wi, seed, pbucket, mu, isArrival);
+      const { cands, bandSize, relaxed, geo, disc } = stepCandidates(soft.pool, st, ctx, wp, tgtC, term, rules, inputs, band, nExpand, wi, seed, pbucket, mu, isArrival,
+                                                                     PR, wi === discStep);
       for (const c of cands) {
         const s = c.song;
         const ac = { ...st.artistCount };
         ac[s.artist] = (ac[s.artist] || 0) + 1;
+        const pick = { song: s, fit: c.fit, pref: c.pref, basis: c.basis, neutral: c.neutral, bandSize, wp, pool: universe.length, relaxed, pbucket: c.pbucket, jitter: c.jitter };
+        if (P) Object.assign(pick, {
+          phase: isArrival ? "hold" : "move", pmarg: c.pmarg, pers: c.pers, adj: c.adj, adj_x: c.adj_x, corridor: c.bonusOK,
+          geo, chosenBy: chosenByOf(c, geo, disc, PR), discovery: disc, replay: PR.replay.has(s.song_id), softRelaxed: soft.relaxed,
+        });
         next.push({
           used: [...st.used, s.song_id],
           artistCount: ac,
           prev: ctx.coords.get(s.song_id),
-          cost: st.cost + c.distCost + pw * c.prog + jw * c.jump + mu * c.pmarg,   // [2.5.1] distCost: 이동=밴드값, 머무름=실거리
+          cost: P ? st.cost + c.distCost + pw * c.prog + jw * c.jump + c.pers   // [2.6.0-wp] 결합 제한을 거친 개인 비용
+                  : st.cost + c.distCost + pw * c.prog + jw * c.jump + mu * c.pmarg,   // [2.5.1] distCost: 이동=밴드값, 머무름=실거리
           prefSum: st.prefSum + c.pref,
           pbSum: st.pbSum + c.pbucket,
           jitSum: st.jitSum + c.jitter,
-          picks: [...st.picks, { song: s, fit: c.fit, pref: c.pref, basis: c.basis, neutral: c.neutral, bandSize, wp, pool: universe.length, relaxed, pbucket: c.pbucket, jitter: c.jitter }],
+          prevSong: s,
+          keyCount: P ? keyCountAfter(st.keyCount, s) : st.keyCount,
+          replays: P && PR.replay.has(s.song_id) ? st.replays + 1 : st.replays,
+          picks: [...st.picks, pick],
         });
       }
     }
@@ -562,17 +996,21 @@ export function recommend(catalog, rules, inputsIn) {
   /* [2.5.1] 검색은 매 걸음 그 순간 최선을 그리디로 고르므로, 도착 후 머무름 구간(경유지가 전부 목표 그 자체)에서는
      먼저 뽑힌 곡이 가장 가깝고 뒤로 갈수록 남은 후보 중 상대적으로 먼 곡이 걸려 '마지막이 오히려 더 멀어지는' 지그재그가 생긴다.
      그래서 이 구간만 사후에 '먼 것 → 가까운 것' 순으로 다시 배열해 마지막 곡이 항상 가장 가깝게(=도착) 끝나도록 한다.
-     어떤 곡을 쓸지는 그대로 두고 순서만 바꾼다 — 검색이 고른 곡 집합은 바뀌지 않는다. */
+     어떤 곡을 쓸지는 그대로 두고 순서만 바꾼다 — 검색이 고른 곡 집합은 바뀌지 않는다.
+     [2.6.0-wp] P 모드는 정책의 hold_order 로 재배열한다(orderHold — 중립 "fit" 은 이 정렬 그대로). */
   let picks = best.picks;
   if (picks.length > 1) {
     const lastWp = picks.at(-1).wp;
     let start = picks.length;
     while (start > 0 && picks[start - 1].wp[0] === lastWp[0] && picks[start - 1].wp[1] === lastWp[1]) start--;
     if (picks.length - start > 1) {
-      const tail = picks.slice(start).slice().sort((a, b) => b.fit - a.fit);
+      const tail = P ? orderHold(picks.slice(start), P, ctx, nowC, tgtC, term, start > 0 ? picks[start - 1] : null, rules)
+                     : picks.slice(start).slice().sort((a, b) => b.fit - a.fit);
       picks = [...picks.slice(0, start), ...tail];
     }
   }
+  const featLabel = Object.fromEntries([...((rules.preference && rules.preference.features) || []), ...((P && P.taste_features) || [])]
+    .map((f) => [f.id, f.label || f.id]));
   const out = picks.map((pk, i) => {
     const s = pk.song;
     const c = ctx.coords.get(s.song_id);
@@ -595,7 +1033,6 @@ export function recommend(catalog, rules, inputsIn) {
         const pb = pbucket > 0 ? pbucket : 0.05;
         const neutral = pk.neutral ?? 0.5;
         const above = (v) => Math.floor(R9(v) / pb) > Math.floor(R9(neutral) / pb);
-        const featLabel = Object.fromEntries(((rules.preference && rules.preference.features) || []).map((f) => [f.id, f.label || f.id]));
         const pos = (pk.basis || []).filter((x) => above(x.score)).map((x) => PREF_LABELS[x.id] || featLabel[x.id] || x.id);
         const match = above(pk.pref) && pos.length > 0;
         return { pref_basis: match ? pos.join("·") : null, pref_match: match };
@@ -621,6 +1058,7 @@ export function recommend(catalog, rules, inputsIn) {
       song_A_raw: Number(s.A),
       va_source: s.va_source ?? null,
       rules_hash: rules.rules_hash,
+      ...(P ? personalTrace(pk, rules) : {}),   // [2.6.0-wp] P 모드에서만 p_* 키
     };
     return { song_id: s.song_id, trace, explanations: renderExplanations(rules, trace) };
   });
@@ -634,5 +1072,118 @@ export function recommend(catalog, rules, inputsIn) {
     genre_restricted: genreApplied,
     relaxed_steps: best.picks.filter((p) => p.relaxed).length,
     sequence: out,
+    ...(P ? { personal: personalOut(best, discStep) } : {}),
   };
+}
+
+/* ── 더 들을 곡 (2.6.0-wp, 명세 §4.11·§6.7) ─────────────────
+   경로 뒤를 채우는 곡을 엔진이 고른다 — 앱이 원좌표 거리순으로 채우던 것(가사 게이트 누락 B21, 취향·상한·시드·전환 무시 B22)을 대체.
+   inputs 는 recommend 에 준 최종 입력 그대로, result 는 그 결과. **result.sequence(경로)는 절대 바꾸지 않는다.**
+   1) 후보 = 경로와 같은 게이트(가사 게이트 포함)·싫어요·exclude_ids·장르 정책 + 소프트 게이트(걸음 폴백과 같은 규칙) − 경로 곡
+   2) 가수 상한은 경로에서 쓴 카운트에 이어서 센다(키 단위면 키로)
+   3) 탐욕 1폭: 경유지 = 목표, distCost = fit ≤ R_x ? 0 : fit (R_x = max(유효 머묾 반경, extras.radius)),
+      pers = §3.8 머묾 규칙(J = j_hold, 가점은 fit ≤ R_x 에서만), 앞 곡 = 직전에 고른 곡(첫 곡은 경로 마지막 곡)
+   4) 곡 길이 = duration_ms/1000(없으면 default_duration_s), 최소 min_duration_s. 경로+더 들을 곡 합이 target_sec 에 닿거나
+      max_songs 곡이면 멈춘다. target_sec 을 안 주면 감상 시간 × 60 × fill_ratio.
+   반환 { extras: [{ song_id, trace, explanations }], total_sec(경로 + 더 들을 곡 초), soft_relaxed }.
+   inputs.personal 이 없으면(익명·개인화 끔) { extras: [], total_sec: 0 } — 앱의 옛 경로를 쓴다. */
+export function recommendExtras(catalog, rules, inputsIn, result, opts = {}) {
+  const dur = inputsIn.duration_min ?? 30;
+  const P = sanitizePersonal(inputsIn.personal, rules, { duration_min: dur, pace: inputsIn.pace });
+  if (!P || !result || !Array.isArray(result.sequence)) return { extras: [], total_sec: 0, soft_relaxed: false };
+  const X = rules.personalization.extras || {};
+  const term = rules.ranking.terms[0];
+  const ctx = prepare(catalog, rules);
+  const nowC = toCoord(ctx, inputsIn.now), tgtC = toCoord(ctx, inputsIn.target);
+  const { n } = songPlan(rules, term, nowC, tgtC, dur);
+  const inputs = { ...inputsIn, _n_songs: n };
+  const { active } = applyModulators(rules, inputs);
+  const gateIds = new Set([...active, ...(inputs.gates || [])]);
+  const gates = rules.gates.filter((g) => gateIds.has(g.id));
+  const { uni } = eligibleUniverse(catalog, rules, ctx, inputs, gates, P);
+
+  const byId = new Map(catalog.map((s) => [s.song_id, s]));
+  const pathIds = result.sequence.map((r) => r.song_id);
+  const used = new Set(pathIds);
+  const soft = softFilter(uni.filter((s) => !used.has(s.song_id)), rules.gates.filter((g) => P.soft_gates.includes(g.id)), ctx, P.soft_min_pool);
+
+  const PR = { P, replay: new Set(P.replay_ids), aa: {}, rEff: 0 };
+  const cap = P.artist_cap;
+  const state = { artistCount: {}, keyCount: {}, replays: 0 };
+  for (const id of pathIds) {
+    const s = byId.get(id);
+    if (!s) continue;
+    state.artistCount[s.artist] = (state.artistCount[s.artist] || 0) + 1;
+    state.keyCount = keyCountAfter(state.keyCount, s);
+    if (PR.replay.has(id)) state.replays++;
+  }
+  const lenOf = (s) => {
+    const ms = Number(s && s.duration_ms);
+    return Math.max(Number(X.min_duration_s), Number.isFinite(ms) && ms > 0 ? ms / 1000 : Number(X.default_duration_s));
+  };
+  let total = pathIds.reduce((a, id) => a + lenOf(byId.get(id)), 0);
+  const tsec = (opts || {}).target_sec;
+  const target = tsec !== null && tsec !== undefined && Number.isFinite(Number(tsec)) ? Number(tsec) : dur * 60 * Number(X.fill_ratio);
+  const maxN = Number(X.max_songs);
+
+  const rEff = n >= P.hold_min_songs ? P.hold_radius : 0;
+  const Rx = Math.max(rEff, Number(X.radius));
+  const varc = rules.variation || {};
+  const seed = varc.enabled ? inputs[varc.seed_input || "seed"] ?? null : null;
+  /* 곡마다 변하지 않는 값은 한 번만 */
+  const pre = soft.pool.map((s) => {
+    const c = ctx.coords.get(s.song_id);
+    const fit = R9(dist(c, tgtC, term));
+    const pd = prefDetail(s, rules, inputs.user, P.taste_features);
+    return { song: s, c, fit, pmarg: R9((pd.neutral ?? 0.5) - pd.score), distCost: fit <= Rx ? 0 : fit, tk: tiebreakKeys(s, rules) };
+  });
+
+  const extras = [];
+  let prevSong = pathIds.length ? byId.get(pathIds.at(-1)) || null : null;
+  const n0 = pathIds.length;
+  for (let j = 0; total < target && extras.length < maxN; j++) {
+    let best = null, bestKey = null;
+    for (const x of pre) {
+      if (used.has(x.song.song_id) || !personalAllows(x.song, state, PR, cap)) continue;
+      const ax = prevSong ? adjFeatures(prevSong, x.song, P) : null;
+      const adj = ax ? adjCostOf(ax, P) : 0;
+      const taste = P.mu * x.pmarg;
+      const r = personalKey({ distCost: x.distCost, fit: x.fit, arrival: true, rEff: Rx, taste, adj }, P);
+      const jit = R9(jitterOf(seed, x.song.song_id, n0 + j));
+      const k = [r.key, jit, ...x.tk, String(x.song.song_id)];
+      if (!best || cmpKeys(k, bestKey) < 0) { best = { x, ax, adj, pers: r.pers, jit }; bestKey = k; }
+    }
+    if (!best) break;
+    const s = best.x.song;
+    used.add(s.song_id);
+    state.artistCount[s.artist] = (state.artistCount[s.artist] || 0) + 1;
+    state.keyCount = keyCountAfter(state.keyCount, s);
+    if (PR.replay.has(s.song_id)) state.replays++;
+    total += lenOf(s);
+    prevSong = s;
+    const trace = {
+      phase: "extra",
+      step_index: n0 + j + 1,
+      va_distance: R6(best.x.fit),
+      p_phase: "extra",
+      p_extra: true,
+      p_pmarg: R6(best.x.pmarg),
+      p_pers: R6(best.pers),
+      p_adj: R6(best.adj),
+      p_adj_x: adjXOut(best.ax),
+      p_bpm_diff: best.ax ? best.ax.bpm_diff : null,
+      p_replay: PR.replay.has(s.song_id),
+      jitter: R6(best.jit),
+      artist: s.artist ?? null,
+      song_V: R6(best.x.c[0]),
+      song_A: R6(best.x.c[1]),
+      song_V_raw: Number(s.V),
+      song_A_raw: Number(s.A),
+      va_source: s.va_source ?? null,
+      rules_hash: rules.rules_hash,
+    };
+    /* 걸음 문구(step_move)는 경로 전용이라 조건(when)이 있는 설명만 붙인다 — "목표 분위기를 이어 가는 곡이에요." 등 */
+    extras.push({ song_id: s.song_id, trace, explanations: renderExplanations({ explanations: (rules.explanations || []).filter((e) => e.when) }, trace) });
+  }
+  return { extras, total_sec: R6(total), soft_relaxed: soft.relaxed };
 }
