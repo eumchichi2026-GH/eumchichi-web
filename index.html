@@ -780,6 +780,8 @@ html[data-theme=dark] .wp-tag.changed{color:var(--accent)}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<!-- [web-personal 2026-09-30] 로컬 기본 실행(server.mjs 의 /env.js 가 offline:true)이면 운영 Firebase 대신 대역 — 로그인·Firestore 쓰기 없음(§11 H2·I). 배포에서는 아무것도 하지 않는다 -->
+<script src="local_firebase.js?v=302"></script>
 
 <script>
 /* =====================================================================
@@ -909,9 +911,9 @@ async function loadEngine() {
       AZT_RULES  = globalThis.__AZT_RULES__;
     } else {
       /* ?v= : 이미 설치된 옛 서비스워커는 이 파일들을 캐시에서 먼저 돌려준다. 주소를 바꿔 그 캐시를 비켜 간다.
-         [web-personal] 엔진 2.6.0-wp · 규칙 v2.5.0-wp · personal.js 를 한 번에 올리므로 셋 다 ?v=300 으로 맞춘다. */
-      const eng = await import("./engine/engine.js?v=300");
-      const res = await fetch("./rules/rules.compiled.json?v=300", { cache: "no-cache" });
+         [web-personal] 엔진 2.6.0-wp · 규칙 v2.5.0-wp · personal.js 를 한 번에 올리므로 셋 다 ?v=302 으로 맞춘다(2026-09-30 2차 수정 — 엔진·personal.js·규칙이 함께 바뀜, 1차는 301). */
+      const eng = await import("./engine/engine.js?v=302");
+      const res = await fetch("./rules/rules.compiled.json?v=302", { cache: "no-cache" });
       if (!res.ok) throw new Error("rules.compiled.json HTTP " + res.status);
       AZT_RULES = await res.json();
       AZT_ENGINE = eng;
@@ -969,7 +971,7 @@ let EVENT_SEQ = 0;            // client_id 순번
 
 async function loadPersonal() {
   if (PERSONAL) return PERSONAL;
-  if (!PERSONAL_LOADING) PERSONAL_LOADING = import("./engine/personal.js?v=300")
+  if (!PERSONAL_LOADING) PERSONAL_LOADING = import("./engine/personal.js?v=302")
     .then(m => { PERSONAL = m; console.info("[AZT] personal.js 로드", m.PERSONAL_VERSION || "?"); return m; })
     .catch(e => { console.warn("[AZT] personal.js 를 불러오지 못했어요 — 개인화 없이(I0) 동작합니다", e); return null; });
   return PERSONAL_LOADING;
@@ -1528,7 +1530,17 @@ async function init() {
       if (r.ok) INSTRUMENTAL_OVERRIDES = (await r.json()).overrides || {};
     } catch (e) { console.warn("[AZT] instrumental_overrides.json 로드 실패 — 0.5 규칙만 사용", e); }
     let instOverridden = 0;
-    const snap = await firebase.firestore().collection("songs").get();
+    /* [web-personal 2026-09-30] 로컬 기본 실행(offline): 곡 목록을 Firestore 대신 server.mjs 의 /api/local-catalog 에서 받는다 —
+       데이터 저장소를 git show 로 읽은 계약 곡(시뮬레이터 tools/sim/catalog.mjs 와 같은 값)을 SONGS 모양으로 되돌린다(localSongOf).
+       toContractSong(localSongOf(c)) 가 c 와 같아 카탈로그 digest·개발 픽스처 digest 를 Node 와 그대로 비교할 수 있다(§11 H2). */
+    if (WP_ENV.offline === true) {
+      const lr = await fetch("./api/local-catalog", { cache: "no-store" });
+      if (!lr.ok) throw new Error("로컬 카탈로그(/api/local-catalog)를 받지 못했어요 — HTTP " + lr.status + " (데이터 저장소 경로: AZT_DATA_REPO)");
+      const lc = await lr.json();
+      for (const c of lc.songs || []) SONGS.push(localSongOf(c));
+      console.info("[AZT] 로컬 카탈로그 — " + SONGS.length + "곡 · digest " + (lc.digest || "?") + " · 데이터 " + ((lc.source && lc.source.ref) || "?") + " " + ((lc.source && lc.source.sha) || "").slice(0, 7));
+    }
+    const snap = WP_ENV.offline === true ? { forEach() {} } : await firebase.firestore().collection("songs").get();
 
     snap.forEach(doc => {
       const d = doc.data();
@@ -2654,6 +2666,22 @@ function songIsInstrumental(s) {
   return false;
 }
 
+/* [web-personal 2026-09-30] 로컬 카탈로그의 계약 곡 → SONGS 항목(init 의 Firestore 경로와 같은 모양). toContractSong 의 역함수:
+   V/A → va, 말 비중·빠르기(0~1) → v2 태그, 연주곡 → isInstrumental(통일 기준 칸), 길이 ms → 초. 재생 주소는 없다(로컬 대역은 Spotify 곡 ID 를 모른다). */
+function localSongOf(c) {
+  const tags = { spokenness: c.spokenness };
+  if (typeof c.tempo === "number") tags.tempo = c.tempo;
+  return {
+    isInstrumental: !!c.instrumental, instOverride: false,
+    id: c.song_id, title: c.title || c.song_id, artist: c.artist || "",
+    tags, va: { v: c.V, e: c.A }, tempo: null, trackId: null,
+    genres: Array.isArray(c.genres) ? c.genres : [], genresRaw: Array.isArray(c.genres) ? c.genres : [],
+    va_source: c.va_source || "provider",
+    popularity: Number(c.popularity || 0),
+    durationSec: Number(c.duration_ms || 210000) / 1000,
+    spotifyUrl: null,
+  };
+}
 function toContractSong(s) {
   const va = songVA(s);
   const t = s.tags || {};
@@ -4107,7 +4135,7 @@ function relaxRun(run, input, needCount, order) {
   return { result, input: used, relaxed, notice };
 }
 /* §2.2 3~7: 정책(개인·기준 p0) → 실행 A(완화 포함) → 실행 R(A 가 최종적으로 쓴 입력) → 안전 확인 → 폴백 */
-const PATH_PARAM_KEYS = ["tp", "quit_frac", "start_offset", "start_min_journey", "hold_radius", "hold_min_songs"];
+const PATH_PARAM_KEYS = ["tp", "quit_frac", "start_offset", "start_min_journey", "hold_radius", "hold_min_songs", "hold_min_pool"];
 function revertPathParams(pol, p0) {
   /* 경로 모수(tp·s·이탈 가드·r)만 P0 로 되돌린 정책 A′ — 취향·전환·다양성은 그대로 둔다 */
   const q = { ...pol };
@@ -4128,16 +4156,26 @@ function runPersonalRecommend(ctx, baseInput, run, needCount, lyric) {
   const resR = run(inputR);
   let final = { result: ra.result, input: ra.input, out, fallback: null };
   let safety = P.safetyCheck(ra.result, resR, AZT_RULES);
+  const pathDiff = typeof P.pathParamsDiffer === "function" && P.pathParamsDiffer(out.policy, ref.policy);
+  if (safety && safety.ok === false && pathDiff) {
+    /* R_path = 곡 레인 P0 + A 의 경로 모수 — 학습된 속도·시작점·반경의 의도된 효과는 위반이 아니다(두 레인으로 다시 판정, 2026-09-29) */
+    const rp = P.resolvePolicy(MODEL, ctx, AZT_RULES, { mode: "path" });
+    const resRp = run({ ...ra.input, user: rp.user, personal: rp.policy });
+    safety = P.safetyCheck(ra.result, resR, AZT_RULES, { resRp });
+  }
   if (safety && safety.ok === false) {
-    let outG = null;
-    try { outG = P.resolvePolicy(MODEL, ctx, AZT_RULES, { mode: "geometry" }); } catch (e) { outG = null; }
-    if (!outG || !outG.policy) outG = { ...out, policy: revertPathParams(out.policy, ref.policy) };
-    const inputA2 = { ...ra.input, user: outG.user || out.user, personal: outG.policy };
-    const resA2 = run(inputA2);
-    const s2 = P.safetyCheck(resA2, resR, AZT_RULES);
-    if (s2 && s2.ok !== false) final = { result: resA2, input: inputA2, out: outG, fallback: "geometry" };
-    else final = { result: resR, input: inputR, out: ref, fallback: "p0" };
-    console.warn("[AZT] 안전 확인 위반", safety.violations, "→", final.fallback);
+    let s2 = null;
+    if (pathDiff) {
+      let outG = null;
+      try { outG = P.resolvePolicy(MODEL, ctx, AZT_RULES, { mode: "geometry" }); } catch (e) { outG = null; }
+      if (!outG || !outG.policy) outG = { ...out, policy: revertPathParams(out.policy, ref.policy) };
+      const inputA2 = { ...ra.input, user: outG.user || out.user, personal: outG.policy };
+      const resA2 = run(inputA2);
+      s2 = P.safetyCheck(resA2, resR, AZT_RULES);
+      if (s2 && s2.ok !== false) final = { result: resA2, input: inputA2, out: outG, fallback: "geometry" };
+      else final = { result: resR, input: inputR, out: ref, fallback: "p0" };
+    } else final = { result: resR, input: inputR, out: ref, fallback: "p0" };   // 경로 모수 = P0 → A′ ≡ A
+    console.warn("[AZT] 안전 확인 위반", safety.lane, safety.violations, "→", final.fallback);
     safety = s2 || safety;
   }
   return { ...final, personalOut: out, ref, resR, inputR, safety, relaxed: ra.relaxed, notice: ra.notice };
@@ -4390,7 +4428,7 @@ async function recommend() {
       input.personal_meta = { schema: "wp-meta/1", app_built: true, personal_version: PERSONAL.PERSONAL_VERSION || null,
         engine_version: AZT_ENGINE.ENGINE_VERSION, rules_hash: AZT_RULES.rules_hash, model_digest: MODEL && MODEL.digest || null,
         policy_digest: wp.out.policy.digest || null, params: (wp.out.meta && wp.out.meta.params) || null, fallback: wp.fallback,
-        safety: wp.safety ? { A: wp.safety.A, R: wp.safety.R, violations: wp.safety.violations || [] } : null,
+        safety: wp.safety ? { A: wp.safety.A, R: wp.safety.R, Rp: wp.safety.Rp ?? null, lane: wp.safety.lane ?? null, violations: wp.safety.violations || [] } : null,
         reference_ids: rIds, changed_n: result.sequence.filter(r => !rIds.includes(r.song_id)).length,
         catalog_n: CATALOG_INDEX.n, catalog_digest: CATALOG_INDEX.digest, global_stats_digest: globalStatsDigest() };
     }
@@ -5091,7 +5129,7 @@ $("wpOptBtn")?.addEventListener("click", togglePersonal);
    ===================================================================== */
 async function loadDemo(id) {
   try {
-    const r = await fetch("demo/personas/" + encodeURIComponent(id) + ".json?v=300", { cache: "no-cache" });
+    const r = await fetch("demo/personas/" + encodeURIComponent(id) + ".json?v=302", { cache: "no-cache" });
     if (!r.ok) throw new Error("HTTP " + r.status);
     const raw = await r.json();
     DEMO_RAW = raw;
@@ -5117,7 +5155,7 @@ async function loadDemo(id) {
 }
 async function demoPersona() {
   if (DEMO_RAW && DEMO_RAW.persona && DEMO_RAW.persona.taste) return DEMO_RAW.persona;
-  const P = await import("./tools/sim/personas.mjs?v=300");
+  const P = await import("./tools/sim/personas.mjs?v=302");
   const base = typeof P.personaById === "function" ? P.personaById(DEMO.persona_id)
     : (Array.isArray(P.PERSONAS) ? P.PERSONAS.find(x => x.id === DEMO.persona_id) : null);
   if (!base) throw new Error("페르소나 " + DEMO.persona_id + " 를 찾지 못했어요");
@@ -5141,7 +5179,7 @@ async function demoVirtualListen(btn) {
   btn.disabled = true;
   if (status) status.textContent = "가상으로 듣는 중…";
   try {
-    const [B, persona] = await Promise.all([import("./tools/sim/behavior.mjs?v=300"), demoPersona()]);
+    const [B, persona] = await Promise.all([import("./tools/sim/behavior.mjs?v=302"), demoPersona()]);
     closeExposure("new_rec");   // 화면에서 듣던 재생은 닫고 가상 청취로 대신한다
     const out = B.respond(persona, rec, CATALOG_INDEX, { rngKey: "demo:" + DEMO.id + ":" + rec.id, history: demoHistory(rec.id) }) || {};
     const t0 = Number(rec.created_at_ms) || Date.now();
@@ -5215,6 +5253,7 @@ function renderEnvBar(textOverride) {
     if (DEMO) text = "데모 프로필(합성 사용자) · " + DEMO.id + " · 기록은 저장되지 않아요";
     else if (WP_URL.get("demo")) text = "데모 프로필(합성 사용자) 불러오는 중 · 기록은 저장되지 않아요";
     else if (WP_URL.get("fixture")) text = "개발 픽스처 · " + WP_URL.get("fixture") + " · 쓰기 꺼짐";
+    else if (WP_ENV.offline === true) text = "로컬 실행(오프라인 — 운영 Firebase 에 접속하지 않음) · 기록은 저장되지 않아요";
     else if (WP_ENV.writes === false) text = "로컬 실행 · 기록은 저장되지 않아요(쓰기 꺼짐)";
   }
   let bar = $("wpEnvBar");
@@ -5234,7 +5273,8 @@ Object.assign(window.AZT_DEBUG, {
       const s = songById(id); return s ? contractWithBins(s) : null;
     }).filter(Boolean);
   },
-  writes() { return { ...WP_WRITES, writes_enabled: WP_ENV.writes !== false, env: WP_ENV.env }; },
+  writes() { return { ...WP_WRITES, writes_enabled: WP_ENV.writes !== false, env: WP_ENV.env, offline: WP_ENV.offline === true,
+                      local_firebase: window.AZT_LOCAL_FIREBASE ? { ...window.AZT_LOCAL_FIREBASE.counts } : null }; },
   sessionLog() { return SESSION_LOG; },
   exits() { const rows = SESSION_LOG.events.filter(e => e.type === "track_exit").map(e => ({ rec: e.rec_id, ...e.payload })); console.table(rows); return rows.length; },
   model() { return MODEL; },

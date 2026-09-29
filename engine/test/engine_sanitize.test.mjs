@@ -13,7 +13,7 @@ const band = Number(rules.preference.band);
 const S = (p, env = { duration_min: 30 }) => E.sanitizePersonal(p, rules, env);
 
 const KEYS = ["v", "schema", "digest", "model_digest", "stress", "high_stress", "tp", "quit_frac", "start_offset", "start_min_journey",
-  "hold_radius", "hold_min_songs", "hold_order", "corridor_bands", "j_move", "j_hold", "mu", "taste_features", "adj_w",
+  "hold_radius", "hold_min_songs", "hold_order", "hold_min_pool", "hold_radius_cap", "hold_cluster", "hold_path_q", "hold_break", "pers_bucket", "pers_jitter", "corridor_bands", "j_move", "j_hold", "mu", "taste_features", "adj_w",
   "bpm_scale", "spoken_scale", "half_double_fold", "bpm_offset", "bpm_per_tag", "lambda", "discovery_u", "soft_gates", "soft_min_pool",
   "artist_cap", "artist_cap_by_key", "exclude_ids", "replay_ids", "replay_max"].sort();
 
@@ -48,7 +48,7 @@ test("경계로 자른다 — 위·아래 모두", () => {
   const hi = S({
     tp: 3, quit_frac: 5, start_offset: 1, start_min_journey: 9, hold_radius: 1, hold_min_songs: 40, corridor_bands: 7, j_move: 1, j_hold: 1,
     mu: 9, adj_w: { tempo: 1, vocal: 1, spoken: 1, genre: 1 }, bpm_scale: 1000, spoken_scale: 9, lambda: 5, soft_min_pool: 999,
-    artist_cap: 99, replay_max: 7,
+    artist_cap: 99, replay_max: 7, hold_min_pool: 999, pers_bucket: 1, hold_break: 1, pers_jitter: 1,
   });
   assert.equal(hi.tp, B.tp[1]); assert.equal(hi.start_offset, B.start_offset[1]); assert.equal(hi.start_min_journey, B.start_min_journey[1]);
   assert.equal(hi.hold_min_songs, B.hold_min_songs[1]); assert.equal(hi.corridor_bands, B.corridor_bands[1]);
@@ -58,15 +58,19 @@ test("경계로 자른다 — 위·아래 모두", () => {
   assert.equal(hi.bpm_scale, B.bpm_scale[1]); assert.equal(hi.spoken_scale, B.spoken_scale[1]); assert.equal(hi.lambda, B.lambda_max);
   assert.equal(hi.soft_min_pool, B.soft_min_pool[1]); assert.equal(hi.artist_cap, rules.diversity.max_per_artist); assert.equal(hi.replay_max, B.replay_max[1]);
   assert.equal(hi.high_stress, false); assert.equal(hi.hold_radius, B.hold_radius[1]); assert.equal(hi.quit_frac, B.quit_frac[1]);
+  assert.equal(hi.hold_min_pool, B.hold_min_pool[1]); assert.equal(hi.pers_bucket, B.pers_bucket_bands[1] * band);
+  assert.equal(hi.hold_break, B.j_hold[1]); assert.equal(hi.pers_jitter, B.pers_jitter_bands[1] * band);   // 20260930 — 머묾 J · 흔들기 상한(정리 여유)
+  assert.equal(hi.hold_radius_cap, B.hold_radius[1]);   // 밀도 적응 반경 상한 = 팔 최댓값(규칙 값 — 정책이 정하지 않는다)
   // stress 9 → 4 → 고긴장 → 반경·시작점 상한까지 같이 걸린다
   const hs = S({ stress: 9, hold_radius: 1, start_offset: 1, quit_frac: 0.5 });
   assert.equal(hs.stress, B.stress[1]); assert.equal(hs.high_stress, true);
   assert.equal(hs.hold_radius, HS.hold_radius_max); assert.equal(hs.start_offset, HS.start_offset_max); assert.equal(hs.quit_frac, null);
+  assert.equal(hs.hold_radius_cap, HS.hold_radius_max);   // 고긴장이면 넓혀도 I5 상한까지
 
   const lo = S({
     tp: -1, quit_frac: -1, start_offset: -1, start_min_journey: 0, hold_radius: -1, hold_min_songs: 0, corridor_bands: -3, j_move: -1, j_hold: -1,
     mu: -1, adj_w: { tempo: -1, vocal: -1, spoken: -1, genre: -1 }, bpm_scale: 1, spoken_scale: 0, lambda: 0, soft_min_pool: 1,
-    artist_cap: 0, replay_max: -2, stress: -5,
+    artist_cap: 0, replay_max: -2, stress: -5, hold_min_pool: -3, pers_bucket: -1, hold_break: -1, pers_jitter: -1,
   });
   assert.equal(lo.tp, B.tp[0]); assert.equal(lo.quit_frac, B.quit_frac[0]); assert.equal(lo.start_offset, 0); assert.equal(lo.start_min_journey, B.start_min_journey[0]);
   assert.equal(lo.hold_radius, 0); assert.equal(lo.hold_min_songs, B.hold_min_songs[0]); assert.equal(lo.corridor_bands, 0);
@@ -76,6 +80,7 @@ test("경계로 자른다 — 위·아래 모두", () => {
   assert.equal(lo.lambda, Math.min(Z.adjacency.lambda_range[0], rules.path.jump_weight));
   assert.equal(lo.soft_min_pool, B.soft_min_pool[0]); assert.equal(lo.artist_cap, 1); assert.equal(lo.replay_max, 0); assert.equal(lo.stress, 0);
   assert.equal(lo.high_stress, false);
+  assert.equal(lo.hold_min_pool, 0); assert.equal(lo.pers_bucket, 0); assert.equal(lo.hold_break, 0); assert.equal(lo.pers_jitter, 0);
 });
 
 test("숫자가 아닌 값(NaN·Infinity·문자열·객체)은 빠진 것으로 — 중립값", () => {

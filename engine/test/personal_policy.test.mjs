@@ -60,7 +60,8 @@ test("P0 — 빈 모델의 resolvePolicy = 기준 실행 R 정책 (§6.5 P0 열,
   const A = P.resolvePolicy(m, ctx, RULES), R = P.resolvePolicy(m, ctx, RULES, { mode: "p0" });
   assert.equal(A.policy.digest, R.policy.digest);
   const p = R.policy;
-  const want = { tp: null, quit_frac: null, start_offset: 0, start_min_journey: 0.15, hold_radius: 0.035, hold_min_songs: 5, hold_order: "last_fixed_progress",
+  const want = { tp: null, quit_frac: null, start_offset: 0, start_min_journey: 0.15, hold_radius: 0.035, hold_min_songs: 5, hold_order: "last_fixed_turn", hold_min_pool: 12, hold_cluster: RULES.personalization.hold.cluster === true, hold_path_q: RULES.personalization.hold.quantize_path === true, pers_bucket: R9(0.25 * band),
+                 hold_break: RULES.personalization.safety.j_hold, pers_jitter: R9(0.25 * band),
                  corridor_bands: 1, j_move: R9(1.5 * band), j_hold: 0.0125, mu: 0, taste_features: null, lambda: 0.1, discovery_u: null, soft_gates: [],
                  soft_min_pool: 24, artist_cap: 2, artist_cap_by_key: true, replay_ids: [], replay_max: 0, stress: 2, high_stress: false };
   for (const [k, v] of Object.entries(want)) assert.deepEqual(p[k], v, k);
@@ -184,7 +185,45 @@ test("safetyCheck — 절대 기준을 넘고 '그리고' 기준 R 보다 over_r
   assert.ok(P.safetyCheck(res([[0.1, 0.1], [0.3, 0.3]], [[0.1, 0.1], [0.3, 0.3]]), R, RULES).violations.includes("short"));
   const same = P.safetyCheck(R, R, RULES);
   assert.equal(same.ok, true);
-  assert.deepEqual(Object.keys(same).sort(), ["A", "R", "ok", "violations"]);
+  assert.deepEqual(Object.keys(same).sort(), ["A", "R", "Rp", "lane", "ok", "violations"]);
+  assert.deepEqual(Object.keys(same.A).sort(), ["arrival", "hold_zigzag", "max_jump", "n", "reversals", "start_dist", "turns"]);   // 공개 Metrics 모양 그대로
+});
+
+test("safetyCheck — 기준 R_path: 경로 모수의 의도된 긴 걸음은 위반이 아니고, 곡 레인이 더한 것만 본다 (§2.2 7단계)", () => {
+  /* 빠른 tp: 경유지 걸음 0.1 → 0.3. R(기본 tp)은 짧게, R_path·A 는 같은 경유지로 길게 */
+  const wR = [[0.1, 0.1], [0.2, 0.2], [0.3, 0.3], [0.4, 0.4]], wF = [[0.1, 0.1], [0.4, 0.4], [0.4, 0.4], [0.4, 0.4]];
+  const R = res([[0.1, 0.1], [0.2, 0.2], [0.3, 0.3], [0.4, 0.4]], wR);
+  const Rp = res([[0.1, 0.1], [0.39, 0.4], [0.4, 0.41], [0.4, 0.4]], wF);
+  const A = res([[0.1, 0.1], [0.4, 0.39], [0.41, 0.4], [0.4, 0.4]], wF);
+  const s0 = P.safetyCheck(A, R, RULES);                          // 기준 R 하나면 max_jump(0.42 > 0.25 ∧ > 0.14 + 0.05)
+  assert.deepEqual(s0.violations, ["max_jump"]); assert.equal(s0.lane, "song");
+  const s1 = P.safetyCheck(A, R, RULES, { resRp: Rp });           // 경로 레인: 경유지 걸음 증가(0.28)만큼 허용 → 곡 레인 A vs R_path 통과
+  assert.equal(s1.ok, true); assert.equal(s1.lane, null); assert.ok(s1.Rp && s1.Rp.n === 4);
+  /* 곡 레인: A 가 R_path 보다 over_ref 넘게 더 뛰면 위반(lane song) */
+  const A2 = res([[0.1, 0.1], [0.6, 0.55], [0.41, 0.4], [0.4, 0.4]], wF);
+  const s2 = P.safetyCheck(A2, R, RULES, { resRp: Rp });
+  assert.deepEqual(s2.violations, ["max_jump"]); assert.equal(s2.lane, "song");
+  /* 경로 레인: R_path 자체가 도착 봉투 밖이면 lane path(→ A′) */
+  const RpFar = res([[0.1, 0.1], [0.455, 0.4], [0.4, 0.46], [0.4, 0.45]], wF);   // 머묾 0.055 · 0.06 · 0.05(마지막이 가장 가까움)
+  const Afar = res([[0.1, 0.1], [0.455, 0.4], [0.4, 0.46], [0.4, 0.45]], wF);
+  const s3 = P.safetyCheck(Afar, R, RULES, { resRp: RpFar });
+  assert.deepEqual(s3.violations, ["path_arrival"]); assert.equal(s3.lane, "path");
+  /* 역행은 허용 0(reversal_tol) — R_path 에 없는 역행은 곡 레인 위반 */
+  const wB = [[0.1, 0.1], [0.2, 0.2], [0.3, 0.3]];
+  const back = res([[0.1, 0.1], [0.07, 0.07], [0.3, 0.3]], wB), clean = res([[0.1, 0.1], [0.2, 0.2], [0.3, 0.3]], wB);
+  assert.ok(P.safetyCheck(back, clean, RULES, { resRp: clean }).violations.includes("reversal"));
+});
+
+test("resolvePolicy mode \"path\" — 경로 모수만 개인값, 나머지는 p0 (R_path · I3)", () => {
+  const m = P.emptyModel(RULES);
+  m.pace.pi = 0.9; m.start.arm = 0.075; m.hold.arm = 0.02; m.taste.mu = 0.3;
+  const ctx = { now: { v: 0.3, e: 0.7 }, target: { v: 0.7, e: 0.3 }, minutes: 30, seed: "t", pace_user: null };
+  const pers = P.resolvePolicy(m, ctx, RULES), p0 = P.resolvePolicy(m, ctx, RULES, { mode: "p0" }), rp = P.resolvePolicy(m, ctx, RULES, { mode: "path" });
+  for (const k of P.PATH_PARAM_KEYS) assert.equal(rp.policy[k], pers.policy[k], k);
+  for (const k of Object.keys(p0.policy)) if (!P.PATH_PARAM_KEYS.includes(k) && k !== "digest") assert.deepEqual(rp.policy[k], p0.policy[k], k);
+  assert.deepEqual(rp.user, p0.user);
+  assert.equal(P.pathParamsDiffer(pers.policy, p0.policy), true);
+  assert.equal(P.pathParamsDiffer(p0.policy, P.resolvePolicy(m, ctx, RULES, { mode: "geometry" }).policy), false);
 });
 
 // ── 실제 엔진으로 한 번의 추천 흐름 (§2.2) + 로그 문서 (§7.1) ─────
@@ -331,6 +370,36 @@ function richModel() {
   return m;
 }
 
+test("유의한 묶음만 엔진에(taste.group_z_min, 20260929) — 잡음 묶음은 빼고 벽·곡 자체 기록·p0/중립 정책은 그대로", () => {
+  const TZ = RULES.personalization.taste, unit = RULES.personalization.listen_vote.unit;
+  assert.ok(TZ.group_z_min > 0);
+  const m = structuredClone(P.emptyModel(RULES));
+  m.taste.mu = 0.3; m.taste.E = 10;
+  const rec = (pos, neg = 0, pin = 0) => ({ pos, neg, pin, last_days: 0 });
+  /* p0 = (10 + 1)/(20 + 2) = 0.5 → z = |p̂ − 0.5|·√((n/unit)/0.25) */
+  m.taste.affinity = {
+    like_base: { pos: 10, neg: 10 },
+    song_likes: { S0001: rec(unit) },                                  // 곡 자체 기록 — 표 1개여도 남긴다
+    artist_affinity: { noise: rec(unit), strong: rec(10 * unit), pinned: rec(0, 0, 1) },   // z 1.0 · 3.16 · 벽
+    genre_affinity: { 재즈: rec(0, 4 * unit), 발라드: rec(unit, unit) },                   // z 2.0 · 0
+    feature_affinity: { "tempo:high": rec(2 * unit) },                                     // z 1.41
+  };
+  const ctx = { now: LOW, minutes: 30, seed: "z" };
+  const u = P.resolvePolicy(m, ctx, RULES).user;
+  const keep = (z) => z >= TZ.group_z_min;
+  assert.deepEqual(Object.keys(u.artist_affinity).sort(), ["pinned", "strong", ...(keep(1.0) ? ["noise"] : [])].sort());
+  assert.deepEqual(Object.keys(u.genre_affinity), ["재즈"]);
+  assert.deepEqual(Object.keys(u.feature_affinity), keep(Math.SQRT2) ? ["tempo:high"] : []);
+  assert.deepEqual(Object.keys(u.song_likes), ["S0001"]);
+  assert.deepEqual(u.like_base, { pos: 10, neg: 10 });
+  // geometry(A′)도 같은 표, p0 는 빈 표(영향 없음)
+  assert.deepEqual(P.resolvePolicy(m, ctx, RULES, { mode: "geometry" }).user.artist_affinity, u.artist_affinity);
+  assert.deepEqual(P.resolvePolicy(m, ctx, RULES, { mode: "p0" }).user.artist_affinity, {});
+  // 문턱이 없으면 이전 동작(모두 넘김)
+  const R2 = JSON.parse(JSON.stringify(RULES)); delete R2.personalization.taste.group_z_min;
+  assert.deepEqual(Object.keys(P.resolvePolicy(m, ctx, R2).user.artist_affinity).sort(), ["noise", "pinned", "strong"]);
+});
+
 test("explainPolicy — 칩 ≤ 3, 기본값에서 벗어난 것만, 고정 우선순위, 횟수로 말한다", () => {
   const m = richModel();
   const out = P.resolvePolicy(m, { now: LOW, minutes: 30, seed: "e:1" }, RULES);
@@ -347,7 +416,7 @@ test("explainPolicy — 칩 ≤ 3, 기본값에서 벗어난 것만, 고정 우�
   assert.match(withStart[1].text, /첫 곡 5번 중 3번/);
   assert.match(withStart[0].text, /^빠르게 도착 \(/);   // ctx 가 없으면 도착 곡 번호 없이
   // 게이트·머묾만 벗어났으면 그것만
-  const m2 = structuredClone(P.emptyModel(RULES)); m2.gates.soft = ["exclude_spoken"]; m2.gates.evidence.vocal_bother_w = 2; m2.hold.arm = 0.02;
+  const m2 = structuredClone(P.emptyModel(RULES)); m2.gates.soft = ["exclude_spoken"]; m2.gates.evidence.vocal_bother_w = 2; m2.gates.evidence.vocal_bother_n = 2; m2.hold.arm = 0.02;
   const e2 = P.resolvePolicy(m2, { now: LOW, minutes: 30 }, RULES).explain;
   assert.deepEqual(e2.map((c) => c.id), ["gate_spoken", "hold"]);
   assert.match(e2[0].text, /‘가사·목소리가 거슬려요’ 2번/);
@@ -362,8 +431,10 @@ test("explainPolicy — 이번에 고른 단어에 좌표 보정이 걸렸을 �
                 target_table: { v: 0.6, e: 0.3 }, minutes: 30 };
   const out = P.resolvePolicy(model, ctx, RULES);
   assert.equal(out.explain[0].id, "calib_current");
-  assert.equal(out.explain[0].text, "‘불안해요’ 내 기준 위치로 (활력 −0.08 · 직접 옮김 3번)");
-  assert.deepEqual(out.meta.params.calib.current, { label: "불안해요", dv: 0, de: -0.077143 });
+  /* w_edit 3(20260929): δ = −0.094406 → "−0.09" (w_edit 1 이던 명세 예는 −0.077143 → "−0.08") */
+  const W = RULES.personalization.calib.w_edit, g = -0.30 * W / (3 * W + 4), de = Math.round(((-0.30 * W + 2 * g) / (3 * W + 2)) * 1e6) / 1e6;
+  assert.equal(out.explain[0].text, `‘불안해요’ 내 기준 위치로 (활력 −${Math.abs(de).toFixed(2)} · 직접 옮김 3번)`);
+  assert.deepEqual(out.meta.params.calib.current, { label: "불안해요", dv: 0, de });
   assert.equal(out.meta.params.calib.target, null);
 });
 
@@ -397,6 +468,16 @@ test("explainModel — 카드 11장, 빈 모델은 모두 '기본값', 추이·�
   assert.equal(cards.calib_current.changed, false);
   assert.equal(cards.pace.reset_procedure, "pace");
   assert.ok(cards.taste.confidence >= 2 && cards.taste.confidence <= 5);
+  /* "근거 N번"은 횟수(정수)로 — 가중 합(청취 표 ¼·AI 코드 ½)은 확신 점에만 (UI 수정 20260929) */
+  m.taste.E = 9.75; m.gates.evidence.vocal_bother_w = 1.5; m.gates.evidence.vocal_bother_n = 2;
+  for (const c of P.explainModel(m, RULES, { history: hist })) {
+    if (typeof c.evidence === "number") assert.ok(Number.isInteger(c.evidence), `${c.id} 근거 ${c.evidence}`);
+    assert.doesNotMatch(c.text, /\d\.\d+번/, c.id);
+  }
+  const t = m.counts_for_explain.taste;
+  assert.equal(P.explainModel(m, RULES).find((c) => c.id === "taste").evidence,
+               ["likes", "dislikes_taste", "pins_song", "pins_artist", "completes", "skips"].reduce((a, k) => a + (Number(t[k]) || 0), 0));
+  assert.equal(P.explainModel(m, RULES).find((c) => c.id === "gates").evidence, 2);
 });
 
 // ── 결정성 · digest ─────────────────────────────────────

@@ -21,6 +21,37 @@ export const CRIT = {   // §11 문턱 (명세 값 그대로 — 바꾸려면 ch
 };
 const E_PERSONAS = ["P1", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9", "P10"];
 
+/** 명세 §11 기준 ID 전부 (A–I 판정 대상 + J 수동) — run.mjs 가 표에 없는 ID 를 "측정 안 됨"·불합격으로 채운다. how = 어디서 재나 */
+export const SPEC_IDS = [
+  ...[["A1", "I0: personal 없음 — 1,224 + 660 + 탐침 격자에서 2.6.0-wp vs 2.5.1", "100% 일치"], ["A2", "inputs.pace fast/slow vs 옛 규칙 사본 경로", "100%"],
+      ["A3", "I1: neutralPolicy — 곡 순서·2.5.1 trace 키", "100%"], ["A4", "aggregateAffinity 2인자, 무작위 항목 집합 200", "100%"]]
+    .map(([id, title, target]) => ({ id, group: "A", title, target, how: "external.mjs → regress.mjs --grid all --check all" })),
+  { id: "A5", group: "A", title: "P13(옛 기록만) 모델 빌드", target: "오류 0 · n_sessions_legacy > 0 · 취향 표 생성", how: "run.mjs --personas P13" },
+  ...[["B1", "도착 오차 중앙 / 90%"], ["B2", "세션 최대 전환 거리 90%"], ["B3", "역행 / 꺾임 / 머묾 지그재그"], ["B4", "첫 곡↔지금 거리 중앙 (s = 0)"],
+      ["B6", "경로 모수가 P0 와 같은 정책의 경유지 동일"], ["B8", "안전 폴백 발생 세션"]]
+    .map(([id, title]) => ({ id, group: "B", title: `[페르소나 · wp] ${title}`, target: "§11 B", how: "run.mjs --arms wp,twin" })),
+  ...[["B1g", "도착 오차 중앙 / 90%"], ["B2g", "최대 전환 거리 중앙"], ["B3g", "역행 / 꺾임 / 지그재그"], ["B4g", "첫 곡↔지금 거리 중앙"],
+      ["B5g", "같은 곡으로 끝남 / 목표 칩당 머묾 곡"], ["B6g", "P0 정책 경유지 = 2.5.1 경유지"]]
+    .map(([id, title]) => ({ id, group: "B", title: `[iso1224 · P0] ${title}`, target: "§11 B", how: "run.mjs --grid" })),
+  { id: "B7", group: "B", title: "§3.8 정리 위반(단위 시험 10만 조합)", target: "0", how: "external.mjs → node --test engine/test/*.test.mjs" },
+  ...["C1a", "C1b", "C1c", "C1d"].map((id) => ({ id, group: "C", title: `[adj660 · P0] ${id}`, target: "§11 C", how: "run.mjs --grid" })),
+  ...["D1", "D2", "D3", "D4", "D5·P1", "D5·P2", "D5·P3", "D5·P5", "D6", "D7", "D8", "D9", "D10", "D11"].map((id) => ({ id, group: "D", title: id, target: "§11 D", how: "run.mjs --personas all" })),
+  ...["E1", "E2", "E3", "E4", "E5", "E6", "E7"].map((id) => ({ id, group: "E", title: id, target: "§11 E", how: "run.mjs --arms wp,twin,frozen" })),
+  ...["F1", "F2", "F3", "F4", "F5"].map((id) => ({ id, group: "F", title: id, target: "§11 F", how: "run.mjs --personas all" })),
+  { id: "G", group: "G", title: "P8 고긴장", target: "100%", how: "run.mjs --personas P8" },
+  { id: "H1", group: "H", title: "같은 입력 100회", target: "100% 동일", how: "run.mjs (--h1-runs)" },
+  { id: "H2", group: "H", title: "Node vs 브라우저 픽스처 20개", target: "100% 동일", how: "external.mjs --browser" },
+  { id: "H3", group: "H", title: "replay.mjs 재현", target: "100%", how: "external.mjs (H3)" },
+  { id: "H4", group: "H", title: "설명 충실도", target: "≥ 90%", how: "run.mjs" },
+  { id: "H5", group: "H", title: "성능", target: "≤ 50 · ≤ 5 · ≤ 150 · ≤ 400 ms", how: "run.mjs (--h5) / bench_h5.mjs" },
+  ...[["I·collections", "새 컬렉션 이름 0"], ["I·fs-writes", "Firestore 쓰기가 모두 fsWrite 안"], ["I·song-stats", "song_stats 키 ⊆ 기존 7개"],
+      ["I·determinism", "engine/*.js 에 Math.random·Date.now 0"], ["I·rules-hash", "rules_hash 일치"], ["I·trace-keys", "trace_keys ⊇ 엔진 p_* 키"],
+      ["I·sw-version", "sw.js VERSION ≠ azt-v9"], ["I·personalization", "personalization 절이 §10 키를 모두 가짐"],
+      ["I·writes", "로컬 서버 기본 실행·데모 모드 Firestore 쓰기 호출 0"]]
+    .map(([id, title]) => ({ id, group: "I", title, target: "✓", how: id === "I·writes" ? "external.mjs --browser (개발 페이지 카운터)" : "external.mjs → check.mjs" })),
+  { id: "J", group: "J", title: "앱 수동 점검", target: "모두 확인", how: "수동(배포 전)" },
+];
+
 const pct = (x) => (Number.isFinite(x) ? (x * 100).toFixed(1) + "%" : "—");
 const f3 = (x) => (Number.isFinite(x) ? x.toFixed(3) : "—");
 const f2 = (x) => (Number.isFinite(x) ? x.toFixed(2) : "—");
@@ -74,8 +105,35 @@ export function evaluate(R, F, extra, rules) {
     add("B4", "B", "첫 곡↔지금 거리 중앙 (s = 0 세션)", `≤ ${CRIT.B4.med}`, `${f3(q(s0.map((r) => r.shape.start), 0.5))} (${s0.length}세션)`, LE(q(s0.map((r) => r.shape.start), 0.5), CRIT.B4.med));
     const b6 = wp.filter((r) => r.wp_same_as_ref !== null);
     add("B6", "B", "경로 모수가 P0 와 같은 정책의 경유지 동일", "100%", `${pct(rate(b6, (r) => r.wp_same_as_ref))} (${b6.length}세션)`, b6.length ? b6.every((r) => r.wp_same_as_ref) : null);
-    add("B8", "B", "안전 폴백 발생 세션", `≤ ${pct(CRIT.B8.fallback)}`, `${pct(rate(wp, (r) => !!r.fallback))} (geometry ${wp.filter((r) => r.fallback === "geometry").length} · p0 ${wp.filter((r) => r.fallback === "p0").length})`,
-      LE(rate(wp, (r) => !!r.fallback), CRIT.B8.fallback));
+    {
+      /* B8 = 모든 페르소나 · wp 팔 · 세션 1–10 에서 safetyCheck 가 위반을 내 A 를 버린(A′ 또는 R) 세션 비율 (세션당 추천 1회) */
+      const fb = wp.filter((r) => !!r.fallback);
+      const byP = {}, byV = {};
+      for (const r of fb) { byP[r.persona] = (byP[r.persona] || 0) + 1; for (const v of r.safety_violations || []) byV[v] = (byV[v] || 0) + 1; }
+      const pp = wp.filter((r) => r.path_personalized === true), np = wp.filter((r) => r.path_personalized === false);
+      /* 위반 값 — 레인 "song" 이고 R_path 가 있으면 A 대 R_path, "path" 면 R_path 대 R, 레인 없음(옛 한 기준)이면 A 대 R */
+      const det = fb.filter((r) => r.safety_detail).map((r) => {
+        const d = r.safety_detail, lane = d.lane || null;
+        const x = lane === "path" ? d.Rp || {} : d.A || {}, y = lane === "song" && d.Rp ? d.Rp : d.R || {};
+        const xn = lane === "path" ? "Rp" : "A", yn = lane === "song" && d.Rp ? "Rp" : "R";
+        return (r.safety_violations || []).map((v0) => { const v = String(v0).replace(/^path_/, "");
+          return `${v0 !== v ? "경로 " : ""}${v === "reversal" ? `역행 ${xn} ${x.reversals}>${yn} ${y.reversals}` : v === "max_jump" ? `최대 전환 ${xn} ${f3(x.max_jump)} vs ${yn} ${f3(y.max_jump)}` : v === "arrival" ? `도착 ${xn} ${f3(x.arrival)} vs ${yn} ${f3(y.arrival)}` : v}`; }).join("·");
+      });
+      const byLane = {}, byK = {};
+      for (const r of fb) { const l = r.safety_lane || (r.safety_rp ? "?" : "한 기준"); byLane[l] = (byLane[l] || 0) + 1; byK[r.ks] = (byK[r.ks] || 0) + 1; }
+      const rpRun = wp.filter((r) => r.safety_rp).length, rpRescued = wp.filter((r) => r.safety_rp && !r.fallback).length;
+      const nK = (k) => wp.filter((r) => r.ks === k).length;
+      add("B8", "B", "안전 폴백 발생 세션 (모든 페르소나 · wp · 세션 1–10)", `≤ ${pct(CRIT.B8.fallback)}`,
+        `${pct(rate(wp, (r) => !!r.fallback))} = ${fb.length}/${wp.length}세션 (geometry ${wp.filter((r) => r.fallback === "geometry").length} · p0 ${wp.filter((r) => r.fallback === "p0").length})`,
+        LE(rate(wp, (r) => !!r.fallback), CRIT.B8.fallback),
+        `세션당 추천 1회 → 폴백률 = 폴백 세션/세션 · 세션 번호별 ${Array.from({ length: 10 }, (_, i) => i + 1).map((k) => `${k}:${byK[k] || 0}/${nK(k)}`).join(" ")} · `
+        + `A 가 R 에 대해 위반이라 R_path 를 돌린 세션 ${rpRun}(그중 두 레인 판정으로 A 를 지킨 세션 ${rpRescued}) · 폴백 레인 ${Object.entries(byLane).map(([k, v]) => `${k} ${v}`).join(" · ") || "없음"} · `
+        + `페르소나별 ${Object.entries(byP).map(([k, v]) => `${k} ${v}`).join(" · ") || "없음"} · 위반 ${Object.entries(byV).map(([k, v]) => `${k} ${v}`).join(" · ") || "없음"} · `
+        + `경로 모수(tp·s·이탈 가드·r)를 P0 에서 바꾼 세션의 폴백 ${pct(rate(pp, (r) => !!r.fallback))}(${pp.filter((r) => r.fallback).length}/${pp.length}) vs 안 바꾼 세션 ${pct(rate(np, (r) => !!r.fallback))}(${np.filter((r) => r.fallback).length}/${np.length})`
+        + (det.length ? ` · 위반 값(A>R) ${det.slice(0, 8).join(" / ")}${det.length > 8 ? " …" : ""}` : "")
+        + (extra.h5 && !extra.h5.error ? ` · 진단(판정 밖): ${extra.h5.history.persona} ${extra.h5.history.sessions}세션 학습 모델로 iso1224 표본 ${extra.h5.contexts}입력 → 폴백 ${extra.h5.fallbacks}/${extra.h5.contexts}${Object.keys(extra.h5.violations).length ? ` (${Object.entries(extra.h5.violations).map(([k, v]) => `${k} ${v}`).join(" · ")})` : ""}${extra.h5.rp_runs != null ? ` · R_path 실행 ${extra.h5.rp_runs}` : ""}` : "")
+        + (extra.h5 && extra.h5.demo && extra.h5.demo.total ? ` · 진단(판정 밖): 앱 데모 프로필(demo/personas, 합성 10세션) × 같은 ${extra.h5.demo.contexts}입력 → 폴백 ${extra.h5.demo.total.fallback}/${extra.h5.demo.total.n} (${pct(extra.h5.demo.total.fallback / extra.h5.demo.total.n)}) — ${extra.h5.demo.personas.filter((r) => r.fallback).map((r) => `${r.id} ${r.fallback}/${r.n} ${Object.entries(r.violations).map(([k, v]) => `${k}×${v}`).join("+")}`).join(" · ") || "폴백 없음"}` : ""));
+    }
   }
 
   // ── 격자 (P0 정책 · 신규 사용자) ──
@@ -87,6 +145,9 @@ export function evaluate(R, F, extra, rules) {
     add("B3g", "B", "[iso1224 · P0] 역행 / 꺾임 / 지그재그", "≤ 1.5% / ≤ 12% / 0%", `${pct(g.back)} / ${pct(g.turns)} / ${pct(g.zig)} (2.5.1 ${pct(t.back)} / ${pct(t.turns)} / ${pct(t.zig)})`,
       ALL(LE(g.back, CRIT.B3.back), LE(g.turns, CRIT.B3.turns), g.zig === 0));
     add("B4g", "B", "[iso1224 · P0] 첫 곡↔지금 거리 중앙", `≤ ${CRIT.B4.med}`, `${f3(g.start50)} (2.5.1 ${f3(t.start50)})`, LE(g.start50, CRIT.B4.med));
+    if (G.iso.b6) add("B6g", "B", "[iso1224 · P0] 경로 모수가 P0(= 표 tp · s 0)인 정책의 경유지 = 2.5.1 경유지", "100%",
+      `${pct(G.iso.b6.n ? G.iso.b6.same / G.iso.b6.n : NaN)} (${G.iso.b6.same}/${G.iso.b6.n})`, G.iso.b6.n ? G.iso.b6.same === G.iso.b6.n : null,
+      "같은 시나리오(지금·목표·분·시드)의 경유지(작업 좌표) 목록을 문자열로 비교");
     add("B5g", "B", "[iso1224 · P0] 시드만 다른 두 세션이 같은 곡으로 끝남(30·60분) / 목표 칩당 서로 다른 머묾 곡", `≤ 35% / ≥ 12곡`,
       `${pct(g.sameEnd)} / ${f1(g.holdDistinct)}곡 (2.5.1 ${pct(t.sameEnd)} / ${f1(t.holdDistinct)}곡)`, ALL(LE(g.sameEnd, CRIT.B5.same_end), GE(g.holdDistinct, CRIT.B5.hold_distinct)));
   }
@@ -144,7 +205,7 @@ export function evaluate(R, F, extra, rules) {
     const gt = sum(after.map((r) => r.spoken_gate_path)) / sum(after.map((r) => r.n_path));
     add("D6", "D", "P3 게이트: 5세션 안에 켜짐 · 켜진 뒤 말 비중 '높음' 곡", "반복 ≥ 80% · ≤ 5%",
       `${pct(r3)} · '높음' 묶음 ${pct(hi)} (게이트 문턱 상위 20% ${pct(gt)}, ${after.length}세션)`, ALL(GE(r3, CRIT.D6.reps), after.length ? LE(hi, CRIT.D6.spoken) : true),
-      `'높음' = 카탈로그 3분위 묶음(상위 1/3). 게이트 exclude_spoken 은 상위 20% 만 뺀다. 1~5세션 경로의 '높음' 곡 평균 ${f2(mean(P("P3", "wp", 1, 5).map((r) => r.spoken_high_path)))}곡/세션 · 마지막 모델 vocal_bother 가중 ${reps("P3", "wp").map((rep) => f1(((finalOf("P3", rep) || {}).model || {}).vocal_bother_w)).join("/")}(켜짐 ≥ 2)`);
+      `'높음' = 카탈로그 3분위 묶음(상위 1/3). 게이트 exclude_spoken 은 상위 20% 만 뺀다. 1~5세션 경로의 '높음' 곡 평균 ${f2(mean(P("P3", "wp", 1, 5).map((r) => r.spoken_high_path)))}곡/세션 · 마지막 모델 vocal_bother 가중 ${reps("P3", "wp").map((rep) => f1(((finalOf("P3", rep) || {}).model || {}).vocal_bother_w)).join("/")}(켜짐 ≥ ${(() => { const g = rules.personalization && rules.personalization.gates && rules.personalization.gates.soft_spoken; return g && g.vocal_bother_min != null ? g.vocal_bother_min : "?"; })()}, 규칙 gates.soft_spoken.vocal_bother_min) · 켜진 반복의 첫 켜짐 세션 ${reps("P3", "wp").map((rep) => { const r = P("P3", "wp").filter((x) => x.rep === rep).find(on); return r ? r.ks : "—"; }).join("/")}`);
   }
   if (has("P4", "wp")) {
     const win = (r) => (r.model && r.model.recent_window >= CRIT.D7.window) || (r.policy && r.policy.exclude_n > 60);
@@ -155,9 +216,9 @@ export function evaluate(R, F, extra, rules) {
     const stim = sum(P("P4", "wp").map((r) => r.repeats_path)), stimT = sum(P("P4", "twin").map((r) => r.repeats_path));
     const codesRep = P("P4", "wp").filter((r) => r.codes && r.codes.too_repetitive).length;
     add("D7", "D", "P4 반복: 6세션 안에 창 120 · 켜진 뒤 5세션 반복 0 · r 한 칸 이상 넓어짐", "반복마다", `창 ${pct(rWin)} · 반복 0 ${pct(rRep)} · r 넓힘 ${pct(rHold)}`,
-      stim === 0 && codesRep === 0 ? null : ALL(GE(rWin, 0.8), GE(rRep, 0.8), GE(rHold, 0.8)),
+      stim === 0 && codesRep === 0 ? false : ALL(GE(rWin, 0.8), GE(rRep, 0.8), GE(rHold, 0.8)),
       `반복 = 최근 3세션에 재생된 곡이 경로에 다시 나옴. 합격은 세 조건 모두 반복 80% 이상으로 읽음. 재등장 자극 wp ${stim}곡 · twin ${stimT}곡 · too_repetitive 코드 세션 ${codesRep}`
-      + (stim === 0 && codesRep === 0 ? " — 최근 창 60(노출 기준, twin 은 로컬 60)이 이미 재등장을 막아 P4 가 불만을 낼 기회가 없었다: 판정 불가" : ""));
+      + (stim === 0 && codesRep === 0 ? " — 최근 창 60(노출 기준, twin 은 로컬 60)이 이미 재등장을 막아 P4 가 불만을 낼 기회가 없었다: 학습기가 한 번도 시험되지 않음 → 측정 안 됨(불합격 처리)" : ""));
   }
   if (has("P5", "wp")) {
     const elig = P("P5", "wp", 6, 10).filter((r) => r.policy && r.policy.replay_n > 0);
@@ -311,9 +372,21 @@ export function evaluate(R, F, extra, rules) {
     const t = arm("wp").map((r) => r.timing);
     const mm = q(t.map((x) => x.model_ms), 0.5), pm = q(t.map((x) => x.policy_ms), 0.5), am = q(t.map((x) => x.runA_ms), 0.5);
     const tot = q(t.map((x) => (x.runA_ms || 0) + (x.runR_ms || 0) + (x.extras_ms || 0)), 0.5);
-    if (t.length) add("H5", "H", "성능(이 기기 Node): 모델 빌드 · resolvePolicy · 개인 실행 · A+R+extras (중앙)", "≤ 50 · ≤ 5 · ≤ 150 · ≤ 400 ms",
+    const simNote = t.length ? `시뮬레이터 세션 안(워커 경합, 기록 ≤ 20 추천): 모델 ${f1(mm)} · resolvePolicy ${f2(pm)} · A ${f1(am)} · A+R+extras ${f1(tot)} ms` : "";
+    const b = extra.h5;
+    if (b && !b.error) {
+      /* 전용 측정(bench_h5.mjs) — 워커가 모두 끝난 뒤 한 스레드, 추천 100·이벤트 1,200 합성 기록 */
+      const mB = b.model.total.med, pB = b.policy.personal.med, aB = b.run.personal.med, sB = b.run.button_spec.med, fB = b.run.button_full.med;
+      add("H5", "H", "성능(이 기기 Node, 한 스레드): 모델 빌드(추천 100·이벤트 1,200) · resolvePolicy · 개인 실행 A · 버튼→결과 A+R+extras (중앙)", "≤ 50 · ≤ 5 · ≤ 150 · ≤ 400 ms",
+        `${f1(mB)} (최대 ${f1(b.model.total.max)}) · ${f2(pB)} · ${f1(aB)} · ${f1(sB)} ms (앱 recommend() 전체 ${f1(fB)} ms)`,
+        ALL(LE(mB, CRIT.H5.model_ms), LE(pB, CRIT.H5.policy_ms), LE(aB, CRIT.H5.run_ms), LE(sB, CRIT.H5.total_ms)),
+        `bench_h5.mjs: ${b.machine.cpus} · Node ${b.machine.node} · 합성 기록 ${b.history.persona} ${b.history.sessions}세션(추천 ${b.history.recs_window} · 이벤트 ${b.history.events_window}) · 입력 ${b.contexts}개(iso1224 표본). `
+        + `실행 분해(중앙 ms): 2.5.1 ${f1(b.run.base251.med)} · 2.6.0-wp personal 없음 ${f1(b.run.none.med)} · neutralPolicy ${f1(b.run.neutral.med)} · P0 ${f1(b.run.p0.med)} · 개인 A ${f1(aB)} · 개인 adj_w=0 ${f1(b.run.personal_adj0.med)} · R ${f1(b.run.R.med)} · extras ${f1(b.run.extras.med)} · safetyCheck ${f2(b.run.safety.med)} · buildRecLog ${f2(b.run.reclog.med)}`
+        + (b.run.geo.n ? ` · A′ ${f1(b.run.geo.med)}(${b.run.geo.n}회)` : "")
+        + (simNote ? `. ${simNote}` : ""));
+    } else if (t.length) add("H5", "H", "성능(이 기기 Node): 모델 빌드 · resolvePolicy · 개인 실행 · A+R+extras (중앙)", "≤ 50 · ≤ 5 · ≤ 150 · ≤ 400 ms",
       `${f1(mm)} (최대 ${f1(Math.max(...t.map((x) => x.model_ms || 0)))}) · ${f2(pm)} · ${f1(am)} · ${f1(tot)} ms`,
-      ALL(LE(mm, CRIT.H5.model_ms), LE(pm, CRIT.H5.policy_ms), LE(am, CRIT.H5.run_ms), LE(tot, CRIT.H5.total_ms)), "시뮬레이터 기록은 추천 ≤ 20·이벤트 수백 건 — 100·1,200 건 기준은 아님");
+      false, `전용 측정(bench_h5.mjs) 없이 시뮬레이터 세션 안 시간만 있음 — 워커 경합·기록 ≤ 20 추천이라 명세 조건(추천 100·이벤트 1,200)이 아니다: 불합격 처리${b && b.error ? ` (bench 오류: ${b.error})` : ""}`);
   }
   return { results: res, personasRun };
 }
@@ -349,6 +422,7 @@ export function trajectoryTable(R, id) {
 
 export function renderCriteria(results) {
   const lines = ["| ID | 기준 | 합격선 | 값 (합성 사용자) | 합격 |", "|---|---|---|---|---|"];
-  for (const r of results) lines.push(`| ${r.id} | ${r.title}${r.note ? ` <br><sub>${r.note}</sub>` : ""} | ${r.target} | ${r.value} | ${mark(r.pass)} |`);
+  const e = (x) => String(x ?? "").replace(/\|/g, "\|").replace(/\r?\n/g, " ");   // 표 칸 안의 | 와 줄바꿈
+  for (const r of results) lines.push(`| ${r.id} | ${e(r.title)}${r.note ? ` <br><sub>${e(r.note)}</sub>` : ""} | ${e(r.target)} | ${e(r.value)} | ${mark(r.pass)} |`);
   return lines.join("\n");
 }

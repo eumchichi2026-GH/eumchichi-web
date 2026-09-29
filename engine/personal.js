@@ -685,7 +685,7 @@ export function buildPersonalModel(norm, catalogIndex, rules, opts = {}) {
   const calibCur = buildCalib("current", X), calibTgt = buildCalib("target", X);
   const prompts = buildPrompts(X);
   const pace = buildPace(X);
-  const start = buildStart(X);
+  const start = buildStart(X, adjacency);
   const length = buildLength(X);
   const hold = buildHold(X);
   const gates = buildGates(X, taste);
@@ -707,7 +707,7 @@ export function buildPersonalModel(norm, catalogIndex, rules, opts = {}) {
     pace: { pi: pace.pi, W: pace.W, votes: pace.votes, quit: pace.quit },
     start: { arm: start.arm, ratio: start.ratio, n1: start.n1, mismatch_up: start.mismatch_up, mismatch_down: start.mismatch_down, since_rec_id: start.since_rec_id },
     length: { bias_log2: length.bias_log2, W: length.W, base_minutes: length.base_minutes, S: length.S, applied: length.applied },
-    hold: { arm: hold.arm, arrival_w: hold.arrival_w, repetitive_w: hold.repetitive_w, since_rec_id: hold.since_rec_id },
+    hold: { arm: hold.arm, arrival_w: hold.arrival_w, repetitive_w: hold.repetitive_w, arrival_n: hold.arrival_n, repetitive_n: hold.repetitive_n, since_rec_id: hold.since_rec_id },
     adjacency: { m: adjacency.m, m0: adjacency.m0, applied: adjacency.applied, m_applied: adjacency.m_applied, O: adjacency.O, Etilde: adjacency.Etilde,
                  n_large: adjacency.n_large, n_trans: adjacency.n_trans, lambda: adjacency.lambda },
     gates: { soft: gates.soft, evidence: gates.evidence, off_until: gates.off_until },
@@ -716,8 +716,10 @@ export function buildPersonalModel(norm, catalogIndex, rules, opts = {}) {
     history,
     counts_for_explain: {
       taste: taste.counts, pace: pace.counts, length: length.counts, adjacency: adjacency.counts, path_jump: adjacency.path_jump,
-      start: { first_n: start.n1, first_rej: start.O1 }, hold: { arrival_w: hold.arrival_w, repetitive_w: hold.repetitive_w },
-      gates: { vocal_bother_w: gates.evidence.vocal_bother_w }, diversity: { too_repetitive_w: diversity.repetitive_sessions_w },
+      start: { first_n: start.n1, first_rej: start.O1 },
+      hold: { arrival_w: hold.arrival_w, repetitive_w: hold.repetitive_w, arrival_n: hold.arrival_n, repetitive_n: hold.repetitive_n },
+      gates: { vocal_bother_w: gates.evidence.vocal_bother_w, vocal_bother_n: gates.evidence.vocal_bother_n },
+      diversity: { too_repetitive_w: diversity.repetitive_sessions_w, too_repetitive_n: diversity.repetitive_sessions_n },
       calib: { mismatch: prompts.counts },
     },
   };
@@ -1047,7 +1049,7 @@ function buildPace(X) {
 }
 
 /* §4.4 시작 오프셋 — 취향 통제 비율 + mood_mismatch 명시 확인, 이력 현상(팔이 바뀌면 그 뒤 세션만 센다) */
-function startStats(s, X) {
+function startStats(s, X, adj = null) {
   const PR = X.PR, A = PR.adjacency;
   const maxPos = ruleOr(PR, "outcome.mismatch_max_position");
   const q = (row) => sigmoid(A.theta0 + A.theta_margin * (row && num(row.pmarg) ? row.pmarg : 0));
@@ -1055,13 +1057,23 @@ function startStats(s, X) {
   const mm = s.dislikes.filter((d) => d.reason === "mood_mismatch");
   const mmSongs = new Set(mm.map((d) => d.song_id));
   const rej = (e) => isEarlySkip(e, PR) || mmSongs.has(e.song_id);   // not_my_taste 는 취향 신호라 넣지 않는다
+  /* [2026-09-29] 전환 통제(start.expect_transition): 이동 곡의 거절에는 들어온 전환 몫이 섞이고 첫 곡에는 없다 —
+     이동 곡의 기대 거절 q 에 들어온 전환의 큰 변화 특징마다 적합 배수 m_f(적용 문턱 전, §4.8.3)를 곱한다. 없으면 q 만(이전 동작). */
+  const transMult = (e) => {
+    if (!adj || PR.start.expect_transition !== true || e.prev_index == null) return 1;
+    const a = s.exposures[e.prev_index];
+    const L = a ? largeFlags(a.song_id, e.song_id, X) : null;
+    let m = 1;
+    if (L) for (const f of FEATS) if (L[f] && num(adj.m[f])) m *= adj.m[f];
+    return m;
+  };
   const out = { O1: 0, E1: 0, n1: 0, Or: 0, Er: 0, nr: 0, up: 0, down: 0 };
   const row1 = s.path[0];
   if (row1) { const e = firstExp(row1.position); if (e && isExposed(e, PR)) { out.n1 = 1; out.E1 = q(row1); out.O1 = rej(e) ? 1 : 0; } }
   for (const row of s.path.slice(1)) {
     if (row.phase !== "move") continue;
     const e = firstExp(row.position);
-    if (e && isExposed(e, PR)) { out.nr++; out.Er += q(row); out.Or += rej(e) ? 1 : 0; }
+    if (e && isExposed(e, PR)) { out.nr++; out.Er += q(row) * transMult(e); out.Or += rej(e) ? 1 : 0; }
   }
   const post = s.post;
   for (const d of mm) { if (num(d.position) && d.position <= maxPos) out.up++; if (d.position === 1) out.down++; }
@@ -1070,7 +1082,7 @@ function startStats(s, X) {
   if (cw > 0 && post.positions.includes(1)) out.down += cw;
   return out;
 }
-function buildStart(X) {
+function buildStart(X, adj = null) {
   const { PR, sessions, resetAt } = X;
   const ST = PR.start, arms = ST.arms, LB = PR.decay.lookback_sessions;
   const r0 = resetAt("start");
@@ -1086,7 +1098,7 @@ function buildStart(X) {
   let ai = 0, win = [], since = null;
   for (const s of sessions) {
     if (s.app !== "web-personal" || !(s.at_ms >= r0)) continue;
-    win.push(startStats(s, X));
+    win.push(startStats(s, X, adj));
     if (win.length > LB) win.shift();
     const a = agg(win);
     if (ai > 0 && a.down >= ST.down_mismatch_n) { ai--; win = []; since = s.rec_id; }
@@ -1124,11 +1136,14 @@ function buildLength(X) {
 /* §4.6.2 머묾 반경 — 규칙 기반 계단, 이력 현상. 머묾 곡의 조기 넘김은 쓰지 않는다(취향) */
 function holdStats(s, PR) {
   const holdPos = new Set(s.path.filter((r) => r.phase === "hold").map((r) => r.position));
-  const aw = codeWeight(s.post, "arrival_mismatch", PR) + s.dislikes.filter((d) => d.reason === "arrival_mismatch" && d.phase === "hold").length;
-  let rw = s.dislikes.filter((d) => d.reason === "too_repetitive" && d.phase === "hold").length;
+  const ac = codeWeight(s.post, "arrival_mismatch", PR), ad = s.dislikes.filter((d) => d.reason === "arrival_mismatch" && d.phase === "hold").length;
+  const aw = ac + ad;
+  const rd = s.dislikes.filter((d) => d.reason === "too_repetitive" && d.phase === "hold").length;
+  let rw = rd, rc = 0;
   const cw = codeWeight(s.post, "too_repetitive", PR);
-  if (cw > 0 && s.post.positions.length && s.post.positions.every((p) => holdPos.has(p))) rw += cw;
-  return { aw, rw };
+  if (cw > 0 && s.post.positions.length && s.post.positions.every((p) => holdPos.has(p))) { rw += cw; rc = 1; }
+  /* an·rn = 설명용 횟수(가중 없이 — 세션 코드 1번 + 곡 싫어요 곡마다 1번). 학습은 가중 합(aw·rw)으로 한다 */
+  return { aw, rw, an: (ac > 0 ? 1 : 0) + ad, rn: rc + rd };
 }
 function buildHold(X) {
   const { PR, sessions, resetAt } = X;
@@ -1145,7 +1160,7 @@ function buildHold(X) {
     if (sum("aw") >= H.arrival_mismatch_min && ai > 0) { ai--; win = []; since = s.rec_id; }           // 좁힘이 넓힘보다 우선
     else if (sum("rw") >= H.repetitive_min && ai < arms.length - 1) { ai++; win = []; since = s.rec_id; }
   }
-  return { arm: arms[ai], arrival_w: R6(sum("aw")), repetitive_w: R6(sum("rw")), since_rec_id: since };
+  return { arm: arms[ai], arrival_w: R6(sum("aw")), repetitive_w: R6(sum("rw")), arrival_n: sum("an"), repetitive_n: sum("rn"), since_rec_id: since };
 }
 
 /* §4.9 소프트 말 많은 곡 게이트 — 켜짐 (a) vocal_bother · (b) 말 비중 '높음' 묶음 비율, 마지막 근거로부터 expire_days 뒤 만료 */
@@ -1156,13 +1171,21 @@ function buildGates(X, taste) {
   const fid = gate ? (((rules.preference && rules.preference.features) || []).find((f) => f.field === gate.field) || {}).id : null;
   const isHigh = (sid) => { const s = idx.byId.get(sid); return !!(fid && s && s.feature_bins && s.feature_bins[fid] === "high"); };
   const r0 = resetAt("gates");
-  let vb = 0, lastA = null, lastB = null;
+  let vb = 0, vbN = 0, lastA = null, lastB = null;
   for (const s of sessions) {
     if (!(s.at_ms >= r0)) continue;
     const inWin = asOf - s.at_ms <= GS.window_days * DAY_MS;
     let w = codeWeight(s.post, "vocal_bother", PR);
-    for (const d of s.dislikes) if (d.reason === "vocal_bother" && isHigh(d.song_id)) w += 1;
-    if (w > 0) { if (inWin) vb += w; lastA = Math.max(lastA ?? -Infinity, s.at_ms); }
+    if (w > 0 && GS.corroborate_codes === true) {
+      /* [2026-09-29] 세션 코드는 그 세션에 말 비중 '높음' 경로 곡을 조기 넘김한 일이 있을 때만 센다(코드에 위치가 있으면 그 위치에서) —
+         말 많은 곡이 없던 세션의 '가사·목소리가 거슬려요'(다른 이유·잡음)가 게이트를 켜지 않게 */
+      const hs = new Set(s.exposures.filter((e) => e.role === "path" && isHigh(e.song_id) && isEarlySkip(e, PR)).map((e) => e.position));
+      const pos = (s.post && s.post.positions) || [];
+      if (!(pos.length ? pos.some((p) => hs.has(p)) : hs.size > 0)) w = 0;
+    }
+    let n = w > 0 ? 1 : 0;   // 설명용 횟수(가중 없이) — 세션 코드 1번 + 곡 싫어요 곡마다 1번
+    for (const d of s.dislikes) if (d.reason === "vocal_bother" && isHigh(d.song_id)) { w += 1; n++; }
+    if (w > 0) { if (inWin) { vb += w; vbN += n; } lastA = Math.max(lastA ?? -Infinity, s.at_ms); }
   }
   /* (b) 의 마지막 근거 = 말 비중 '높음' 곡에 대한 가장 최근 부정 근거(취향 싫어요·말 거슬림 싫어요·부정 청취 표) 시각 — 취향 항목의 경과일로 잰다 */
   for (const it of taste.items) {
@@ -1183,7 +1206,7 @@ function buildGates(X, taste) {
   const userOff = gate && (off[gate.id] ?? -Infinity) > asOf;
   return {
     soft: on && gate && !userOff ? [gate.id] : [],
-    evidence: { vocal_bother_w: R6(vb), spoken_score: score === null ? null : R6(score), spoken_n: R6(nB), last_evidence_ms: lastEv > -Infinity ? lastEv : null },
+    evidence: { vocal_bother_w: R6(vb), vocal_bother_n: vbN, spoken_score: score === null ? null : R6(score), spoken_n: R6(nB), last_evidence_ms: lastEv > -Infinity ? lastEv : null },
     off_until: off,
   };
 }
@@ -1193,8 +1216,11 @@ function buildDiversity(X) {
   const { PR, rules, sessions, prof, asOf, resetAt } = X;
   const D = PR.diversity, RP = D.replay;
   const recent = sessions.filter((s) => s.at_ms >= resetAt("diversity")).slice(-PR.decay.lookback_sessions);
-  let rep = 0;   // too_repetitive 세션 가중(출처 무관, AI 유지 0.5) — 세션당 최대 1
-  for (const s of recent) rep += Math.max(s.dislikes.some((d) => d.reason === "too_repetitive") ? 1 : 0, codeWeight(s.post, "too_repetitive", PR));
+  let rep = 0, repN = 0;   // too_repetitive 세션 가중(출처 무관, AI 유지 0.5) — 세션당 최대 1 · repN = 설명용 세션 수(가중 없이)
+  for (const s of recent) {
+    const w = Math.max(s.dislikes.some((d) => d.reason === "too_repetitive") ? 1 : 0, codeWeight(s.post, "too_repetitive", PR));
+    rep += w; if (w > 0) repN++;
+  }
   const maxCap = Number(rules.diversity.max_per_artist);
   const window = rep >= D.repetitive_sessions_for_window ? D.recent_window_repetitive : D.recent_window;
   const cap = rep >= D.repetitive_sessions_for_cap ? Math.min(D.artist_cap_low, maxCap) : maxCap;   // 규칙 값보다 올리지 않는다
@@ -1227,7 +1253,7 @@ function buildDiversity(X) {
     && asOf - (lastSeen.get(id) ?? -Infinity) > RP.cooldown_days * DAY_MS).slice(0, PR.bounds.replay_ids_max);
   return {
     artist_cap: cap, recent_window: window, recent_ids: recentIds, replay_ids: replayIds,
-    replay: { paused_until_session: paused, consecutive_skips: consec }, repetitive_sessions_w: R6(rep),
+    replay: { paused_until_session: paused, consecutive_skips: consec }, repetitive_sessions_w: R6(rep), repetitive_sessions_n: repN,
   };
 }
 
@@ -1300,8 +1326,8 @@ export function neutralPolicy(rules) {
     stress: null, high_stress: false,
     tp: null, quit_frac: null,
     start_offset: 0, start_min_journey: PR.start.min_journey,
-    hold_radius: 0, hold_min_songs: PR.hold.min_songs, hold_order: "fit",
-    corridor_bands: null, j_move: null, j_hold: null,
+    hold_radius: 0, hold_min_songs: PR.hold.min_songs, hold_order: "fit", hold_min_pool: 0, hold_cluster: false, hold_path_q: false, hold_break: null,
+    corridor_bands: null, j_move: null, j_hold: null, pers_bucket: null, pers_jitter: null,
     mu: Number(rules.preference.pref_weight || 0), taste_features: null,
     adj_w: { tempo: 0, vocal: 0, spoken: 0, genre: 0 },
     bpm_scale: A.bpm_scale, spoken_scale: A.spoken_scale, half_double_fold: A.half_double_fold,
@@ -1328,9 +1354,29 @@ function compressAffinity(u) {
            genre_affinity: tbl(u.genre_affinity), feature_affinity: tbl(u.feature_affinity) };
 }
 
+/* 유의한 묶음만 엔진에 넘긴다(§4.7 보강, 2026-09-29). 청취 표 한 표(listen_vote.unit)를 관측 1회, 좋아요·싫어요 1 을 관측 1/unit 회로 보고
+   z = |p̂ − p0|·√(N / (p0(1 − p0))) 가 taste.group_z_min 보다 작은 가수·장르·특징 묶음은 뺀다 → 엔진에서 '모르면 내 평균'(p0).
+   벽(pin)이 있는 묶음과 곡 자체의 기록(song_likes — 넓혀 추정한 것이 아니라 그 곡의 직접 근거)은 늘 남긴다.
+   group_z_min 이 없으면 그대로(이전 동작). 학습 모드(personal·geometry)에서만 부른다 — p0 정책·빈 모델은 영향 없음. */
+function significantAffinity(aff, PR) {
+  const zMin = PR.taste && num(PR.taste.group_z_min) ? PR.taste.group_z_min : null;
+  if (!aff || zMin === null) return aff;
+  const p0 = likeBase(aff);
+  if (p0 === null || p0 <= 0 || p0 >= 1) return aff;
+  const unit = PR.listen_vote.unit;
+  const keep = (r) => {
+    if ((r.pin || 0) > 0) return true;
+    const n = (r.pos || 0) + (r.neg || 0);
+    return n > 0 && Math.abs((r.pos || 0) / n - p0) * Math.sqrt((n / unit) / (p0 * (1 - p0))) >= zMin;
+  };
+  const tbl = (t) => { const o = {}; for (const k of Object.keys(t || {})) if (keep(t[k])) o[k] = t[k]; return o; };
+  return { ...aff, artist_affinity: tbl(aff.artist_affinity), genre_affinity: tbl(aff.genre_affinity), feature_affinity: tbl(aff.feature_affinity) };
+}
+
 /* resolvePolicy(model, ctx, rules, { mode })
    mode "personal"(기본) — 학습값 전부 · "p0" — 기준 실행 R: 모집단 기본 + 비학습 사실(싫어요·최근 창)만
-   · "geometry" — 안전 폴백 A′(§2.2 7단계): 경로 모수(tp·s·이탈 가드·r)만 P0 로 되돌리고 나머지는 개인값 */
+   · "geometry" — 안전 폴백 A′(§2.2 7단계): 경로 모수(tp·s·이탈 가드·r)만 P0 로 되돌리고 나머지는 개인값
+   · "path" — 안전 확인의 둘째 기준 R_path(§2.2 7단계, 2026-09-29): 경로 모수만 개인값, 곡 레인(취향·전환·게이트·다양성)은 P0 — geometry 의 거울 */
 export function resolvePolicy(model, ctx, rules, { mode = "personal" } = {}) {
   const PR = cfg(rules);
   model = model || emptyModel(rules);
@@ -1338,7 +1384,7 @@ export function resolvePolicy(model, ctx, rules, { mode = "personal" } = {}) {
   const A = PR.adjacency, SF = PR.safety, HS = SF.high_stress, B = PR.bounds;
   const band = Number(rules.preference.band);
   const learned = mode === "personal" || mode === "geometry";   // 취향·전환·게이트·다양성 학습값
-  const pathLearned = mode === "personal";                       // 경로 모수 학습값
+  const pathLearned = mode === "personal" || mode === "path";    // 경로 모수 학습값
   const stress = ctx.now ? stressOf(ctx.now, rules) : null;
   const high = stress !== null && stress >= SF.high_stress_min;
   const minutes = num(ctx.minutes) && ctx.minutes > 0 ? ctx.minutes : Number(rules.inputs.duration_min.default);
@@ -1403,7 +1449,13 @@ export function resolvePolicy(model, ctx, rules, { mode = "personal" } = {}) {
     tp, quit_frac: quit,
     start_offset: R9(clamp(s0, B.start_offset[0], B.start_offset[1])), start_min_journey: PR.start.min_journey,
     hold_radius: R9(clamp(r, B.hold_radius[0], B.hold_radius[1])), hold_min_songs: PR.hold.min_songs, hold_order: PR.hold.order,
+    hold_min_pool: num(PR.hold.min_pool) && r >= PR.hold.p0_radius ? PR.hold.min_pool : 0,   // 좁힌 팔(끝 분위기 불만으로 학습)은 넓히지 않는다
+    hold_cluster: PR.hold.cluster === true,   // 머묾 곡끼리 turn_min 안(§4.6.1 변경 20260929) — 곡 레인(경유지 무관)
+    hold_path_q: PR.hold.quantize_path === true,   // 머묾 걸음의 진행·λ 전환 비용도 pers_bucket 으로 양자화(§4.6.1 변경 20260929)
+    hold_break: PR.hold.cluster_break === "j_hold" ? SF.j_hold : null,   // 묶음 밖 도착 영역 곡의 거리 비용 = 머묾 J(§4.6.1 변경 20260930)
     corridor_bands: SF.corridor_bands, j_move: R9(SF.j_move_bands * band), j_hold: SF.j_hold,
+    pers_bucket: num(SF.pers_bucket_bands) ? R9(SF.pers_bucket_bands * band) : null,
+    pers_jitter: SF.pers_mode === "perturb" && num(SF.pers_bucket_bands) ? R9(SF.pers_bucket_bands * band) : null,   // 이동 걸음 개인 비용 흔들기(§3.8 변경 20260930)
     mu: R9(mu), taste_features: extra.length ? extra : null,
     adj_w: adjW, bpm_scale: A.bpm_scale, spoken_scale: A.spoken_scale, half_double_fold: A.half_double_fold,
     lambda,
@@ -1415,7 +1467,7 @@ export function resolvePolicy(model, ctx, rules, { mode = "personal" } = {}) {
   });
 
   /* 엔진 사용자 — 취향 표는 소수 3자리로 줄인 값을 그대로 쓴다: 로그의 user_affinity 로 정확히 재현하기 위해(§7.1, H3) */
-  const aff = compressAffinity(learned ? model.taste.affinity : aggregateAffinity([], rules, { scope_add: PR.taste.dislike_scope_add || {} }));
+  const aff = compressAffinity(learned ? significantAffinity(model.taste.affinity, PR) : aggregateAffinity([], rules, { scope_add: PR.taste.dislike_scope_add || {} }));
   const user = {
     disliked: uniq([...(model.taste.disliked_ids || []), ...(Array.isArray(ctx.disliked_now) ? ctx.disliked_now : [])]),
     recent_played: exclude,
@@ -1463,21 +1515,28 @@ export function resolvePolicy(model, ctx, rules, { mode = "personal" } = {}) {
    문턱은 rules.personalization.safety.envelope 에서 읽는다. 명세 §9.2 의 한 인자 호출 pathMetrics(result) 도 받는다 —
    그때는 같은 값의 명세 보충값(SPEC_FALLBACK)을 쓴다(통합 때 추가). */
 export function pathMetrics(result, rules = null) {
+  const { wp_step, rev_x, ...m } = pathShapeFull(result, rules);   // 공개 모양(§7.1 Metrics)은 그대로
+  return m;
+}
+/* pathMetrics + 안전 확인 전용 두 값: wp_step = 가장 긴 경유지 걸음(경로 모수가 정한 의도된 이동), rev_x = 역행 걸음마다 멀어진 거리 */
+function pathShapeFull(result, rules) {
   const PR = rules && rules.personalization && typeof rules.personalization === "object" ? rules.personalization : null;
   const back = ruleOr(PR, "safety.envelope.reversal_eps"), turnMin = ruleOr(PR, "safety.envelope.turn_min");
   const seq = ((result && result.sequence) || []).filter((x) => x && x.trace);
   const n = seq.length;
-  if (!n) return { arrival: null, max_jump: null, reversals: 0, turns: 0, n: 0, hold_zigzag: null, start_dist: null };
+  if (!n) return { arrival: null, max_jump: null, reversals: 0, turns: 0, n: 0, hold_zigzag: null, start_dist: null, wp_step: null, rev_x: [] };
   const c = seq.map((x) => [Number(x.trace.song_V), Number(x.trace.song_A)]);
   const wp = seq.map((x) => [Number(x.trace.wp_V), Number(x.trace.wp_A)]);
   const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
   const t = wp[n - 1];
   let hs = n - 1;
   while (hs > 0 && d(wp[hs - 1], t) < EPS) hs--;   // 머묾 구간 시작(경유지 = 목표)
-  let rev = 0, turns = 0, maxJ = 0;
+  let rev = 0, turns = 0, maxJ = 0, wpStep = 0;
+  const revX = [];
   for (let i = 1; i < n; i++) {
     maxJ = Math.max(maxJ, d(c[i], c[i - 1]));
-    if (i <= hs && d(c[i], t) > d(c[i - 1], t) + back) rev++;
+    wpStep = Math.max(wpStep, d(wp[i], wp[i - 1]));
+    if (i <= hs && d(c[i], t) > d(c[i - 1], t) + back) { rev++; revX.push(R6(d(c[i], t) - d(c[i - 1], t))); }
     if (i + 1 < n) {
       const u = [c[i][0] - c[i - 1][0], c[i][1] - c[i - 1][1]], v = [c[i + 1][0] - c[i][0], c[i + 1][1] - c[i][1]];
       if (Math.hypot(...u) > turnMin && Math.hypot(...v) > turnMin && u[0] * v[0] + u[1] * v[1] < 0) turns++;
@@ -1487,24 +1546,54 @@ export function pathMetrics(result, rules = null) {
   return {
     arrival: R6(d(c[n - 1], t)), max_jump: R6(maxJ), reversals: rev, turns, n,
     hold_zigzag: hold.length >= 2 ? d(hold[hold.length - 1], t) > Math.min(...hold.map((p) => d(p, t))) + EPS : null,
-    start_dist: R6(d(c[0], wp[0])),
+    start_dist: R6(d(c[0], wp[0])), wp_step: R6(wpStep), rev_x: revX,
   };
 }
-/* 위반: 도착·최대 전환은 절대 기준을 넘고 '그리고' 기준 실행 R 보다 over_ref 넘게 나쁠 때(R 이 없으면 절대 기준만),
-   역행은 R 보다 많을 때, 머묾 지그재그는 언제나, 곡 수가 R 보다 적으면(작은 풀 폴백 실패). */
-export function safetyCheck(resA, resR, rules) {
-  const env = cfg(rules).safety.envelope;
-  const A = resA ? pathMetrics(resA, rules) : null;
-  const R = resR ? pathMetrics(resR, rules) : null;
+/* 경로 모수(두 레인 I3 — 경유지를 바꾸는 값). 정책 A 와 기준 정책에서 이 값이 모두 같으면 R_path ≡ R, A′ ≡ A 이다. */
+export const PATH_PARAM_KEYS = ["tp", "quit_frac", "start_offset", "hold_radius", "hold_min_pool"];   // hold_min_pool 은 r 에서 정해진다(좁힌 팔은 0)
+export function pathParamsDiffer(polA, polRef) {
+  return !!polA && !!polRef && PATH_PARAM_KEYS.some((k) => (polA[k] ?? null) !== (polRef[k] ?? null));
+}
+/* 한 레인 비교 — X 가 기준 ref 보다 봉투만큼 나쁜가(ref 가 없으면 절대 기준만).
+   도착·최대 전환: 절대 기준을 넘고 '그리고' ref 보다 over_ref 넘게 나쁠 때. path(경로 레인: R_path vs R)이면 최대 전환에서
+   경유지 걸음이 늘어난 만큼(× path_wp_step_allow)은 경로 모수의 의도로 본다 — 학습 tp 는 bounds.tp[0] = manual_tp.fast 이상이라
+   늘어난 걸음은 수동 '빠르게' 이하다. 역행: reversal_eps + reversal_tol 을 넘은 걸음 수가 ref 의 역행 수보다 많을 때.
+   머묾 지그재그는 언제나, 곡 수가 ref 보다 적으면(작은 풀 폴백 실패). */
+function laneViolations(X, ref, env, { path = false } = {}) {
   const v = [];
-  if (!A || !A.n) { if (R && R.n) v.push("empty"); return { ok: v.length === 0, violations: v, A, R }; }
-  const hasR = !!(R && R.n);
-  if (A.arrival > env.arrival_abs && (!hasR || A.arrival > R.arrival + env.arrival_over_ref)) v.push("arrival");
-  if (A.max_jump > env.max_jump_abs && (!hasR || A.max_jump > R.max_jump + env.max_jump_over_ref)) v.push("max_jump");
-  if (A.reversals > (hasR ? R.reversals : 0)) v.push("reversal");
-  if (A.hold_zigzag === true) v.push("hold_zigzag");
-  if (hasR && A.n < R.n) v.push("short");
-  return { ok: v.length === 0, violations: v, A, R };
+  const hasR = !!(ref && ref.n);
+  if (!X || !X.n) { if (hasR) v.push("empty"); return v; }
+  const allow = path && hasR ? Math.max(0, X.wp_step - ref.wp_step) * env.path_wp_step_allow : 0;
+  if (X.arrival > env.arrival_abs && (!hasR || X.arrival > ref.arrival + env.arrival_over_ref)) v.push("arrival");
+  if (X.max_jump > env.max_jump_abs && (!hasR || X.max_jump > ref.max_jump + allow + env.max_jump_over_ref)) v.push("max_jump");
+  if (X.rev_x.filter((x) => x > env.reversal_eps + env.reversal_tol).length > (hasR ? ref.reversals : 0)) v.push("reversal");
+  if (X.hold_zigzag === true) v.push("hold_zigzag");
+  if (hasR && X.n < ref.n) v.push("short");
+  return v;
+}
+/* 안전 확인(§2.2 7단계) — 기준 두 개(2026-09-29 변경).
+   R      = p0 (경로·곡 레인 모두 P0)
+   R_path = 곡 레인 P0 + A 의 경로 모수 (resolvePolicy mode "path"). 경유지가 A 와 같다(I3).
+   ① A 가 R 에 대해 봉투 안이면 통과 — 이전과 같은 판정(resRp 를 주지 않으면 여기서 끝: 위반이면 lane "song").
+   ② 아니면 경로 레인: R_path 가 R 에 대해 봉투 안인가(경유지 걸음 증가분 허용). 밖이면 lane "path"(위반 이름 앞에 path_) → 앱은 A′(geometry).
+   ③ 경로 레인이 안이면 곡 레인: A 가 R_path 에 대해 봉투 안인가. 안이면 통과(①의 위반은 경로 모수의 의도된 효과), 밖이면 lane "song".
+   반환 A·R·Rp 는 공개 pathMetrics 모양(§7.1 Metrics). */
+export function safetyCheck(resA, resR, rules, { resRp = null } = {}) {
+  const PRc = cfg(rules), e = PRc.safety.envelope;
+  const env = { ...e, reversal_eps: ruleOr(PRc, "safety.envelope.reversal_eps"),
+                reversal_tol: num(e.reversal_tol) ? e.reversal_tol : 0, path_wp_step_allow: num(e.path_wp_step_allow) ? e.path_wp_step_allow : 0 };
+  const A = resA ? pathShapeFull(resA, rules) : null;
+  const R = resR ? pathShapeFull(resR, rules) : null;
+  const Rp = resRp ? pathShapeFull(resRp, rules) : null;
+  const pub = (m) => { if (!m) return null; const { wp_step, rev_x, ...x } = m; return x; };
+  const done = (violations, lane) => ({ ok: violations.length === 0, violations, lane, A: pub(A), R: pub(R), Rp: pub(Rp) });
+  const v0 = laneViolations(A, R, env);
+  if (!v0.length) return done([], null);
+  if (!Rp) return done(v0, "song");
+  const vp = laneViolations(Rp, R, env, { path: true });
+  if (vp.length) return done(vp.map((x) => `path_${x}`), "path");
+  const vs = laneViolations(A, Rp, env);
+  return done(vs, vs.length ? "song" : null);
 }
 
 // ── 로그 문서 (§7.1) ──────────────────────────────────────
@@ -1546,8 +1635,8 @@ export function buildRecLog({ ctx = {}, policyOut = null, resA = null, resR = nu
       as_of_ms: m.as_of_ms ?? null, cursor: m.cursor || { last_event_ms: null, last_rec_ms: null },
       evidence: m.evidence || null, params: m.params || null,
       fallback: fallback ?? null,
-      safety: safety ? { A: safety.A ?? null, R: safety.R ?? null, violations: safety.violations || [] }
-                     : { A: resA ? pathMetrics(resA, rules) : null, R: resR ? pathMetrics(resR, rules) : null, violations: [] },
+      safety: safety ? { A: safety.A ?? null, R: safety.R ?? null, Rp: safety.Rp ?? null, lane: safety.lane ?? null, violations: safety.violations || [] }
+                     : { A: resA ? pathMetrics(resA, rules) : null, R: resR ? pathMetrics(resR, rules) : null, Rp: null, lane: null, violations: [] },
       reference_ids: rIds,
       changed_n: resR ? aIds.filter((id) => !rSet.has(id)).length : 0,
       explain_codes: m.explain_codes || (used.explain || []).map((c) => c.id),
@@ -1724,6 +1813,13 @@ function strongestAdj(model) {
   for (const f of FEATS) if (A.applied[f] && A.m[f] !== 1 && (!best || Math.abs(Math.log(A.m[f])) > Math.abs(Math.log(A.m[best])))) best = f;
   return best;
 }
+/* 설명·패널의 "근거 N번"은 횟수로 말한다(명세 §4.12.3) — 가중 합(E, 청취 표 ¼ 등)은 확신 점에만 쓴다.
+   취향 근거 횟수 = 좋아요 + 취향 싫어요 + 벽 곡 + 벽 가수 + 끝까지 들음 + 넘김 */
+function tasteCount(model) {
+  const t = (model.counts_for_explain && model.counts_for_explain.taste) || {};
+  return ["likes", "dislikes_taste", "pins_song", "pins_artist", "completes", "skips"].reduce((a, k) => a + (Number(t[k]) || 0), 0);
+}
+const countOf = (x) => (num(x) ? Math.round(x) : 0);
 function tasteText(model) {
   const t = (model.counts_for_explain && model.counts_for_explain.taste) || {};
   const g = t.groups && t.groups.top && t.groups.top[0];
@@ -1786,19 +1882,19 @@ export function explainPolicy(policy, model, rules, ctx = null) {
   if (policy.discovery_u != null) push("discovery", "아직 안 들어본 가수의 곡도 한 곡 넣어 봐요", "discovery");
   // 6) 게이트
   if ((policy.soft_gates || []).length) {
-    const vb = model.gates.evidence.vocal_bother_w || 0;
-    push("gate_spoken", `말 많은 곡은 빼고 골랐어요${vb > 0 ? ` — ‘가사·목소리가 거슬려요’ ${R3(vb)}번` : ""}`, "gates");
+    const vn = countOf(model.gates.evidence.vocal_bother_n);
+    push("gate_spoken", `말 많은 곡은 빼고 골랐어요${vn > 0 ? ` — ‘가사·목소리가 거슬려요’ ${vn}번` : ""}`, "gates");
   }
   // 7) 다양성
   const maxCap = Number(rules.diversity.max_per_artist);
   const winChanged = model.diversity.recent_window !== PR.diversity.recent_window;
   if (policy.artist_cap < maxCap || winChanged || (policy.replay_ids || []).length) {
-    const rep = model.diversity.repetitive_sessions_w || 0;
+    const repN = countOf(model.diversity.repetitive_sessions_n);
     const bits = [];
     if (winChanged) bits.push(`최근 ${model.diversity.recent_window}곡 쉬기`);
     if (policy.artist_cap < maxCap) bits.push(`같은 가수 ${policy.artist_cap}곡까지`);
     if ((policy.replay_ids || []).length) bits.push("좋아요한 곡 오랜만에 다시 넣기");
-    push("diversity", bits.join(" · ") + (rep > 0 ? ` (‘너무 자주 나와요’ ${R3(rep)}번)` : ""), "diversity");
+    push("diversity", bits.join(" · ") + (repN > 0 ? ` (‘너무 자주 나와요’ ${repN}번)` : ""), "diversity");
   }
   // 8) 머묾
   if (Math.abs(policy.hold_radius - PR.hold.p0_radius) > EPS && Math.abs(model.hold.arm - PR.hold.p0_radius) > EPS) {   // 학습한 계단일 때만(중립·고긴장 상한 제외)
@@ -1879,8 +1975,9 @@ export function explainModel(model, rules, { history } = {}) {
     const text = Hd.arm < p0 ? "끝 분위기가 원한 것과 달랐다는 기록이 있어 마지막 곡들을 목표에 더 가깝게 모아요."
       : Hd.arm > p0 ? "도착 뒤 같은 곡이 반복된다는 기록이 있어 목표 근처에서 더 넓게 골라요."
       : "목표에 닿은 뒤에는 목표 가까이에서 여러 곡을 골라 머물러요.";
-    const ev = (Hd.arrival_w || 0) + (Hd.repetitive_w || 0);
-    card({ id: "hold", title: "도착 구간", text, evidence: R3(ev), confidence: dots(ev / (ev + PR.hold.arrival_mismatch_min)), is_default: Hd.arm === p0,
+    const ev = (Hd.arrival_w || 0) + (Hd.repetitive_w || 0);   // 가중 합 — 확신 점에만
+    card({ id: "hold", title: "도착 구간", text, evidence: countOf(Hd.arrival_n) + countOf(Hd.repetitive_n),
+           confidence: dots(ev / (ev + PR.hold.arrival_mismatch_min)), is_default: Hd.arm === p0,
            changed: !!last && differs(Hd.arm, Number(last.hold_arm)), series: series((p) => p.hold_arm), reset_procedure: "hold" });
   }
   // 곡 취향
@@ -1891,7 +1988,7 @@ export function explainModel(model, rules, { history } = {}) {
     const fmt = (r) => [r.label, r.likes ? `좋아요 ${r.likes}` : "", r.completes ? `끝까지 들음 ${r.completes}` : "", r.skips ? `넘김 ${r.skips}` : "", r.pins ? `벽 ${r.pins}` : ""].filter(Boolean).join(" · ");
     const text = T.E > 0 ? `취향 반영 강도: ${strength} (기록 ${t.n_items || 0}곡)` + (g.top.length ? ` — 더 고르는 쪽: ${g.top.map((r) => r.label).join(", ")}` : "")
                          : "아직 기록이 없어 기본 순서로 골라요. 좋아요·끝까지 듣기가 쌓이면 반영해요.";
-    card({ id: "taste", title: "곡 취향", text, evidence: R3(T.E), confidence: dots(T.E / (T.E + PR.taste.k_mu)), is_default: !(T.E > 0),
+    card({ id: "taste", title: "곡 취향", text, evidence: tasteCount(model), confidence: dots(T.E / (T.E + PR.taste.k_mu)), is_default: !(T.E > 0),
            changed: !!last && differs(R3(T.mu), R3(Number(last.mu) || 0)), series: series((p) => p.mu), reset_procedure: "taste",
            detail: { top: g.top.map(fmt), bottom: g.bottom.map(fmt), strength } });
   }
@@ -1913,19 +2010,19 @@ export function explainModel(model, rules, { history } = {}) {
   }
   // 빼는 곡
   {
-    const Gt = model.gates, vb = Gt.evidence.vocal_bother_w || 0;
+    const Gt = model.gates, vb = Gt.evidence.vocal_bother_w || 0, vn = countOf(Gt.evidence.vocal_bother_n);
     const on = Gt.soft.length > 0;
-    card({ id: "gates", title: "빼는 곡", text: on ? `말이 많은 곡(랩·내레이션)은 빼고 골라요${vb > 0 ? ` — ‘가사·목소리가 거슬려요’ ${R3(vb)}번` : ""}` : "자동으로 빼는 곡은 없어요.",
-           evidence: R3(vb), confidence: dots(vb / (vb + PR.gates.soft_spoken.vocal_bother_min)), is_default: !on,
+    card({ id: "gates", title: "빼는 곡", text: on ? `말이 많은 곡(랩·내레이션)은 빼고 골라요${vn > 0 ? ` — ‘가사·목소리가 거슬려요’ ${vn}번` : ""}` : "자동으로 빼는 곡은 없어요.",
+           evidence: vn, confidence: dots(vb / (vb + PR.gates.soft_spoken.vocal_bother_min)), is_default: !on,
            changed: !!last && differs(Gt.soft, last.soft_gates || []), series: series((p) => (p.soft_gates || []).length), reset_procedure: "gates" });
   }
   // 다양성
   {
-    const Dv = model.diversity, rep = Dv.repetitive_sessions_w || 0, maxCap = Number(rules.diversity.max_per_artist);
+    const Dv = model.diversity, rep = Dv.repetitive_sessions_w || 0, repN = countOf(Dv.repetitive_sessions_n), maxCap = Number(rules.diversity.max_per_artist);
     const dflt = Dv.artist_cap === maxCap && Dv.recent_window === PR.diversity.recent_window;
-    const text = `최근 ${Dv.recent_window}곡은 쉬게 하고 같은 가수는 ${Dv.artist_cap}곡까지${rep > 0 ? ` — ‘너무 자주 나와요’ ${R3(rep)}번` : ""}` +
+    const text = `최근 ${Dv.recent_window}곡은 쉬게 하고 같은 가수는 ${Dv.artist_cap}곡까지${repN > 0 ? ` — ‘너무 자주 나와요’ ${repN}번` : ""}` +
                  (Dv.replay_ids.length ? ` · 좋아요한 곡 ${Dv.replay_ids.length}곡은 오랜만이라 다시 넣을 수 있어요` : "");
-    card({ id: "diversity", title: "다양성", text, evidence: R3(rep), confidence: dots(rep / (rep + PR.diversity.repetitive_sessions_for_cap)), is_default: dflt,
+    card({ id: "diversity", title: "다양성", text, evidence: repN, confidence: dots(rep / (rep + PR.diversity.repetitive_sessions_for_cap)), is_default: dflt,
            changed: !!last && (differs(Dv.artist_cap, last.artist_cap) || differs(Dv.recent_window, last.recent_window)),
            series: series((p) => p.recent_window), reset_procedure: "diversity" });
   }
@@ -1938,7 +2035,7 @@ export function explainModel(model, rules, { history } = {}) {
     const text = paused ? `새 가수 곡을 연속으로 넘기셔서 ${T.discovery.paused_until_session - nextIdx + 1}세션 쉬어요.`
       : eligible ? "아직 안 들어본 가수의 곡을 한 번에 한 곡씩 넣어 봐요 (긴장이 높을 때는 넣지 않아요)."
       : "기록이 더 쌓이면 아직 안 들어본 가수의 곡도 넣어 볼게요.";
-    card({ id: "discovery", title: "새로운 발견", text, evidence: R3(T.E), confidence: dots(T.E / (T.E + D.min_E)), is_default: !eligible || paused,
+    card({ id: "discovery", title: "새로운 발견", text, evidence: tasteCount(model), confidence: dots(T.E / (T.E + D.min_E)), is_default: !eligible || paused,
            reset_procedure: "discovery" });
   }
   return cards;

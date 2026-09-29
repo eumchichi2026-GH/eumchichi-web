@@ -126,14 +126,15 @@ test("preferred_genres 는 항목을 만들지 않고 taste_vector 는 읽지 �
   assert.equal(model.digest, base.digest);   // 두 필드가 모델을 전혀 바꾸지 않는다
 });
 
-test("μ = 0.5·E/(E+8) — 명세 계산 예 (§4.7.3)", () => {
+test("μ = mu_max·E/(E+8) — 명세 계산 예 (§4.7.3; mu_max 0.5 → 1.0 변경 20260929, 식은 그대로)", () => {
+  const MU = RULES.personalization.taste.mu_max;   // 규칙 값(명세 예의 0.5 는 2026-09-29 에 1.0 으로 — change.md)
   const idx = makeIndex(makeCatalog(80));
   // 선호곡 3·가수 2만 → E 2.5 → μ 0.12
   const prof = { favorite_tracks: ["S0010", "S0011", "S0012"], pinned_artists_resolved: ["가수1", "가수2"] };
   const m1 = modelOf(rawOf({ profile: prof }), idx).model;
   near(m1.taste.E, 2.5);
-  near(m1.taste.mu, 0.5 * 2.5 / 10.5);
-  assert.equal(Math.round(m1.taste.mu * 100) / 100, 0.12);
+  near(m1.taste.mu, MU * 2.5 / 10.5);
+  if (MU === 0.5) assert.equal(Math.round(m1.taste.mu * 100) / 100, 0.12);
   // 2세션 뒤(좋아요 3, 끝까지 8곡 = 2.0, 넘김 4곡 = 1.0) → E 8.5 → μ 0.26
   const recs = [], events = [];
   const kept = ["S0020", "S0021", "S0022", "S0023", "S0024", "S0025", "S0026", "S0027"], skipped = ["S0030", "S0031", "S0032", "S0033"];
@@ -145,8 +146,8 @@ test("μ = 0.5·E/(E+8) — 명세 계산 예 (§4.7.3)", () => {
   });
   const m2 = modelOf(rawOf({ recs, events, profile: { ...prof, likedSongs: ["S0040", "S0041", "S0042"] }, as_of_ms: T0 + 2 * DAY }), idx).model;
   near(m2.taste.E, 8.5);
-  near(m2.taste.mu, 0.5 * 8.5 / 16.5);
-  assert.equal(Math.round(m2.taste.mu * 100) / 100, 0.26);
+  near(m2.taste.mu, MU * 8.5 / 16.5);
+  if (MU === 0.5) assert.equal(Math.round(m2.taste.mu * 100) / 100, 0.26);
   // 기록 없음 → μ 0 (2.5.1 과 같은 순위)
   const m0 = P.emptyModel(RULES);
   assert.equal(m0.taste.mu, 0);

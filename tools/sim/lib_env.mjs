@@ -109,6 +109,18 @@ export async function loadDeps({ dataRepo = null, needBaseline = true, needGrids
   if (!P.mod) notes.push(`${P.err} — wp·frozen 팔을 돌릴 수 없습니다`);
   const rules = JSON.parse(fs.readFileSync(path.join(ROOT, "rules", "rules.compiled.json"), "utf8"));
   if (!rules.personalization) notes.push("rules.compiled.json 에 personalization 절이 아직 없습니다");
+  /* 실험 전용: AZT_RULES_PATCH='{"taste.mu_max":1,"pace.apply_abs":0.3}' — personalization.<경로> 값을 메모리에서만 바꾼다(파일·rules_hash 그대로).
+     워커도 같은 환경 변수를 물려받아 같은 규칙을 쓴다. 보고서의 [주의] 줄에 적힌다 — 채택 판정용 실행에는 쓰지 말 것. */
+  if (process.env.AZT_RULES_PATCH && rules.personalization) {
+    const patch = JSON.parse(process.env.AZT_RULES_PATCH);
+    for (const [p, v] of Object.entries(patch)) {
+      const ks = p.replace(/^personalization\./, "").split(".");
+      let o = rules.personalization;
+      for (const k of ks.slice(0, -1)) o = o[k];
+      o[ks[ks.length - 1]] = v;
+    }
+    notes.push(`AZT_RULES_PATCH 적용(실험용, 파일과 다름): ${process.env.AZT_RULES_PATCH}`);
+  }
   const { loadAppTables, loadAppTablesAt } = await import(pathToFileURL(path.join(ROOT, "tools", "sim", "app_tables.mjs")).href);
   let tablesNow = null;
   try { tablesNow = loadAppTables(); } catch (e) { notes.push(`index.html 앵커 추출 실패 → 76e8bdf 칩 사용 (${e.message.split("\n")[0]})`); }

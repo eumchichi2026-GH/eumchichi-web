@@ -155,6 +155,12 @@ Node 도구는 파일을 직접 import 한다 — **앱과 시뮬레이터가 �
 6. **조건 완화**(§4.12.1)는 A 에 적용하고, R 은 A 가 최종적으로 쓴 입력(풀린 조건)으로 한 번만 돌린다.
 7. **안전 확인** `personal.safetyCheck(A, R, RULES)`. 위반이면 A′ = 경로 모수(tp·s·이탈 가드·r)를 P0 로 되돌린 정책으로 재실행 → 다시 확인 → 그래도 위반이면 R 을 쓴다.
    무엇으로 떨어졌는지 `fallback ∈ {null, "geometry", "p0"}` 로 기록.
+   > **변경 (2026-09-29, 1차 수정)** — 기준을 둘로 나눈다(두 레인 I3 의 거울). A 가 R 에 대해 위반이고 경로 모수(`PATH_PARAM_KEYS` = tp·quit_frac·start_offset·hold_radius·hold_min_pool)가
+   > P0 와 다르면 **R_path**(`resolvePolicy(..., { mode: "path" })` — 곡 레인 P0 + A 의 경로 모수, 경유지가 A 와 같다)를 한 번 더 돌려
+   > `safetyCheck(A, R, RULES, { resRp })` 로 다시 판정한다: ① R_path 가 R 에 대해 봉투 안인가(경로 레인 — 최대 전환은 경유지 걸음이 늘어난 만큼 × `envelope.path_wp_step_allow` 허용,
+   > 밖이면 위반 이름 앞에 `path_`, lane `"path"` → A′), ② A 가 R_path 에 대해 봉투 안인가(곡 레인 — 밖이면 lane `"song"`). 학습된 빠른 속도의 의도된 긴 걸음이
+   > max_jump 로 잡혀 개인화를 버리던 문제(데모 P1 추천 3번 중 2번 폴백) 수정. 경로 모수가 P0 와 같으면 A′ ≡ A 라 곧바로 R. 역행 허용은 0(`envelope.reversal_tol`).
+   > 근거 숫자는 `safety.envelope.reference_evidence`.
 8. **더 들을 곡**: `engine.recommendExtras(contract, RULES, 최종입력, 최종결과, { target_sec })`(§4.11).
 9. **로그**: `personal.buildRecLog(...)` 가 만든 문서를 `fsWrite("rec", …)` 로 **동기 문서 ID** 와 함께 기록(§7.1).
 10. **화면**: 경로·곡별 설명(엔진 trace) · "이번 추천에 반영된 나" 칩 ≤3(`explainPolicy`) · "기본 추천과 비교" 토글(R 경로 점선, 바뀐 곡 표시 "N곡 중 M곡이 나에게 맞게 바뀌었어요").
@@ -280,6 +286,19 @@ cost  += distCost + pw·prog + P.lambda·jump + pers
 빔은 경로 전체 비용(진행·전환 λ 포함)으로 고르므로 2.5.1 에서도 최선 밴드 밖 곡이 뽑힐 수 있다 — 정리는 "개인 항이 더하는 이탈"의 상한이다.
 단위 시험: 무작위 후보 목록·μ·배수 10만 조합에서 위 부등식 위반 0.
 
+> **변경 (2026-09-29, 1차 수정) — 개인 비용 양자화.** clamp 다음에 `pers = trunc(pers / P.pers_bucket) · P.pers_bucket`
+> (`pers_bucket = safety.pers_bucket_bands(0.25) · band`, 0 쪽 자름, 중립 정책은 null = 자르지 않음). 걸음 키와 빔 경로 비용이 같은 값을 쓴다.
+> 연속값이면 동률이 없어 시드 변이가 첫 곡 뒤로 한 번도 쓰이지 않았다(같은 곡으로 끝남 92.8%, 서로 다른 곡 480). 0 쪽 자름은 |pers| 를 줄이기만 하고
+> J(6칸·2칸)가 칸 폭의 정수배라 위 두 정리가 그대로 성립한다(단위 시험에 무작위 pers_bucket 추가). 머묾 걸음의 진행·λ 전환 비용 양자화는 §4.6.1 변경 참고.
+>
+> **변경 (2026-09-30, 2차 수정) — 이동 걸음은 양자화 대신 흔들기** `safety.pers_mode = "perturb"`. 이동 걸음의 키와 빔 경로 비용에
+> `kp = clamp(taste + adj + pj, −J, +J)` 를 쓴다 — `pj = pers_jitter · jitter`(그 걸음·곡의 시드 지터 0~1, `pers_jitter = pers_bucket_bands · band`),
+> 코리도어 밖은 `kp ≥ 0`. 기록·설명(`p_pers`)은 흔들지 않은 `clamp(taste + adj)`. 머묾 걸음은 1차의 양자화를 그대로 두고 `pj` 로 동률을 가른다.
+> 이유: 양자화(0 쪽 자름)는 한 특징 전환 비용(0.15–0.2 band < 칸 0.25 band)을 통째로 0 으로 만들어 P0 의 전환 구성과 개인 전환 배수(< 1.67)가
+> 순위에 닿지 못했다. 흔들기는 칸보다 작은 차이만 시드에 맡기고 큰 차이는 확률적으로 지킨다. `kp ∈ [−J, J]` 라 두 정리의 한계는 흔들기 전과 같다
+> (단위 시험에 무작위 `pers_jitter` 추가, 경계 `bounds.pers_jitter_bands [0, 0.25]` — 머묾 정리 여유 j_hold + 폭 < 0.02 와 이동 J + 폭 < 2 band 를 둘 다 지킴).
+> 측정(P0 격자): B5 같은 곡으로 끝남 40.1 → 34.7%(§4.6.1 의 묶음 깨기와 함께 33.5%), C1a 19.0/53.1 → 11.7/43.0, C1d 638 → 814. 표는 `safety.pers_mode_evidence`.
+
 ---
 
 ## 4. 절차별 개인화
@@ -326,6 +345,9 @@ g_f  = Σ_{i∈f} w_i·o_i / (Σ_{i∈f} w_i + calib.k_user(4))                 
 
 **계산 예**: 「불안해요」(0.30, 0.72)를 세 번 모두 활력 −0.10 쪽으로 끌었다(가중 1, 다른 단어 기록 없음).
 g = −0.30/(3+4) = −0.0429, δ = (−0.30 + 2·(−0.0429))/(3+2) = **−0.077** → 다음엔 (0.30, 0.643)에서 시작.
+
+> **변경 (2026-09-29, 1차 수정)** — `calib.w_edit` 1.0 → **3.0**(직접 옮김 1번 = 받아들임 12번). 끌기가 드문 사용자(P7: 10세션에 1–3번)는 사전 축소와 받아들임이
+> 0 쪽으로 당겨 오차가 끌기 허용치 근처에서 멈췄다(D2 60% → 80%). 위 계산 예는 g = −0.90/(9+4) = −0.0692, δ = (−0.90 + 2·(−0.0692))/(9+2) = **−0.094** → (0.30, 0.626).
 
 #### 4.1.3 적용
 
@@ -388,6 +410,9 @@ g = −0.30/(3+4) = −0.0429, δ = (−0.30 + 2·(−0.0429))/(3+2) = **−0.07
 
 적용: |π| ≥ `pace.apply_abs(0.15)` 일 때만. 아니면 π_used = 0(규칙 표 그대로).
 
+> **변경 (2026-09-29, 1차 수정)** — `pace.apply_abs` 0.15 → **0.3**. "딱 좋았어요" 표가 그때 쓴 π_used 에 투표하므로 잡음 한 번이 적용되면 스스로 굳었다
+> (대조 P11 F1 π 위반 11/50세션). 문턱 0.3 에서 F1 76 → 84%, D1 P1 100%·P2 80%. `k0` 2 안(F1 80%)은 E1·E3 이 나빠 채택하지 않음.
+
 #### 4.3.3 π → tp, 우선순위
 
 `at_def = transitionAt(rules, 분)` (15분 이하 1.0 · 25분 이하 0.75 · 그 이상 0.6)
@@ -435,6 +460,9 @@ g = −0.30/(3+4) = −0.0429, δ = (−0.30 + 2·(−0.0429))/(3+2) = **−0.07
   `pop_first_ratio` 는 "누구나 첫 곡을 조금 더 넘긴다"는 모집단 기저비(사전값 1.2, 실제 로그로 TOOLS 가 재추정).
 - **내림**(한 칸): 현재 팔 > 0 에서 위치 1 `mood_mismatch` 가 `start.down_mismatch_n(2)` 번, 또는 사용자 초기화.
 - 팔이 바뀌면 그 뒤 세션만 센다(이력 현상 — 진동 방지).
+  > **변경 (2026-09-29, 1차 수정) — 전환 통제.** `start.expect_transition = true` 이면 이동 곡의 기대 거절 `E_rest = Σ q · Π_f m_f`
+  > (들어온 전환이 큰 변화인 특징 f 마다 §4.8.3 의 적합 배수 m_f, 적용 문턱 전). 이동 곡 거절엔 들어온 전환 몫이 섞이고 첫 곡엔 없어서 q 만으로 표준화하면
+  > 첫 곡의 초과 거절이 가려졌다(P10 비율 0.33–1.61 < 1.8). 대조(P0·P11·P1·P3·P5)는 확인 조건(mood_mismatch ≥ 1) 때문에 s = 0 그대로.
 - **훅**(엔진 L517 직전): `s0 = P && P.start_offset > 0 && journey >= P.start_min_journey ? P.start_offset : 0`,
   `startC = s0 > 0 ? [nowC[0] + (tgtC[0]−nowC[0])·s0, nowC[1] + (tgtC[1]−nowC[1])·s0] : nowC`, `waypoints(startC, tgtC, n, at)`.
   곡 수(L497–501)와 진행 페널티·머묾 정렬은 계속 `nowC` 기준.
@@ -475,6 +503,32 @@ g = −0.30/(3+4) = −0.0429, δ = (−0.30 + 2·(−0.0429))/(3+2) = **−0.07
   마지막 곡 고정 + 진행 방향 순은 지그재그 0% 를 구조적으로 보장하고 꺾임은 둘 사이로 예상 → §11 에서 측정해 확인한다(꺾임 ≤ 12%).
 - **P2 후보** `last_fixed_smooth`: 나머지(≤ `hold.smooth_max_tail(6)`−1 곡)를 `Σ(adjCost + λ·jump)` 가 최소인 순열로(동점은 진행 방향 순).
   스윕에서 꺾임이 `last_fixed_progress` + 2%p 이내일 때만 채택.
+
+> **변경 (2026-09-29, 1차 수정) — 머묾 구간 다섯 가지** (P 모드만, 중립 정책·P === null 은 그대로 — I0/I1). 숫자와 측정은 `hold.*_evidence`.
+> 1. **밀도 적응 반경** `hold.min_pool(12)`: 반경 안 후보(게이트·싫어요·최근 창을 거친 뒤)가 12곡 미만이면 12번째로 가까운 후보까지 넓힌다.
+>    상한 `hold_radius_cap` = `bounds.hold_radius[1]`(0.05), 고긴장 0.035(I5). 좁힌 팔(r < p0_radius)은 넓히지 않는다(`hold_min_pool = 0`).
+> 2. **도착 상한**: 머묾 걸음에서 "도착한 곡"(거리 0·가점 허용)의 반경은 `min(r, 마지막 이동 곡의 목표 거리 + envelope.reversal_eps)` —
+>    그보다 먼 곡을 머묾 첫 곡으로 두면 §11 B3 의 역행이다(새 숫자 없음).
+> 3. **머묾 묶음** `hold.cluster = true`: 머묾 곡끼리 서로 `envelope.turn_min(0.02)` 안이어야 "도착한 곡"이다. B3 의 90° 꺾임은 두 걸음이 모두 turn_min 을
+>    넘을 때만 세므로 머묾 곡 집합의 지름이 turn_min 이하면 어떤 순서든 머묾 안 꺾임이 없다. 묶음 밖 곡은 반경 밖 곡처럼 실거리 비용(곡이 모자랄 때만 쓰임).
+>    페르소나 B3 꺾임 21.3% → 5.6%, 격자 9.4% → 4.2%(아래 4 까지 넣은 최종: 5.3% · 4.4%).
+> 4. **머묾 경로 비용 양자화** `hold.quantize_path = true`: 머묾 걸음의 진행·λ 전환 비용도 `pers_bucket` 으로 0 쪽 양자화 — 한 칸 미만의 기하 차이는 동률로 두어
+>    시드가 머묾 곡·마지막 곡을 가른다. 묶음만 켜면 같은 곡으로 끝남 38.1% → 52.2% 로 늘었는데 이것으로 40.1%.
+> 5. **순서** `hold.order = "last_fixed_turn"`: 곡 집합·마지막 곡(최소 fit) 고정은 `last_fixed_progress` 와 같고, 나머지(≤ smooth_max_tail − 1 곡)는
+>    (이동→머묾 역행, 앞 두 곡부터 이은 90° 꺾임 수)를 사전식으로 최소화하는 순열(같으면 진행 방향 순).
+>
+> **B5 "같은 곡으로 끝남 ≤ 35%" 는 봉투 안에서 닿지 못했다**(40.1%, 2.5.1 100%): 목표 칩 좌표 근처가 성긴 '잠들고 싶어요'(0.035 안 0곡 — B1 도착 90% ≤ 0.036 이라
+> 가장 가까운 곡으로 끝나야 함)와 '푹 쉬고 싶어요'(5곡)가 각각 100%·92% 로 약 22%p 를 차지한다. 나머지 여섯 칩은 16–38%. 팀 결정: 기준 유지(칩별 보고) ·
+> B5 를 반경 안 12곡 이상인 칩에서만 재기 · 두 칩 좌표 재검토 중 하나(change.md).
+>
+> **변경 (2026-09-30, 2차 수정) — 묶음 깨기 비용** `hold.cluster_break = "j_hold"`: 도착 영역(fit ≤ 도착 상한 rCap) 안이지만 머묾 묶음 밖인 곡의 거리 비용을
+> 실거리 대신 `min(j_hold, rCap)` 로 둔다. 실거리면 묶음이 모자랄 때마다 목표에 가장 가까운 곡이 늘 끼어 마지막 곡(최소 fit)이 시드와 무관하게 정해졌다
+> ('푹 쉬고 싶어요': 0.035 안 5곡 중 서로 0.02 안인 쌍은 하나뿐 → 모든 시드가 가장 가까운 곡으로 끝남). 일정 비용이면 묶음 깨기 후보끼리 동률이라 시드가 고르고,
+> 도착한 곡(0)보다 비싸고 반경 밖 곡(실거리 > rCap)보다 싸다(1차의 순서 유지). 새 숫자 없음(머묾 결합 제한 J). 한 칸(pers_bucket)으로 두면 페르소나 꺾임 11.1%,
+> 둘째 머묾 걸음부터 순서 무관 비용까지 더하면 14.0%(B3 불합격)라 버렸다.
+> 이 변경과 §3.8 흔들기로 **B5 가 봉투 안에서 닿는다**: 같은 곡으로 끝남 33.5%(다른 시드 묶음 Q4–6 33.3% · Q7–9 30.9%), 칩당 머묾 곡 15.1,
+> B1 0.013/0.035 · B2 0.150 · B3 0.7%/6.5%/0 · B4 0.017. 칩별: 푹 쉬고 92.2 → 65.7%, 잠들고 98%(0.036 안 1곡 — 둘째 곡 0.048 은 안전 확인 arrival_abs 0.04 밖이라 남김),
+> 나머지 9.8–31.4%. 위 1차 기록의 "닿지 못했다"는 1차 기준이다. 표는 `hold.cluster_break_evidence`.
 
 #### 4.6.2 개인 학습 (P1, 규칙 기반·이력 현상)
 
@@ -528,6 +582,12 @@ E  = (좋아요 수) + (취향 싫어요 수: 범위에 artist·features 둘 다
 - 강도가 세도 **개인 비용 결합 제한(§3.8)** 이 기하를 지킨다: 이동 구간 ±1.5 밴드, 코리도어 밖은 가점 없음, 머묾 구간은 반경 안에서만 가점.
   탐침에서 연주곡 사용자 μ = 0.5(제한 없음)는 도착 오차 0.006→0.019, 최대 전환 0.180→0.220 이었다 — 이 제한이 그 문제를 막는다.
 - μ 에 보상 학습은 없다(심사 A-1). "μ 가 바꾼 곡"은 걸음별 `p_chosen_by = "taste"` 로 기록해 설명·진단에만 쓴다.
+
+> **변경 (2026-09-29, 1차 수정) — 유의한 묶음만 · μ 상한 1.0.** 청취 표 한 표(`listen_vote.unit`)를 관측 1회로 보고
+> `z = |p̂ − p0|·√((n/unit)/(p0(1−p0)))` 가 `taste.group_z_min(1.28)` 미만인 가수·장르·특징 묶음은 엔진에 넘기지 않는다(엔진에선 '모르면 내 평균' p0).
+> 벽(pin)이 있는 묶음과 곡 자체 기록(`song_likes`)은 늘 남긴다. 학습 모드(personal·geometry)에서만 — p0·중립은 영향 없음.
+> 취향 없는 페르소나도 1–2표 잡음 묶음으로 μ·여백 0.10–0.15 band 를 얻어 전환 비용(≤ 0.5 band)을 덮던 문제(P4·P6·P8 넘김 frozen 대비 +7%p) 수정.
+> 잡음을 거른 뒤라 `taste.mu_max` 0.5 → **1.0**(식은 그대로 μ = mu_max·E/(E+8)): 위 계산 예는 μ 0.24 · 0.52 가 된다. 근거 `taste.group_z_evidence`.
 - **훅**: L525 → `const mu = P ? P.mu : Number(rules.preference.pref_weight || 0);` · key(L467)·비용(L547)은 §3.8 의 P 분기.
 
 #### 4.7.4 새 가수 발견 칸 (P1)
@@ -630,6 +690,10 @@ E  = (좋아요 수) + (취향 싫어요 수: 범위에 artist·features 둘 다
   (a) 최근 `gates.soft_spoken.window_days(30)`일에 `vocal_bother` 가중 합 ≥ `vocal_bother_min(2)`
       (곡 단위 `dislike_reason: vocal_bother` 가 말 비중 '높음' 묶음 곡에 1 · 세션 코드 사용자 1 · AI 유지 0.5).
   (b) `feature_affinity["spokenness:high"]` 의 축소 점수(엔진 `shrunk` 식, p0 기준) ≤ `rate_ratio_max(0.5)` × p0 ∧ 그 묶음 표 수 ≥ `min_n(6)`.
+  > **변경 (2026-09-29, 1차 수정) — 세션 코드 확인** `gates.soft_spoken.corroborate_codes = true`: 세션 코드 `vocal_bother`(사용자·AI)는 그 세션에
+  > 말 비중 '높음' 경로 곡을 조기 넘김한 일이 있을 때만 센다(코드에 위치가 있으면 그 위치에서). 곡 단위 `dislike_reason` 은 그대로.
+  > 말 많은 곡이 없던 세션의 잡음 코드가 게이트를 켜던 것(P11 F1)을 막는다. 확인을 붙인 코드 한 번은 코드 + 실제 조기 넘김 두 신호라
+  > `vocal_bother_min` 2 → **1**([prior] 값 변경 — 팀 확인 필요): P3 는 취향 학습이 말 많은 곡을 먼저 빼서 1–5세션에 1–4곡만 들어 2회에 못 닿았다(D6 20% → 100%). 근거 `gates.corroborate_evidence`.
 - **꺼짐**: 마지막 근거로부터 `expire_days(30)`일 지나면 자동 해제(심사 B-5 — 게이트가 그 묶음을 가려 반대 근거가 안 쌓이는 흡수 상태 방지).
   사용자가 결과 화면 칩 "자동: 말 많은 곡 빼는 중 [끄기]"를 누르면 `auto_gate_off` 기록 + `wp_personal_v1.gate_off_until[gate] = +user_off_days(30)일`.
 - 문턱은 규칙의 기존 게이트 `exclude_spoken`(상위 20% 제외, 백분위 문턱) 그대로 — 점수화하지 않는다(원칙 9).
@@ -715,6 +779,10 @@ E  = (좋아요 수) + (취향 싫어요 수: 범위에 artist·features 둘 다
 | 전역 | "개인화 끄기" 토글(`wp_personal_v1.opt_out`) | — |
 
 문구는 **횟수**로 말한다("N번 중 M번") — 점수로 말하지 않는다. 비회원에게는 "로그인하면 들을수록 나에게 맞춰져요".
+
+> **변경 (2026-09-29, 1차 수정)** — 패널 카드의 "근거 N번"과 문장 속 "…번"은 가중 없는 **정수 횟수**다: 곡 취향·새로운 발견 = 좋아요 + 취향 싫어요 + 벽 곡 + 벽 가수 +
+> 끝까지 들음 + 넘김(`counts_for_explain.taste`), 도착 구간 = `hold.arrival_n + repetitive_n`, 빼는 곡 = `gates.evidence.vocal_bother_n`,
+> 다양성 = `diversity.repetitive_sessions_n`. 가중 합(E, 청취 표 ¼, AI 코드 ½)은 확신 점에만 쓴다("근거 9.75번" 같은 소수 표시 수정).
 
 #### 4.12.4 데모 모드 (P1)
 
@@ -926,6 +994,15 @@ Exposure = { song_id, position, role: "path"|"extra", instance, started, listene
 
 경계 표의 `*_bands` 항목(`j_move_bands`, `adj_w_bands_each`)은 `preference.band` 를 곱한 절대값으로 비교한다. 정책의 `j_move`·`adj_w` 는 절대값이다.
 
+> **변경 (2026-09-29, 1차 수정) — 새 필드** (중립 / P0 / 경계): `hold_order` 에 `"last_fixed_turn"` 추가(P0 기본) ·
+> `hold_min_pool` int (0 / 12, 좁힌 팔 0 / [0, 24]) · `hold_radius_cap` (정책이 아니라 sanitize 가 규칙에서 채움: 0.05, 고긴장 0.035) ·
+> `hold_cluster` bool (false / true) · `hold_path_q` bool (false / true) · `pers_bucket` number\|null (null / 0.25·band / [0, 0.5·band]).
+> `hold_min_pool` 은 r 에서 정해지므로 경로 모수(`PATH_PARAM_KEYS`)에 넣는다. resolvePolicy 의 mode 에 `"path"`(R_path: 경로 모수만 개인값) 추가.
+>
+> **변경 (2026-09-30, 2차 수정) — 새 필드** (중립 / P0 / 경계): `hold_break` number\|null (null / `safety.j_hold` 0.0125 / [0, 0.0125] — `hold.cluster_break = "j_hold"` 일 때) ·
+> `pers_jitter` number\|null (null / 0.25·band / `bounds.pers_jitter_bands` [0, 0.25]·band — `safety.pers_mode = "perturb"` 일 때). 둘 다 곡 레인(경유지 무관)이라
+> `PATH_PARAM_KEYS` 에 넣지 않는다. 중립 정책은 둘 다 null → I1 그대로.
+
 **중립이 항등인 이유**: μ = 규칙 값, adj = 0 이면 `pers = μ·pmarg + 0 = μ·pmarg`(정확히 같은 부동소수), clamp·코리도어 없음, λ·상한·최근 목록·정렬이 모두 규칙 값 그대로 → key·비용이 2.5.1 과 같은 값.
 
 ### 6.6 엔진 훅 목록 (`engine/engine.js` 2.6.0-wp)
@@ -1029,6 +1106,7 @@ input: {
               calib: { current: { label, dv, de } | null, target: {...} | null }, soft_gates: [], artist_cap, recent_window },
     fallback: null | "geometry" | "p0",
     safety: { A: Metrics, R: Metrics, violations: [string] },   // Metrics = { arrival, max_jump, reversals, turns, n, hold_zigzag, start_dist }
+                                                                // [변경 2026-09-29] + Rp: Metrics|null (R_path, §2.2 7), lane: null|"path"|"song"
     reference_ids: [song_id],                                  // 실행 R 의 경로(비교 토글·차이 분석용)
     changed_n: int, explain_codes: [string],
     catalog_n, catalog_digest, global_stats_digest
@@ -1202,6 +1280,8 @@ export function resolvePolicy(model, ctx, rules, { mode = "personal" } = {})
 export function neutralPolicy(rules)                                     // I1 항등원
 export function pathMetrics(result)                                      // → { arrival, max_jump, reversals, turns, n, hold_zigzag, start_dist }
 export function safetyCheck(resA, resR, rules)                           // → { ok, violations: string[], A, R }
+                                                                         // [변경 2026-09-29] safetyCheck(resA, resR, rules, { resRp }) → { ok, violations, lane, A, R, Rp }
+                                                                         //   + export PATH_PARAM_KEYS, pathParamsDiffer(polA, polRef) (§2.2 7)
 export function buildRecLog({ ctx, policyOut, resA, resR, extras, safety, fallback, env, catalogIndex, rules })   // → §7.1 의 input/sequence (서버 시각·user_id 제외)
 export function validateEvent(type, payload)                             // → { ok, errors } (로컬·도구에서 모양 검사)
 export function listenVote(exposure, rules, attribution = 0)             // → { pos, neg } | null   (시험용)
@@ -1231,6 +1311,15 @@ export function digest(obj)                                              // fnv1
 - `GET /api/health` → `{ ok, app:"web-personal", engine_version, rules_hash, personal_version }`.
 - 정적 파일: 쿼리 제거·`decodeURIComponent`·`path.resolve(root, "."+p)` 가 root 안이어야 함·점 파일(`.env`, `.git`)과 `..` 거부(404)·`/` → `index.html`·SPA 폴백 없음.
   MIME `.html .js .mjs(text/javascript) .json .webmanifest(application/manifest+json) .png .svg .ico .css`, `Cache-Control: no-store`, HEAD 지원.
+
+> **변경 (2026-09-30, 2차 수정) — 로컬 기본 실행은 운영 Firebase 에 접속하지 않는다(offline).** §11 H2(브라우저 픽스처)·I(쓰기 카운터)를 계정 없이 잴 수 있게.
+> - `node server.mjs` 의 `/env.js` 에 `offline: true` 가 더해진다(기본). `--firebase` 를 주면 `offline: false` — 예전처럼 운영 Firebase 에 로그인·곡 읽기(쓰기는 여전히 `--writes` 때만).
+> - `local_firebase.js`(APP, index.html 이 Firebase SDK 뒤·앱 스크립트 앞에서 부름): `offline` 이면 `window.firebase` 를 이 탭 안의 대역으로 바꾼다 —
+>   익명 로그인은 가짜 익명 사용자(`local-anon`, 네트워크 없음), 이메일·구글 로그인은 거절, 모든 읽기는 빈 결과, 모든 쓰기는 거절하고 센다(`AZT_DEBUG.writes().local_firebase`).
+>   배포(정적 `env.js`)에서는 아무것도 하지 않는다.
+> - `GET /api/local-catalog` → `{ n, digest, source, songs }` — `tools/sim/catalog.mjs` 의 `loadCatalog`(데이터 저장소 `git show`, 읽기 전용)가 만든 계약 곡을 그대로.
+>   앱 `init()` 은 offline 이면 Firestore `songs` 대신 이것을 받아 `localSongOf`(toContractSong 의 역함수)로 SONGS 를 만든다 — 브라우저 카탈로그 digest 가 Node 와 같다(33252b24).
+> - `check.mjs` env 검사에 "기본 `/env.js` 가 offline:true · local_firebase.js 가 SDK 뒤·앱 앞" 을 더했다.
 
 **`tools/sim/` 모듈** (모두 ESM, 저장소 루트에서 `node tools/sim/<x>.mjs`)
 
@@ -1315,6 +1404,14 @@ export function digest(obj)                                              // fnv1
 규칙 파일 변경: `rules_version` "v2.4.0" → **"v2.5.0-wp"**, `note` 에 한 줄 추가, 최상위 `personalization` 절 추가, `explanations` 4개·`trace_keys` 추가(§6.8).
 기존 절(`preference`, `iso`, `path`, `diversity`, `gates` …)의 값은 **하나도 바꾸지 않는다**(I0). 마지막에 `node tools/rules_hash.mjs --write`.
 근거 문자열의 표지: **[agreed]** 팀 합의 · **[measured]** 측정 근거(출처 명시) · **[prior]** 근거 없는 사전값(스윕·재추정 계획 명시) · **[derived]** 다른 값에서 유도.
+
+> **변경 (2026-09-29, 1차 수정)** — 아래 전문은 명세 시점 값이다. 규칙 파일이 기준이며 바뀐 것: 새 키 `safety.pers_bucket_bands 0.25` ·
+> `safety.envelope.reversal_tol 0` · `path_wp_step_allow 1` · `hold.min_pool 12` · `hold.order "last_fixed_turn"` · `hold.cluster true` · `hold.quantize_path true` ·
+> `start.expect_transition true` · `taste.group_z_min 1.28` · `gates.soft_spoken.corroborate_codes true` · `bounds.pers_bucket_bands [0, 0.5]` · `bounds.hold_min_pool [0, 24]`;
+> 값 변경 `taste.mu_max 0.5 → 1.0` · `calib.w_edit 1.0 → 3.0` · `pace.apply_abs 0.15 → 0.3` · `gates.soft_spoken.vocal_bother_min 2 → 1`. 각 키 옆 `*_evidence` 에 측정 표.
+>
+> **변경 (2026-09-30, 2차 수정)** — 새 키 `safety.pers_mode "perturb"`(+ `pers_mode_evidence`) · `hold.cluster_break "j_hold"`(+ `cluster_break_evidence`) ·
+> `bounds.pers_jitter_bands [0, 0.25]`(+ `pers_jitter_evidence`). 값 변경 없음.
 
 ```json
 "personalization": {

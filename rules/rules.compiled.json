@@ -389,7 +389,7 @@
    "binds": []
   }
  ],
- "rules_hash": "c4178fd35288",
+ "rules_hash": "b091ec2a0332",
  "trace_keys": [
   "artist",
   "band_size",
@@ -465,26 +465,31 @@
   "safety": {
    "stress_w_v": 0.6, "stress_w_a": 0.4, "high_stress_min": 3,
    "high_stress": { "faster_pace_allowed": false, "discovery": false, "hold_radius_max": 0.035, "start_offset_max": 0.075, "adj_mult_min": 1.0 },
-   "corridor_bands": 1, "j_move_bands": 1.5, "j_hold": 0.0125,
+   "corridor_bands": 1, "j_move_bands": 1.5, "j_hold": 0.0125, "pers_bucket_bands": 0.25, "pers_mode": "perturb",
+   "pers_mode_evidence": "[measured] 2차 수정(20260930 — 실카탈로그 격자 iso1224 시드 Q1–3(기준)·Q4–6·Q7–9 / adj660, P0 정책 · 합성 페르소나 P0–P13 × 5반복 × 10세션, run.mjs; 다시 내기: node tools/sim/diag_hold.mjs --grid --adj --patch JSON): 1차 수정의 양자화(0 쪽 자름, 칸 0.25 band)는 한 특징 전환 비용(빠르기 0.2 · 보컬 0.15 band)을 통째로 0 으로 만들어 전환 개인화(배수 < 1.67)가 순위에 닿지 못했고(D3 BPM 비 ×0.41→×0.82, D4 25.0→30.8%) 칸 경계에 따라 0.24칸 차이는 버리고 0.01칸 차이는 지켰다. 흔들기(perturb): 이동 걸음 키·빔 경로 비용 = distCost + clamp(취향 + 전환 + 지터[0,1)×pers_bucket_bands×band, −J, J), 머묾 걸음은 양자화 그대로 + 지터. 격자(칩당 시드 3쌍, 기준 시드 / Q4–6 / Q7–9): 양자화 B5 같은 곡으로 끝남 40.1 / 46.7 / 41.3%, C1a 19.0/53.1 · C1b 5.5% · C1c 14.4% · C1d 638 → 흔들기 34.7 / 38.8 / 33.1%, C1a 11.7/42.9 · C1b 4.7% · C1c 8.8% · C1d 814, 꺾임 4.4→5.3%, B1·B2·B4 봉투 안. 대안: 키만 흔들고 경로 비용은 연속 → B5 41.4% · C1d 576(< 600 불합격 — 경로 비용의 연속 전환값이 빔 선택을 다시 고정); 키만 흔들고 경로는 양자화 → 40.6% · C1a 17.9(1차와 같음); 폭 0.375·0.5 band → B5 35.2·35.4%(Q4–6 37.3·38.1%)로 이득 없음 — 폭은 칸 폭(0.25 band, 새 숫자 없음). 자르기 전 값에 지터를 더하는 것은 포화한(−J 에 닿은) 취향 곡끼리 선호 버킷으로 가르기 위함(자른 뒤에 더하면 포화 곡도 무작위). 정리 한계는 그대로(kp ∈ [−J, J]) — bounds.pers_jitter_bands. 페르소나(wp): B3 역행/꺾임 0.7/6.1%, B8 0.3%, E1 ×0.95(1차)→×1.00(변형들 사이 ×0.92–1.01 — 표본 잡음 폭 안).",
+   "pers_bucket_evidence": "[measured] diversity_hold 진단(20260929, P0 격자 iso1224·adj660): 개인 비용(전환·취향)이 연속값이면 동률이 생기지 않아 시드 변이가 첫 곡 뒤로 쓰이지 않음 — 같은 곡으로 끝남 92.8%·서로 다른 곡 480. 걸음 키만 band/16·/8·/4 로 자르면 68.6·66.1·48.4%(band/4 646곡), 키+빔 경로 band/8 75.0%(541곡)·band/4 41.3%(660곡). 특징을 30 BPM·말 비중 0.25 로 묶는 안은 82.1%·504곡. 0 쪽 자름(trunc)은 |pers| 를 줄이기만 해 §3.8 두 정리가 그대로 성립(floor 는 작은 취향 가점을 부풀려 페르소나 꺾임 25.7% vs 18.9%). band/4 = P0 전환 비용 최댓값(0.5 band)의 절반 — 한 특징 어긋남은 시드에 맡기고 둘 이상이면 한 칸; j_move(6칸)·j_hold(2칸)를 나눈다. 대가(1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs)): 한 특징 전환 비용이 0 이 되어 C1a 6.7→19.0·C1b 3.2→5.5%·C1c 4.2→14.4%(모두 합격), frozen 조기 넘김 26.4→28.4%. adjacency.scale 0.625·0.75·1.0 은 같은 곡으로 끝남 46.3·59.9·66.9%·C1d 585·569·525(< 600) 이라 scale 0.5 유지. [2026-09-30 2차] pers_mode \"perturb\" 에서 이 칸 폭은 머묾 걸음의 양자화·머묾 경로 비용 양자화와 흔들기 폭으로만 쓰인다(이동 걸음은 자르지 않음 — safety.pers_mode_evidence).",
    "envelope": { "arrival_abs": 0.040, "arrival_over_ref": 0.012, "max_jump_abs": 0.25, "max_jump_over_ref": 0.05, "reversal_eps": 0.01, "turn_min": 0.02,
+     "reversal_tol": 0, "path_wp_step_allow": 1,
+     "reference_evidence": "[measured] safety_b8 진단(20260929, 합성 사용자 — 규칙·엔진 그대로, 판정만 바꿔 비교): 기준을 R(p0) 하나로 두면 학습된 경로 모수(tp·이탈 가드)의 의도된 긴 걸음이 max_jump 로 잡혀 A′/R 로 떨어졌다 — iso1224 표본에서 P1 10세션 모델 19.6%(20/102, max_jump 17), P1 100세션 9.2%(14/153), 데모 P1 9.8%(15/153). 같은 입력에서 A 와 R_path(곡 레인 P0 + A 경로 모수, 경유지 A 와 516/516 동일)의 최대 전환 차는 p90 0.031 · p99 0.049(over_ref 0.05 안). 수동 \"빠르게\"(manual_tp 0.5)는 R 도 같은 속도라 검사되지 않는데 P0 격자 max_jump > 0.25 가 30.7%(학습 tp 0.52 는 23.5%); 학습 tp ≥ bounds.tp[0] = manual_tp.fast 라 늘어난 경유지 걸음은 수동 \"빠르게\" 이하 → path_wp_step_allow 1(경로 레인은 경유지 걸음 증가분만큼 최대 전환 허용, 도착·역행·지그재그·곡 수는 그대로; 0 이면 P1 10세션 폴백 18.6%). reversal_tol 0: 남은 역행 폴백은 모두 이동→머묾 첫 걸음(머묾 첫 곡이 마지막 이동 곡보다 멂 — R 에도 700세션 중 7) — 허용 0.005 면 페르소나 B3 역행 0.7→1.0%, 0.01 이면 1.6%(B3 ≤ 1.5% 불합격). 결과: 페르소나 B8 1.6%→1.1%(11→8/700), B1 0.014/0.032 · B2 0.215(twin 0.207) · B3 역행 0.7% 그대로; 격자 폴백 P1 19.6→3.9% · P8 6.9→0% · 데모 P1 9.8→2.0%. 1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs): B8 0.4%(3/700세션 — geometry 0 · p0 3), B1 0.017/0.031, B2 0.213(twin 0.207), B3 역행 0.3%.",
      "turn_min_evidence": "[measured] 90° 꺾임 판정에서 두 걸음이 모두 이 거리보다 크게 움직일 때만 센다 — iso_path_quality.mjs(20260926) 의 TURN_MIN 과 같은 값(명세 §11 B3). 통합 때 personal.js 의 명세 보충값에서 규칙으로 옮김(I8)." },
    "safety_evidence": "[prior] 스트레스 식은 앱 deriveStress(0.6/0.4)와 같음 — 불안·짜증·답답·걱정 칩이 3. 고긴장 안전 집합은 팀 결정 D5. 코리도어 1 밴드·J 1.5 밴드면 개인 항이 최선 밴드보다 2 밴드 이상 나쁜 곡을 고를 수 없다(명세 §3.8 정리). 머묾 J 0.0125 는 band 의 절반. [measured] 봉투 기준: 2.5.1 도착 오차 90% 0.035, r=0.035 제안 0.035(iso_path_quality_20260926), 최대 전환 중앙 0.145."
   },
   "calib": {
    "k_user": 4, "k_label": 2, "max_axis": 0.10, "cross_neutral_min_edits": 4, "min_edits_label": 2, "min_edits_global": 4,
-   "edit_eps": 0.01, "w_edit": 1.0, "w_accept": 0.25, "clamp": [0.04, 0.96], "prompt_after_mismatch": 2, "prompt_repeat_days": 7,
+   "edit_eps": 0.01, "w_edit": 3.0, "w_accept": 0.25, "clamp": [0.04, 0.96], "prompt_after_mismatch": 2, "prompt_repeat_days": 7,
    "nl": { "substitution": false, "subst_min_n": 3, "subst_min_rate": 0.6, "intensity_bias": false, "intensity_apply_abs": 0.5 },
-   "calib_evidence": "[prior] 두 층 축소(개인 전체 k=4, 단어 k=2 — preference.shrinkage.personal_k 와 같은 라플라스 무게). 관측은 항상 표 좌표 기준 o=최종−표. 한 축 0.10 상한은 칩 사이 간격(0.05~0.10) 수준. clamp [0.04,0.96] 은 기존 nlClamp. [measured] 화살표 한 칸 0.05(L2869). 자연어 치환·강도 편향은 P2, 기본 꺼짐."
+   "calib_evidence": "[prior] 두 층 축소(개인 전체 k=4, 단어 k=2 — preference.shrinkage.personal_k 와 같은 라플라스 무게). 관측은 항상 표 좌표 기준 o=최종−표. 한 축 0.10 상한은 칩 사이 간격(0.05~0.10) 수준. clamp [0.04,0.96] 은 기존 nlClamp. [measured] 화살표 한 칸 0.05(L2869). 자연어 치환·강도 편향은 P2, 기본 꺼짐. [measured] learners 진단·1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs): P7 은 10세션에 1–3번만 끌어 옮김 — 사전 축소와 받아들임(0.25)이 0 쪽으로 당겨 오차가 끌기 허용치(0.05) 근처에서 멈춤(D2 60%, 지금 오차 중앙 0.038). w_edit 1 → 3(직접 옮김 1번 = 받아들임 12번): D2 80%·지금 오차 중앙 0.016, F1(|δ| ≤ 0.02 포함) 84%. 계산 예(§4.1.2) −0.077 → −0.094. 목표 쪽은 δ* 0.04 가 끌기 문턱 아래라 오차가 늘 0.040(등호로 합격)."
   },
   "pace": {
    "manual_tp": { "fast": 0.5, "slow": 1.0 }, "tp_fast": 0.5, "tp_slow": 1.0,
-   "vote_step": 0.5, "w_chip": 1.5, "w_answer": 1.0, "k0": 1.0, "apply_abs": 0.15, "small_n_max": 3, "small_n_min_tp": 0.75,
+   "vote_step": 0.5, "w_chip": 1.5, "w_answer": 1.0, "k0": 1.0, "apply_abs": 0.3, "small_n_max": 3, "small_n_min_tp": 0.75,
    "quit_guard": { "enabled": true, "min_sessions": 5, "prior_sessions": 2, "apply_below": 0.9, "min_arrival_song": 2,
      "min_arrival_song_evidence": "[derived] 엔진 상한 K = max(min_arrival_song, floor(f_med·n)) — 첫 곡에서 곧바로 도착하지 않게 도착 곡 번호의 하한은 2번째 곡(명세 §4.3.4). tp 상한의 하한 0.5 는 bounds.tp[0]." },
-   "pace_evidence": "[measured] manual_tp 는 앱 PACE_TP(L3477) 값을 그대로 옮김(fast 0.5 → 30분 8곡 중 5번째 도착, slow 1.0 → 8번째; personalization_probe_20260926). [prior] 표 크기 0.5·가중 1.5/1·k0 1·적용 문턱 0.15. n≤3 에서 tp≥0.75 는 t=0,1,1 퇴화 방지(iso.min_step_span_evidence). 이탈 가드는 5세션 이상·가상 2세션(f=1)·중앙 도달 0.9 미만일 때."
+   "pace_evidence": "[measured] manual_tp 는 앱 PACE_TP(L3477) 값을 그대로 옮김(fast 0.5 → 30분 8곡 중 5번째 도착, slow 1.0 → 8번째; personalization_probe_20260926). [prior] 표 크기 0.5·가중 1.5/1·k0 1·적용 문턱 0.15. n≤3 에서 tp≥0.75 는 t=0,1,1 퇴화 방지(iso.min_step_span_evidence). 이탈 가드는 5세션 이상·가상 2세션(f=1)·중앙 도달 0.9 미만일 때. [measured] learners 진단·1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs): '딱 좋았어요' 표가 그때 쓴 π_used 에 투표해 잡음 한 번(P11 의 무작위 '더 빨리')이 적용되면 굳음 — F1 π 위반 11/50. 적용 문턱 0.15 → 0.3: F1 76→84%, D1 P1 100%·P2 80%(5반복, 문턱). k0 1→2 안은 F1 80% 이지만 E1 ×0.98·E3 +0.028(불합격)이라 문턱 쪽을 채택."
   },
   "start": {
-   "arms": [0, 0.075, 0.15], "min_journey": 0.15, "min_first_songs": 5, "ratio_up": 1.5, "pop_first_ratio": 1.2, "down_mismatch_n": 2,
+   "arms": [0, 0.075, 0.15], "min_journey": 0.15, "min_first_songs": 5, "ratio_up": 1.5, "pop_first_ratio": 1.2, "down_mismatch_n": 2, "expect_transition": true,
+   "expect_transition_evidence": "[measured] learners 진단(20260929): 이동 곡 거절엔 들어온 전환 몫이 섞이고 첫 곡엔 없다. 대조 P6 첫 곡/이동 곡 조기 넘김 0.28/0.38 — q 만으로 표준화하면 P10 첫 곡 초과 거절이 가려짐(비율 0.33–1.61 < 1.8). 이동 곡 기대 거절에 적합 전환 배수(들어온 큰 변화 특징마다 m_f, 적용 문턱 전)를 곱하면 P10 s>0 4/10→8/10(10반복), 대조 P0·P11·P1·P3·P5 s>0 0세션(확인 조건 up ≥ 1 이 막음). 1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs): D10 s>0 반복 20→60%, F5 100%.",
    "start_evidence": "[prior] ISO 시작 일치는 치료 전제라 기본 0, 최대 여정의 15%(고긴장 7.5%). 팀 결정 D2(음악중재 자문). 첫 곡 거절률을 나머지 곡 대비·취향 기대 거절률로 표준화하고 모집단 기저비 1.2(누구나 첫 곡을 조금 더 넘김 — 실제 로그로 재추정)로 나눈 값이 1.5 이상이고 mood_mismatch 명시 확인이 있을 때만 올린다."
   },
   "length": {
@@ -492,17 +497,23 @@
    "length_evidence": "[prior] 감상 시간은 사용자 선언이라 바꾸지 않고 다음 기본값만 제안한다. 표 크기 0.3(≈23%)을 기준 시간(무게 1)과 평균하므로 한 번 답에 약 11% 이동(30분→27분→5분 단위 25분), 최대 ±41%(0.5). 5분 단위·5~90분은 기존 슬라이더 범위."
   },
   "hold": {
-   "p0_radius": 0.035, "arms": [0, 0.02, 0.035, 0.05], "min_songs": 5, "order": "last_fixed_progress", "smooth_max_tail": 6,
+   "p0_radius": 0.035, "arms": [0, 0.02, 0.035, 0.05], "min_songs": 5, "min_pool": 12, "order": "last_fixed_turn", "smooth_max_tail": 6, "cluster": true, "quantize_path": true, "cluster_break": "j_hold",
+   "cluster_break_evidence": "[measured] 2차 수정(20260930 — 실카탈로그 격자 iso1224 시드 Q1–3(기준)·Q4–6·Q7–9 / adj660, P0 정책 · 합성 페르소나 P0–P13 × 5반복 × 10세션, run.mjs; 다시 내기: node tools/sim/diag_hold.mjs --grid --adj --patch JSON): 머묾 묶음이 모자랄 때 묶음 밖 도착 영역 곡의 거리 비용이 실거리면 목표에 가장 가까운 곡이 늘 끼어 마지막 곡(최소 fit)이 시드와 무관하게 정해졌다 (푹 쉬고 싶어요: 0.035 안 5곡 중 서로 0.02 안인 쌍은 하나뿐 — 모든 시드가 N3·N2 → 가장 가까운 N1 로 끝남, 92.2%). 묶음 밖 도착 영역 곡은 일정 비용 min(j_hold, rCap) 으로 — 그들끼리 동률이라 시드가 고르고, 도착한 곡(0)보다 비싸고 반경 밖 곡(실거리 > rCap)보다 싸다(이전 순서 유지). 흔들기와 함께(기준 시드 / Q4–6 / Q7–9): 묶음 깨기 없음 34.7 / 38.8 / 33.1% · 격자 꺾임 5.3% · 페르소나 꺾임 5.0%; 한 칸(0.25 band) 33.3 / 33.2 / 32.4% · 격자 6.6% · 페르소나 11.1%(한계 12% 근처); j_hold(채택) 33.5 / 33.3 / 30.9% · 격자 6.5 / 7.0 / 6.0% · 페르소나 6.1%, 푹 쉬고 92.2→65.7%(Q4–6 43.1 · Q7–9 54.9%), 칩당 머묾 곡 15.1. 둘째 머묾 걸음부터 진행·전환 비용을 순서 무관으로 두는 안(order_free)은 30.6% 지만 페르소나 꺾임 14.0%(B3 불합격)라 버림. 잠들고 싶어요는 0.036 안 1곡(둘째 0.048 — B1·안전 확인 arrival_abs 0.04 밖)이라 98% 로 남는다(격자 B5 의 약 12%p).",
    "arrival_mismatch_min": 2, "repetitive_min": 2,
+   "min_pool_evidence": "[measured] 목표 칩 좌표 0.035 안 곡 수(실카탈로그): 잠들고 0 · 푹 쉬고 5 · 시원하게 17 · 기분전환 21 · 위로 22 · 차분 24 · 신나고 26 · 집중 32. 반경 안 후보(게이트·싫어요·최근 창을 거친 뒤)가 12곡(§11 B5 '목표 칩당 머묾 곡 ≥ 12' 과 같은 수) 미만이면 12번째 후보까지 넓힌다 — 상한 bounds.hold_radius[1] 0.05, 고긴장 0.035(I5). 좁힌 팔(r < p0_radius)은 넓히지 않는다. diversity_hold 진단(20260929): 6 은 효과 없음, 12 는 같은 곡으로 끝남 41.3→37.6%·머묾 곡 16.1→16.6(고긴장 상한을 풀면 34.4% 지만 I5 위반). 머묾 묶음을 켠 뒤(경로 양자화 전) 6·12·24 → 53.2·52.2·53.7% — 12 유지.",
+   "order_evidence": "[measured] diversity_hold 진단(20260929): 마지막 곡(최소 fit) 고정은 지그재그 0% 에 필요. 나머지(≤ smooth_max_tail − 1 곡)를 (이동→머묾 역행, 90° 꺾임) 사전식 최소 순열로 두면 P0 격자(양자화 band/4) 꺾임 12.7→12.3%. 이동→머묾 역행은 순서만으로 줄지 않아(페르소나 1.7→1.7%) 도착 상한(마지막 이동 곡 목표 거리 + envelope.reversal_eps 밖 곡은 '도착한 곡' 아님)을 함께 둔다 — 새 숫자 없음. 1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs): 머묾 묶음과 함께 격자 역행 0.5%·꺾임 4.4%, 페르소나 역행 0.3%·꺾임 5.3%·지그재그 0%.",
+   "cluster_evidence": "[measured] (다시 내기: node tools/sim/diag_hold.mjs --turns <run.json> · --grid [--patch]) 1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs): 묶음 없이 페르소나 wp 90° 꺾임 세션 21.3%(§11 B3 ≤ 12% 불합격; frozen 13.0%·twin 16.7%) — 꺾임 꼭짓점의 약 90% 가 머묾 첫 곡·둘째 곡(반경 안에서 취향·시드로 흩어진 곡이 방향을 바꿈). 머묾 곡끼리 envelope.turn_min(0.02) 안이어야 '도착한 곡'(B3 는 두 걸음이 모두 turn_min 을 넘을 때만 셈 → 지름 ≤ turn_min 이면 머묾 안 꺾임 0): 페르소나 21.3→5.6%(frozen 13.0→5.7%)·격자 B3g 9.4→4.2%·역행 0.9→0.4%·B8 0.3→0.1%; 대가: 같은 곡으로 끝남 38.1→52.2%(경로 양자화로 40.1%), 머묾 곡 16.6→15.1(≥ 12), C1d 663→657. 새 숫자 없음.",
+   "quantize_path_evidence": "[measured] (칩별 수치: node tools/sim/diag_hold.mjs --grid --patch JSON) 1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs) iso1224 P0: 머묾 묶음만 켜면 같은 곡으로 끝남 52.2%(칩별 푹 쉬고 92 · 차분 23 · 집중 25 · 기분전환 36 · 신나고 33 · 시원하게 52 · 위로 57 · 잠들고 100%) — 첫 머묾 곡이 빔의 연속 비용(진행·λ 전환)으로 정해져 시드가 가르지 못함. 머묾 걸음의 진행·λ 전환 비용도 pers_bucket 으로 0 쪽 양자화 → 40.1%(92 · 16 · 21 · 23 · 16 · 38 · 16 · 100%), 꺾임 4.2→4.4%, 도착 오차 중앙 0.008→0.012(≤ 0.025), 머묾 곡 15.1→14.9, C1d 657→638. 묶음 없이 양자화만 하면 33.5% 지만 꺾임 31.2%(B3 불합격); 마지막 곡을 첫 머묾 곡(닻)으로 두는 안은 45.8%. 남은 차이는 성긴 두 칩(잠들고 0곡·푹 쉬고 5곡 — 약 22%p)이라 봉투 안에서 35% 에 닿지 못함(팀 결정, change.md). [2026-09-30 2차] 흔들기(safety.pers_mode)와 묶음 깨기(hold.cluster_break)로 기준 시드 33.5%(Q4–6 33.3 · Q7–9 30.9%) — 위 '35% 에 닿지 못함'은 1차 기준의 기록이다.",
    "hold_evidence": "[measured] hold_segment_proposal_20260925·iso_path_quality_20260926: 2.5.1 은 같은 곡으로 끝남 100%·머묾 겹침 100%. r=0.035 → 25.3%·31.9%, 도착 오차 중앙 30·45분 0.015(1,224세션 전체 0.021), 15분 0.030. 거리 순 재배열은 꺾임 18.5%, 진행 방향 순(제안 B)은 8.3% 이지만 마지막 곡이 가장 가깝지 않음 46%. 그래서 마지막 곡(최소 fit) 고정 + 나머지 진행 방향 순. min_songs 5: 15분(4곡)은 도착 걸음이 1곡뿐이라 반경만큼 오차가 커진다. [prior] 개인 계단 문턱 2회."
   },
   "taste": {
-   "mu_max": 0.5, "k_mu": 8, "pin_evidence_w": 0.5,
+   "mu_max": 1.0, "k_mu": 8, "pin_evidence_w": 0.5, "group_z_min": 1.28,
+   "group_z_evidence": "[measured] outcomes 진단(20260929, 합성 P1–P10 × 5 × 10, 6~10세션): 청취 표 1표 = 관측 1회로 세면 취향 없는 페르소나의 가수·장르·특징 묶음은 1–2표 잡음(P6 10세션 41·10·8 묶음 중 z ≥ 1.28 은 1·1·0)이 μ·여백 0.10–0.15 band 로 전환 비용(≤ 0.5 band)을 덮어 P4·P6·P8 넘김이 frozen 대비 +7%p. 문턱(μ 상한 1.0): 1.64 → E1 ×0.877·D5·P1 21.3%, 1.28 → ×0.850·E5 ×0.900·D5·P1 25.9%·E7 Δ넘김 +0.001; (μ 0.5) 1.0 → ×0.902. 벽 묶음·곡 자체 기록은 거르지 않음. 봉투 변화 없음(도착 90% 0.032·최대 전환 90% 0.218·폴백 1.3%). 1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs)(양자화·머묾 묶음 포함): E1 ×0.95(26.4% vs twin 27.9%), E2 ×1.93, E3 +0.033, E4 +0.179, D5·P1 22.4%·P2 54.1%, F3 0.005 — 양자화가 작은 취향·전환 차이를 동률로 두어 진단 단독(×0.850)보다 약함.",
    "dislike_scope_add": { "arrival_mismatch": [], "length": [] },
    "extra_features": [],
    "extra_features_available": [ { "id": "popularity", "field": "popularity", "bins": 3, "label": "알려진 정도", "zero_is_unknown": true } ],
    "discovery": { "min_mu": 0.15, "min_E": 4, "min_moving_steps": 3, "pause_after_skips": 3, "pause_sessions": 3 },
-   "taste_evidence": "[measured] personalization_probe_20260926: μ=0 이면 취향이 곡을 거의 못 바꿈(연주곡 사용자 0%), μ=0.5 는 100% 이지만 도착 오차 0.006→0.019·최대 전환 0.180→0.220 — 결합 제한(safety) 안에서만 쓴다. [prior] μ=0.5·E/(E+8): 기록이 쌓일수록 커지는 결정식(보상 학습 없음). dislike_scope_add 는 도착·길이 불만을 취향 싫어요로 세던 문제(B1) 수정 — 기본 절은 그대로. 인기도는 P2(0=모름, 약 9%)."
+   "taste_evidence": "[measured] personalization_probe_20260926: μ=0 이면 취향이 곡을 거의 못 바꿈(연주곡 사용자 0%), μ=0.5 는 100% 이지만 도착 오차 0.006→0.019·최대 전환 0.180→0.220 — 결합 제한(safety) 안에서만 쓴다. [prior] μ=0.5·E/(E+8): 기록이 쌓일수록 커지는 결정식(보상 학습 없음). dislike_scope_add 는 도착·길이 불만을 취향 싫어요로 세던 문제(B1) 수정 — 기본 절은 그대로. 인기도는 P2(0=모름, 약 9%). [measured] outcomes 진단(20260929): 유의 묶음만 넘기면 μ 상한 1.0 에서도 잡음이 늘지 않음 — z1.64 에서 E1 ×0.883→0.877, E2 하한 −0.1→+0.9%p, D5·P1 8.6→21.3%. J = 1.5 band·코리도어 그대로라 B1·B2 불변. mu_max 0.5 로 두면(1차 수정 전체, 머묾 묶음 전) 페르소나 꺾임 21.3→15.1% 였으나 E1 ×0.94→0.96·D5·P1 18.4→16.1% — 꺾임은 머묾 묶음이 맡고 μ 는 1.0."
   },
   "adjacency": {
    "base_weights_bands": { "tempo": 0.4, "vocal": 0.3, "spoken": 0.15, "genre": 0.15 }, "scale": 0.5,
@@ -519,7 +530,8 @@
    "smooth_evidence": "[prior] 곡 설명 p_smooth 조건(명세 §6.8): 그 걸음의 선택 이유가 전환 비용(p_chosen_by = transition)이고, 기하 최선곡(p_geo_best)보다 쌍 특징 x 가 smooth_min_dx(0.25) 이상 작은 특징이 있을 때만 — 그 특징 이름(feature_labels)을 문구에 넣는다."
   },
   "gates": {
-   "soft_spoken": { "vocal_bother_min": 2, "window_days": 30, "rate_ratio_max": 0.5, "min_n": 6, "expire_days": 30 },
+   "soft_spoken": { "vocal_bother_min": 1, "window_days": 30, "rate_ratio_max": 0.5, "min_n": 6, "expire_days": 30, "corroborate_codes": true },
+   "corroborate_evidence": "[measured] learners 진단(20260929): P11 의 무작위 세션 코드 vocal_bother 가 말 많은 곡이 없던 세션에서도 게이트 근거로 세어져 F1 게이트 위반 4/50세션. 코드가 있는 세션에 말 비중 '높음' 경로 곡을 조기 넘김한 일이 있을 때만(코드에 위치가 있으면 그 위치에서) 센다 → 게이트 위반 0. 곡 단위 dislike_reason 은 그대로(그 곡이 '높음' 이어야 셈). 확인을 붙이면 코드 한 번 = 코드 + 실제 조기 넘김 두 신호라 vocal_bother_min 2 → 1: P3 는 취향 학습이 말 많은 곡을 먼저 빼서 1–5세션에 1–4곡만 들어(세션당 0.48) 2회 문턱에 못 닿았다(D6 20%). 1차 수정 전체(20260929 — 합성 페르소나 P0–P13 × 5반복 × 10세션 · 실카탈로그 격자 iso1224/adj660, run.mjs): D6 20→100%(켜진 뒤 '높음' 4.5% ≤ 5%), F1 76→84%(pace.apply_abs 0.3 과 함께), D11 오작동 0세션.",
    "soft_min_pool": 24, "user_off_days": 30,
    "gates_evidence": "[derived] soft_min_pool 24 = selection.region.min_pool(48)/2. 문턱 자체는 기존 게이트 exclude_spoken(상위 20% 제외)을 그대로 쓴다 — 태그는 문턱으로만(원칙 9). [prior] 켜짐 2회·30일, 비율 p0 의 절반·표 6, 만료 30일(게이트가 반대 근거를 가리는 흡수 상태 방지)."
   },
@@ -540,6 +552,9 @@
   "bounds": {
    "tp": [0.5, 1.0], "quit_frac": [0, 1], "start_offset": [0, 0.15], "start_min_journey": [0.15, 1.0],
    "hold_radius": [0, 0.05], "hold_min_songs": [3, 9], "corridor_bands": [0, 2], "j_move_bands": [0, 1.5], "j_hold": [0, 0.0125],
+   "pers_bucket_bands": [0, 0.5], "hold_min_pool": [0, 24], "pers_jitter_bands": [0, 0.25],
+   "pers_jitter_evidence": "[derived] 흔들기 폭 상한 0.25 band: 머묾 정리(도착한 곡의 키 ≤ j_hold + 폭 < 가장 작은 비영 팔 0.02 → 폭 < 0.0075 = 0.3 band)와 이동 정리(J 1.5 band + 폭 < 2 band)를 모두 지키는 칸 폭(pers_bucket_bands 0.25)과 같은 값. 엔진은 흔든 값을 다시 J 로 자르므로 이 상한은 이중 방어다.",
+   "bounds_diversity_evidence": "[derived] pers_bucket_bands 상한 0.5 = P0 전환 비용 최댓값(Σ base_weights_bands × scale = 0.5 band) — 그보다 크면 P0 전환 비용 전체가 한 칸 안에 들어가 순위에서 사라진다. hold_min_pool 상한 24 = 2 × hold.min_pool(12).",
    "adj_w_bands_each": [0, 2.0], "bpm_scale": [30, 120], "spoken_scale": [0.25, 1.0], "lambda_max": 0.25,
    "soft_min_pool": [12, 48], "exclude_ids_max": 150, "replay_ids_max": 50, "replay_max": [0, 1], "calib_axis": [-0.10, 0.10],
    "bounds_evidence": "[derived] sanitizePersonal 이 받은 정책을 여기에 맞춰 자른다(잘못된 로그·앱 버그에 대한 이중 방어). μ 상한은 max(taste.mu_max, preference.pref_weight), λ 하한은 min(0.1, path.jump_weight), 가수 상한은 [1, diversity.max_per_artist] — 기존 절에서 읽는다.",

@@ -158,8 +158,8 @@ export function neutralPolicy(rules) {
     v: 1, schema: "wp-policy/1", digest: "neutral", model_digest: null,
     stress: null, high_stress: false,
     tp: null, quit_frac: null, start_offset: 0, start_min_journey: rules.personalization.start.min_journey,
-    hold_radius: 0, hold_min_songs: rules.personalization.hold.min_songs, hold_order: "fit",
-    corridor_bands: null, j_move: null, j_hold: null,
+    hold_radius: 0, hold_min_songs: rules.personalization.hold.min_songs, hold_order: "fit", hold_min_pool: 0, hold_cluster: false, hold_path_q: false,
+    corridor_bands: null, j_move: null, j_hold: null, pers_bucket: null, hold_break: null, pers_jitter: null,
     mu: Number(rules.preference.pref_weight || 0), taste_features: null,
     adj_w: { tempo: 0, vocal: 0, spoken: 0, genre: 0 },
     bpm_scale: ZA.bpm_scale, spoken_scale: ZA.spoken_scale, half_double_fold: false,
@@ -177,8 +177,11 @@ export function p0Policy(rules, exclude_ids = []) {
   for (const [f, b] of Object.entries(Z.adjacency.base_weights_bands)) adj_w[f] = band * b * Z.adjacency.scale;
   return {
     ...neutralPolicy(rules), digest: "p0",
-    hold_radius: Z.hold.p0_radius, hold_order: Z.hold.order,
+    hold_radius: Z.hold.p0_radius, hold_order: Z.hold.order, hold_min_pool: Z.hold.min_pool ?? 0, hold_cluster: Z.hold.cluster === true, hold_path_q: Z.hold.quantize_path === true,
     corridor_bands: Z.safety.corridor_bands, j_move: Z.safety.j_move_bands * band, j_hold: Z.safety.j_hold,
+    pers_bucket: Z.safety.pers_bucket_bands == null ? null : Z.safety.pers_bucket_bands * band,
+    hold_break: Z.hold.cluster_break === "j_hold" ? Z.safety.j_hold : null,
+    pers_jitter: Z.safety.pers_mode === "perturb" && Z.safety.pers_bucket_bands != null ? Z.safety.pers_bucket_bands * band : null,
     mu: 0, adj_w, artist_cap_by_key: true, exclude_ids,
   };
 }
@@ -191,7 +194,13 @@ export function randomPolicy(r, rules, catalog, { spec = true } = {}) {
   for (const f of Object.keys(P.adj_w)) P.adj_w[f] = r() * 2.2 * band;
   P.lambda = 0.05 + r() * 0.25;
   P.hold_radius = r.pick(Z.hold.arms);
-  P.hold_order = r.pick(["fit", "last_fixed_progress", "last_fixed_smooth"]);
+  P.hold_order = r.pick(["fit", "last_fixed_progress", "last_fixed_turn", "last_fixed_smooth"]);
+  P.hold_min_pool = r.pick([0, 0, 6, 12, 24]);
+  P.hold_cluster = r.chance(0.5);
+  P.hold_path_q = r.chance(0.5);
+  P.pers_bucket = r.pick([null, 0, band / 8, band / 4, band / 2]);
+  P.hold_break = r.pick([null, null, Z.safety.j_hold, r() * Z.safety.j_hold]);   // 묶음 깨기 비용(20260930)
+  P.pers_jitter = r.pick([null, null, 0, band / 8, band / 4]);                    // 개인 비용 흔들기(20260930)
   if (!spec) { P.corridor_bands = r.pick([null, 0, 1, 2, 1.5]); P.j_move = r.chance(0.2) ? null : r() * 1.6 * band; P.j_hold = r.chance(0.2) ? null : r() * 0.013; }
   if (r.chance(0.4)) P.discovery_u = r();
   if (r.chance(0.3)) P.tp = 0.5 + r() * 0.5;

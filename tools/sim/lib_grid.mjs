@@ -20,8 +20,10 @@ function labelsOf(sc, vocab) {
 }
 const compact = (sc, res) => {
   const m = pathShape(res);
+  /* 경유지 열쇠(B6g: P0 정책과 2.5.1 의 경유지가 같은가) — 경유지 배열 대신 짧은 문자열만 남긴다 */
+  const wpkey = m ? m.waypoints.map((p) => `${p[0]},${p[1]}`).join(";") : null;
   if (m) delete m.waypoints;
-  return { sc, m, ids: res.sequence.map((x) => x.song_id) };
+  return { sc, m, ids: res.sequence.map((x) => x.song_id), wpkey };
 };
 
 /** personalization.<path> 를 value 로 바꾼 규칙 사본 ("personalization." 접두어는 있어도 없어도 된다) */

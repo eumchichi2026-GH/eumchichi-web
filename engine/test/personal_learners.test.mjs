@@ -20,21 +20,23 @@ function calibRec(id, at, { label = "불안해요", table = { v: 0.3, e: 0.72 },
   return wpRec(id, at, { path: ["S0001"], input });
 }
 
-test("좌표 보정 계산 예 — 「불안해요」를 세 번 활력 −0.10 쪽으로 끌면 δ = −0.077 (§4.1.2)", () => {
+test("좌표 보정 계산 예 — 「불안해요」를 세 번 활력 −0.10 쪽으로 끌면 δ = −0.094 (§4.1.2; w_edit 1 → 3 변경 20260929, 이전 예 −0.077)", () => {
+  const W = RULES.personalization.calib.w_edit;   // 직접 옮김 가중(규칙 값)
   const recs = [0, 1, 2].map((k) => calibRec("c" + k, T0, { fin: { v: 0.3, e: 0.62 } }));
   const { model } = modelOf(rawOf({ recs, as_of_ms: T0 }), IDX);
   const r = model.calib.current.labels["불안해요"];
-  const g = -0.30 / (3 + 4);
+  const g = -0.30 * W / (3 * W + 4);
   near(model.calib.current.g.de, g);
-  near(r.de, (-0.30 + 2 * g) / (3 + 2), 1e-9, "δ");
-  assert.equal(Math.round(r.de * 1000) / 1000, -0.077);
+  near(r.de, (-0.30 * W + 2 * g) / (3 * W + 2), 1e-9, "δ");
+  if (W === 3) assert.equal(Math.round(r.de * 1000) / 1000, -0.094);
+  if (W === 1) assert.equal(Math.round(r.de * 1000) / 1000, -0.077);
   near(r.dv, 0);
   assert.equal(r.n_edit, 3);
   assert.equal(r.applied, true);
   const c = P.calibratePoint(model, "current", CHIP("불안해요"), { v: 0.3, e: 0.72 }, RULES);
   assert.equal(c.point.v, 0.3);
-  assert.equal(Math.round(c.point.e * 1000) / 1000, 0.643);   // 다음엔 (0.30, 0.643)에서 시작
-  near(c.applied.de, (-0.30 + 2 * g) / 5, 1e-8);
+  near(c.point.e, 0.72 + (-0.30 * W + 2 * g) / (3 * W + 2), 1e-6);   // 다음엔 (0.30, 0.626)에서 시작(w_edit 3; 1 이면 0.643)
+  near(c.applied.de, (-0.30 * W + 2 * g) / (3 * W + 2), 1e-8);
   assert.deepEqual(c.basis, { label: "불안해요", n_edit: 3 });
   // labels 전체({current, target})를 넘겨도 같다
   assert.deepEqual(P.calibratePoint(model, "current", { current: CHIP("불안해요") }, { v: 0.3, e: 0.72 }, RULES).point, c.point);
@@ -62,13 +64,14 @@ test("좌표 보정 — 옮김이 문턱(단어 2번·필드 4번) 미만이면 
 test("좌표 보정 — 0.5 넘기 보호: 같은 방향 옮김 4번 미만이면 중립에서 멈춘다", () => {
   const table = { v: 0.45, e: 0.5 };
   const mk = (n) => modelOf(rawOf({ recs: Array.from({ length: n }, (_, k) => calibRec("x" + k, T0, { label: "테스트", table, fin: { v: 0.55, e: 0.5 } })), as_of_ms: T0 }), IDX).model;
+  const W = RULES.personalization.calib.w_edit;   // 직접 옮김 가중(20260929 에 1 → 3)
   const m3 = mk(3);
-  near(m3.calib.current.labels["테스트"].dv, (0.3 + 2 * (0.3 / 7)) / 5);
+  near(m3.calib.current.labels["테스트"].dv, (0.3 * W + 2 * (0.3 * W / (3 * W + 4))) / (3 * W + 2));
   const c3 = P.calibratePoint(m3, "current", CHIP("테스트"), table, RULES);
   near(c3.point.v, 0.5);   // 0.527 이 되려 했지만 0.5 에서 멈춤
   const m4 = mk(4);
   const c4 = P.calibratePoint(m4, "current", CHIP("테스트"), table, RULES);
-  near(c4.point.v, 0.45 + (0.4 + 2 * 0.05) / 6);
+  near(c4.point.v, 0.45 + (0.4 * W + 2 * (0.4 * W / (4 * W + 4))) / (4 * W + 2));
   assert.ok(c4.point.v > 0.5);
 });
 
@@ -82,6 +85,7 @@ test("좌표 보정 — 축마다 |δ| ≤ 0.10, 마지막에 nlClamp [0.04, 0.9
 });
 
 test("좌표 보정 — 탭은 관측이 아니고, 받아들임은 가중 0.25", () => {
+  const W = RULES.personalization.calib.w_edit;
   const tap = wpRec("t0", T0, { path: ["S0001"], input: { labels: { current: { mode: "tap" }, target: { mode: "tap" } }, table_point: { current: null, target: null },
                                                          nudged: { current: true, target: true } } });
   const m1 = modelOf(rawOf({ recs: [tap], as_of_ms: T0 }), IDX).model;
@@ -91,17 +95,17 @@ test("좌표 보정 — 탭은 관측이 아니고, 받아들임은 가중 0.25"
   const m2 = modelOf(rawOf({ recs: [acc], as_of_ms: T0 }), IDX).model;
   near(m2.calib.current.labels["불안해요"].W, 0.25);
   assert.equal(m2.calib.current.labels["불안해요"].n_edit, 0);
-  // 보정된 점을 받아들이면 그 보정을 약하게 강화한다: 옮김 3 + 보정점 받아들임 1 → W = 3.25
+  // 보정된 점을 받아들이면 그 보정을 약하게 강화한다: 옮김 3(가중 w_edit) + 보정점 받아들임 1 → W = 3·w_edit + 0.25
   const recs = [0, 1, 2].map((k) => calibRec("c" + k, T0, { fin: { v: 0.3, e: 0.62 } }));
   recs.push(calibRec("c3", T0, { fin: { v: 0.3, e: 0.643 }, nudged: false }));
   const m3 = modelOf(rawOf({ recs, as_of_ms: T0 }), IDX).model;
-  near(m3.calib.current.labels["불안해요"].W, 3.25);
+  near(m3.calib.current.labels["불안해요"].W, 3 * W + 0.25);
 });
 
 test("좌표 보정 — 60일 반감 (§3.6)", () => {
   const recs = [0, 1, 2].map((k) => calibRec("c" + k, T0, { fin: { v: 0.3, e: 0.62 } }));
   const m = modelOf(rawOf({ recs, as_of_ms: T0 + 60 * DAY }), IDX).model;
-  near(m.calib.current.labels["불안해요"].W, 1.5, 1e-9);
+  near(m.calib.current.labels["불안해요"].W, 1.5 * RULES.personalization.calib.w_edit, 1e-9);   // 옮김 3 × w_edit × ½
 });
 
 test("좌표 보정 — 자연어 두 단어는 강도 비율로 나눠 준다", () => {
@@ -109,8 +113,9 @@ test("좌표 보정 — 자연어 두 단어는 강도 비율로 나눠 준다",
     labels: { current: { mode: "nl", nl: [{ label: "불안해요", intensity: 2 }, { label: "지쳤어요", intensity: 1 }] }, target: CHIP("차분해지고 싶어요") },
     table_point: { current: { v: 0.3, e: 0.56 }, target: { v: 0.6, e: 0.3 } }, current_va: { v: 0.3, e: 0.46 }, nudged: { current: true, target: false } } });
   const { model } = modelOf(rawOf({ recs: [rec], as_of_ms: T0 }), IDX);
-  near(model.calib.current.labels["불안해요"].W, 2 / 3);
-  near(model.calib.current.labels["지쳤어요"].W, 1 / 3);
+  const W = RULES.personalization.calib.w_edit;
+  near(model.calib.current.labels["불안해요"].W, 2 * W / 3);
+  near(model.calib.current.labels["지쳤어요"].W, W / 3);
 });
 
 test("좌표 보정 — 옛 기록은 칩·자연어 좌표와 정확히 같을 때만 받아들임 관측 (심사 C-7)", () => {
@@ -426,14 +431,37 @@ test("소프트 말 많은 곡 게이트 — vocal_bother 2번(30일 안)이면 
 
 test("게이트 — 세션 코드는 사용자 1 · AI 0.5, 말 비중 '높음'이 아닌 곡의 vocal_bother 는 세지 않는다", () => {
   const low = makeCatalog(240).find((s) => s.spokenness < 0.2).song_id;
-  const recs = [0, 1].map((k) => wpRec("v" + k, T0 + k * DAY, { path: [low, "S0001"] }));
+  /* 세션 코드 확인(corroborate_codes, 20260929): 그 세션에 말 비중 '높음' 경로 곡을 조기 넘김한 일이 있어야 코드를 센다 — 두 세션 모두 talky 곡을 넘김 */
+  const recs = [0, 1].map((k) => wpRec("v" + k, T0 + k * DAY, { path: [talky[k], low, "S0001"] }));
   const events = [postChange("v0", T0 + MIN, { reasons: { vocal_bother: "user" } }), postChange("v1", T0 + DAY + MIN, { reasons: { vocal_bother: "ai" } }),
-                  ev("v1", T0 + DAY + 2 * MIN, "dislike_reason", { song_id: low, reason: "vocal_bother", position: 1 })];
+                  ev("v1", T0 + DAY + 2 * MIN, "dislike_reason", { song_id: low, reason: "vocal_bother", position: 2 }),
+                  ...plays("v0", T0, [{ song: talky[0], c: 0.1, listened: 20 }]), ...plays("v1", T0 + DAY, [{ song: talky[1], c: 0.1, listened: 20 }])];
   const m = modelOf(rawOf({ recs, events, as_of_ms: T0 + 2 * DAY }), IDX).model;
   assert.equal(m.gates.evidence.vocal_bother_w, 1.5);
-  assert.deepEqual(m.gates.soft, []);
+  assert.equal(m.gates.evidence.vocal_bother_n, 2, "설명용 횟수는 가중 없이(코드 2번 — 말 비중이 낮은 곡의 싫어요는 세지 않는다)");
+  assert.equal(RULES.personalization.gates.soft_spoken.vocal_bother_min <= 1.5, m.gates.soft.length > 0);
   assert.deepEqual(P.resolvePolicy(m, { now: LOW, minutes: 30, lyric: "instrumental_only" }, RULES).meta.relax_order, RULES.personalization.relax.order_vocal_bother);
   assert.deepEqual(P.resolvePolicy(m, { now: LOW, minutes: 30 }, RULES).meta.relax_order, RULES.personalization.relax.order_default);
+});
+
+test("게이트 — 세션 코드 확인: 말 비중 '높음' 곡을 넘긴 일이 없는 세션의 '가사·목소리가 거슬려요' 는 세지 않는다 (20260929)", () => {
+  assert.equal(RULES.personalization.gates.soft_spoken.corroborate_codes, true);
+  const low = makeCatalog(240).find((s) => s.spokenness < 0.2).song_id;
+  const recs = [0, 1].map((k) => wpRec("w" + k, T0 + k * DAY, { path: [talky[k], low] }));
+  const code = (id, at, positions) => postChange(id, at, { reasons: { vocal_bother: "user" }, ...(positions ? { positions } : {}) });
+  // (1) talky 곡을 끝까지 들음 → 코드 무시
+  const kept = modelOf(rawOf({ recs, events: [code("w0", T0 + 5 * MIN), ...plays("w0", T0, [{ song: talky[0], c: 1 }])], as_of_ms: T0 + 2 * DAY }), IDX).model;
+  assert.equal(kept.gates.evidence.vocal_bother_w, 0);
+  // (2) talky 곡을 넘겼지만 코드의 위치는 다른 곡(2번) → 무시 · 위치 1 이면 센다
+  const ev2 = (pos) => [code("w0", T0 + 5 * MIN, [pos]), ...plays("w0", T0, [{ song: talky[0], c: 0.1, listened: 20 }])];
+  assert.equal(modelOf(rawOf({ recs, events: ev2(2), as_of_ms: T0 + 2 * DAY }), IDX).model.gates.evidence.vocal_bother_w, 0);
+  assert.equal(modelOf(rawOf({ recs, events: ev2(1), as_of_ms: T0 + 2 * DAY }), IDX).model.gates.evidence.vocal_bother_w, 1);
+  // (3) 곡 단위 싫어요(말 비중 '높음' 곡)는 확인 없이 센다
+  const dis = modelOf(rawOf({ recs, events: [ev("w0", T0 + MIN, "dislike_reason", { song_id: talky[0], reason: "vocal_bother", position: 1 })], as_of_ms: T0 + 2 * DAY }), IDX).model;
+  assert.equal(dis.gates.evidence.vocal_bother_w, 1);
+  // 규칙에서 끄면 이전 동작(코드를 그대로 센다)
+  const R2 = JSON.parse(JSON.stringify(RULES)); R2.personalization.gates.soft_spoken.corroborate_codes = false;
+  assert.equal(modelOf(rawOf({ recs, events: [code("w0", T0 + 5 * MIN)], as_of_ms: T0 + 2 * DAY }), IDX, R2).model.gates.evidence.vocal_bother_w, 1);
 });
 
 test("게이트 (b) — 말 비중 '높음' 묶음의 축소 점수가 내 평균의 절반 이하이고 표 6개 이상이면 켜짐", () => {
@@ -512,7 +540,7 @@ test("다시 넣기 일시정지 — 다시 넣은 곡이 연속 2번 조기 넘
 test("발견 칸 — μ ≥ 0.15 ∧ E ≥ 4 이면 seededUniform(seed, 'discovery'), 고긴장·기준 실행은 없음 (§4.7.4)", () => {
   const liked = ["S0001", "S0002", "S0003", "S0004", "S0005", "S0006"];
   const m = modelOf(rawOf({ profile: { likedSongs: liked } }), IDX).model;
-  near(m.taste.mu, 0.5 * 6 / 14);
+  near(m.taste.mu, RULES.personalization.taste.mu_max * 6 / 14);   // μ = mu_max·E/(E+8)
   const ctx = { now: LOW, minutes: 30, seed: "u:2026-09-28:3" };
   assert.equal(P.resolvePolicy(m, ctx, RULES).policy.discovery_u, E.seededUniform("u:2026-09-28:3", "discovery"));
   assert.equal(P.resolvePolicy(m, { ...ctx, seed: undefined }, RULES).policy.discovery_u, 0.5);

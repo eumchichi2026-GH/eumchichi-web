@@ -16,6 +16,7 @@ import { SIM } from "./personas.mjs";
 
 const now = () => performance.now();
 const PATH_KEYS = ["tp", "start_offset", "quit_frac", "hold_radius"];
+const pickPM = (m) => (m ? { n: m.n, arrival: m.arrival, max_jump: m.max_jump, reversals: m.reversals, hold_zigzag: m.hold_zigzag } : null);
 
 /** 도구가 여러 번 쓰는 파생값 — 계약 곡 목록, 말 비중 게이트 문턱(상위 20%) */
 export function makeShared(deps) {
@@ -127,6 +128,7 @@ export function runSession({ arm, persona, rep, k, at_ms, store, deps, shared, t
   const T = {};
   const rec0 = { persona: persona.id, rep, k, arm, at_ms, mood: plan.labels.current.chip, goal: plan.labels.target.chip, pace_user: plan.pace_user };
 
+  let policy0 = null;   // 폴백 전 개인 정책(B8 진단용)
   let final, resR = null, rec, policy = null, refPolicy = null, model = null, fallback = null, safety = null, minutes, fin, nudged, cal = {}, sug = null, extras = { extras: [] };
   let appName;
   if (arm === "twin") {
@@ -173,7 +175,7 @@ export function runSession({ arm, persona, rep, k, at_ms, store, deps, shared, t
     const out = personal.resolvePolicy(model, ctx, rules, { mode: arm === "frozen" ? "p0" : "personal" });
     T.policy_ms = now() - t;
     const ref = arm === "frozen" ? out : personal.resolvePolicy(model, ctx, rules, { mode: "p0" });
-    policy = out.policy; refPolicy = ref.policy;
+    policy = out.policy; refPolicy = ref.policy; policy0 = out.policy;
     const input = { now: { V: fin.current.v, A: fin.current.e }, target: { V: fin.target.v, A: fin.target.e }, stress, load: null, genres: [],
                     duration_min: minutes, seed, gates: [], user: out.user, pace: plan.pace_user, personal: out.policy };
     t = now();
@@ -185,14 +187,23 @@ export function runSession({ arm, persona, rep, k, at_ms, store, deps, shared, t
     T.runR_ms = now() - t;
     safety = personal.safetyCheck(resA, resR, rules);
     final = resA; let finalInput = input, usedPolicy = out.policy, usedOut = out;
+    const pathDiff = arm !== "frozen" && typeof personal.pathParamsDiffer === "function" && personal.pathParamsDiffer(out.policy, ref.policy);
+    if (safety && safety.ok === false && pathDiff) {
+      /* §2.2 7(2026-09-29): A 가 R 에 대해 위반이고 경로 모수가 P0 와 다르면 R_path(곡 레인 P0 + A 경로 모수)를 돌려 두 레인으로 다시 판정 */
+      const rp = personal.resolvePolicy(model, ctx, rules, { mode: "path" });
+      const resRp = engine.recommend(shared.contract, rules, { ...input, user: rp.user, personal: rp.policy });
+      safety = personal.safetyCheck(resA, resR, rules, { resRp });
+    }
     if (safety && safety.ok === false && arm !== "frozen") {
-      /* §2.2 7: 경로 모수(tp·s·이탈 가드·r)를 P0 로 되돌린 A′(resolvePolicy mode "geometry") → 다시 확인 → 그래도 위반이면 R */
-      const geo = personal.resolvePolicy(model, ctx, rules, { mode: "geometry" });
-      const in2 = { ...input, user: geo.user, personal: geo.policy };
-      const res2 = engine.recommend(shared.contract, rules, in2);
-      const s2 = personal.safetyCheck(res2, resR, rules);
-      if (s2 && s2.ok !== false) { final = res2; finalInput = in2; usedPolicy = geo.policy; usedOut = geo; fallback = "geometry"; }
-      else { final = resR; finalInput = inputR; usedPolicy = ref.policy; usedOut = ref; fallback = "p0"; }
+      if (pathDiff) {
+        /* 경로 모수(tp·s·이탈 가드·r)를 P0 로 되돌린 A′(resolvePolicy mode "geometry") → R 에 대해 다시 확인 → 그래도 위반이면 R */
+        const geo = personal.resolvePolicy(model, ctx, rules, { mode: "geometry" });
+        const in2 = { ...input, user: geo.user, personal: geo.policy };
+        const res2 = engine.recommend(shared.contract, rules, in2);
+        const s2 = personal.safetyCheck(res2, resR, rules);
+        if (s2 && s2.ok !== false) { final = res2; finalInput = in2; usedPolicy = geo.policy; usedOut = geo; fallback = "geometry"; }
+        else { final = resR; finalInput = inputR; usedPolicy = ref.policy; usedOut = ref; fallback = "p0"; }
+      } else { final = resR; finalInput = inputR; usedPolicy = ref.policy; usedOut = ref; fallback = "p0"; }   // 경로 모수 = P0 → A′ ≡ A
     }
     const fillRatio = Number(rules.personalization && rules.personalization.extras && rules.personalization.extras.fill_ratio) || 0.85;
     t = now();
@@ -264,7 +275,7 @@ export function runSession({ arm, persona, rep, k, at_ms, store, deps, shared, t
     calib_applied: { current: cal.current ? cal.current.applied ?? null : null, target: cal.target ? cal.target.applied ?? null : null },
     n_path: pathIds.length, n_extra: (extras.extras || []).length + (arm === "twin" ? seqRows.filter((r) => r.role === "extra").length : 0),
     path_ids: pathIds, ref_ids: refIds, changed_n: refIds ? pathIds.filter((id) => !refIds.includes(id)).length : null,
-    shape: shape && { arrival: shape.arrival, maxJump: shape.maxJump, back: shape.back, turns: shape.turns, holdZig: shape.holdZig, start: shape.start,
+    shape: shape && { arrival: shape.arrival, maxJump: shape.maxJump, back: shape.back, turns: shape.turns, turn_at: shape.turn_at, holdZig: shape.holdZig, start: shape.start,
                       arrival_index: shape.arrival_index, n: shape.n, hold_ids: shape.hold_ids, last_id: shape.last_id },
     ref_shape: resR && arm !== "twin" ? (() => { const s = pathShape(resR); return s && { arrival: s.arrival, maxJump: s.maxJump }; })() : null,
     wp_same_as_ref: wpSame,
@@ -287,6 +298,11 @@ export function runSession({ arm, persona, rep, k, at_ms, store, deps, shared, t
     policy: policySummary(policy, rules), ref_policy: refPolicy ? { tp: refPolicy.tp ?? null, hold_radius: refPolicy.hold_radius ?? null } : null,
     params: rec.input && rec.input.personal_meta ? rec.input.personal_meta.params || null : null,
     model: ms, fallback, safety_ok: safety ? safety.ok !== false : null, safety_violations: safety && safety.violations ? [...safety.violations] : [],
+    /* B8 진단: 위반한 세션의 A·R 경로 지표(safetyCheck 가 준 pathMetrics)와 A 가 경로 모수(tp·s·이탈 가드·r)를 P0 에서 바꿨는가 */
+    safety_detail: safety && safety.ok === false ? { A: pickPM(safety.A), R: pickPM(safety.R), Rp: pickPM(safety.Rp), lane: safety.lane ?? null } : null,
+    /* 2026-09-29 두 레인 안전 확인: R_path 를 돌렸는가(경로 모수가 P0 와 다르고 A 가 R 에 대해 위반) · 판정 레인(null | "path" | "song") */
+    safety_rp: !!(safety && safety.Rp), safety_lane: safety ? safety.lane ?? null : null,
+    path_personalized: policy0 && refPolicy ? (Array.isArray(personal && personal.PATH_PARAM_KEYS) ? personal.PATH_PARAM_KEYS : PATH_KEYS).some((key) => (policy0[key] ?? null) !== (refPolicy[key] ?? null)) : null,
     stress: rec.input ? rec.input.stress ?? null : null, timing: T,
   };
 }

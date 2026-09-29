@@ -26,17 +26,18 @@ export function pathShape(res) {
   const t = wp.at(-1);
   let hs = s.length - 1; while (hs > 0 && d(wp[hs - 1], t) < 1e-9) hs--;   // 머묾 구간 시작
   let back = 0, moveSteps = 0, turns = 0, holdTurns = 0, len = 0;
+  const turnAt = [];   // 꺾임 꼭짓점 위치(머묾 첫 곡 = 0 기준) — 진단용
   for (let i = 1; i < c.length; i++) {
     len += d(c[i], c[i - 1]);
     if (i <= hs) { moveSteps++; if (d(c[i], t) > d(c[i - 1], t) + SHAPE.back_tol) back++; }
     if (i + 1 < c.length) {
       const u = [c[i][0] - c[i - 1][0], c[i][1] - c[i - 1][1]], v = [c[i + 1][0] - c[i][0], c[i + 1][1] - c[i][1]];
-      if (Math.hypot(...u) > SHAPE.turn_min && Math.hypot(...v) > SHAPE.turn_min && u[0] * v[0] + u[1] * v[1] < 0) { turns++; if (i >= hs) holdTurns++; }
+      if (Math.hypot(...u) > SHAPE.turn_min && Math.hypot(...v) > SHAPE.turn_min && u[0] * v[0] + u[1] * v[1] < 0) { turns++; turnAt.push(i - hs); if (i >= hs) holdTurns++; }
     }
   }
   const hold = c.slice(hs);
   return {
-    n: s.length, back, moveSteps, turns, holdTurns, len, journey: d(wp[0], t),
+    n: s.length, back, moveSteps, turns, holdTurns, turn_at: turnAt, len, journey: d(wp[0], t),
     hold_n: hold.length,
     holdZig: hold.length >= 2 ? d(hold.at(-1), t) > Math.min(...hold.map((p) => d(p, t))) + 1e-9 : null,
     start: d(c[0], wp[0]), arrival: d(c.at(-1), t),

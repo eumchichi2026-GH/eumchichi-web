@@ -5,6 +5,7 @@ import { P, RULES, T0, DAY, MIN, makeCatalog, makeIndex, song, wpRec, fwRec, pla
 
 const AS_OF = T0 + 10 * DAY;
 const LOW = { v: 0.6, e: 0.5 }, HIGH = { v: 0.3, e: 0.72 };
+const SC = RULES.personalization.adjacency.scale;   // 기본 전환 비용 scale(D7 스윕으로 정한 규칙 값) — 계산 예는 이 값을 곱해 비교한다
 const SONGS = [
   song("A", { tempo: 0.1 }), song("B", { tempo: 0.9 }), song("C", { tempo: 0.15 }), song("D", { tempo: 0.1, instrumental: true }),
   song("F", { tempo: 0.1, spokenness: 0.8 }), song("G", { tempo: 0.1, genres: ["재즈"] }), song("H", { tempo: 0.1, V: 0.97, A: 0.97 }),
@@ -45,8 +46,8 @@ test("전환 배수 계산 예 — 빠르기 민감(큰 변화 8번 중 4번, �
   assert.equal(A.m_applied.tempo, A.m.tempo);
   // 정책: 빠르기 전환 비용 = band · 0.4 · scale · m_tempo
   const pol = P.resolvePolicy(m, { now: LOW, minutes: 30 }, RULES).policy;
-  near(pol.adj_w.tempo, 0.025 * 0.4 * 1 * A.m.tempo, 1e-9);
-  near(pol.adj_w.vocal, 0.025 * 0.3, 1e-12);
+  near(pol.adj_w.tempo, 0.025 * 0.4 * SC * A.m.tempo, 1e-9);
+  near(pol.adj_w.vocal, 0.025 * 0.3 * SC, 1e-12);
   assert.equal(pol.lambda, 0.1);
   // 설명: 횟수로 말한다
   const c = m.counts_for_explain.adjacency.tempo;
@@ -107,11 +108,11 @@ test("V/A 전환 가중 λ = clamp(0.1 · m_va, 0.1, 0.25) — 느슨해지지 �
 test("고긴장 — 전환 배수는 1 이상(더 엄격하게만) (I5)", () => {
   const m = modelFrom([bare({ transitions: trs(40, 2, 40, 20) })]);
   assert.equal(m.adjacency.m_applied.tempo, 0.5);
-  near(P.resolvePolicy(m, { now: LOW, minutes: 30 }, RULES).policy.adj_w.tempo, 0.025 * 0.4 * 0.5, 1e-12);
-  near(P.resolvePolicy(m, { now: HIGH, minutes: 30 }, RULES).policy.adj_w.tempo, 0.025 * 0.4, 1e-12);
+  near(P.resolvePolicy(m, { now: LOW, minutes: 30 }, RULES).policy.adj_w.tempo, 0.025 * 0.4 * SC * 0.5, 1e-12);
+  near(P.resolvePolicy(m, { now: HIGH, minutes: 30 }, RULES).policy.adj_w.tempo, 0.025 * 0.4 * SC, 1e-12);
   assert.equal(P.resolvePolicy(m, { now: HIGH, minutes: 30 }, RULES).meta.params.m.tempo, 1);
   // 기준 실행 R 은 학습 배수를 쓰지 않는다
-  near(P.resolvePolicy(modelFrom([bare({ transitions: trs(8, 4, 10, 1) })]), { now: LOW, minutes: 30 }, RULES, { mode: "p0" }).policy.adj_w.tempo, 0.025 * 0.4, 1e-12);
+  near(P.resolvePolicy(modelFrom([bare({ transitions: trs(8, 4, 10, 1) })]), { now: LOW, minutes: 30 }, RULES, { mode: "p0" }).policy.adj_w.tempo, 0.025 * 0.4 * SC, 1e-12);
 });
 
 test("전환 귀속분 — 큰 빠르기 변화 뒤 넘긴 곡의 취향 표는 (1 − a) 배, a = 1 − 1/m_tempo (§4.8.4)", () => {
@@ -198,4 +199,27 @@ test("옛 기록의 전환 — 재생 순서로 잇고 가중 × 0.5", () => {
   const t = norm.sessions[0].transitions;
   assert.equal(t.length, 1);
   assert.deepEqual({ pair: t[0].prev + ">" + t[0].cur, y: t[0].label, w: t[0].w, source: t[0].source }, { pair: "A>B", y: 1, w: 0.5, source: "legacy" });
+});
+
+test("시작 오프셋 전환 통제(start.expect_transition, 20260929) — 이동 곡의 기대 거절에 들어온 큰 변화의 적합 배수를 곱한다", () => {
+  /* 이동 곡은 큰 빠르기 변화 뒤에서만 넘김(전환 민감), 첫 곡은 절반 넘김. 전환 통제가 있으면 이동 곡의 기대 거절이 커져
+     첫 곡의 초과 거절 비율(ratio)이 커진다 — 첫 곡엔 들어온 전환이 없으므로 같은 기준으로 비교하려면 이동 곡에서 전환 몫을 빼야 한다. */
+  const songs = [], recs = [], events = [];
+  for (let k = 0; k < 8; k++) {
+    const ids = ["a", "b", "c", "d"].map((x) => `X${k}${x}`);
+    songs.push(song(ids[0], { tempo: 0.1 }), song(ids[1], { tempo: 0.12 }), song(ids[2], { tempo: 0.9 }), song(ids[3], { tempo: 0.88 }));
+    const at = T0 + k * DAY;
+    recs.push(wpRec("x" + k, at, { path: ids }));
+    events.push(...plays("x" + k, at, [{ song: ids[0], c: k % 2 ? 0.1 : 1, listened: k % 2 ? 20 : undefined }, { song: ids[1], c: 1 },
+                                         { song: ids[2], c: 0.1, listened: 20 }, { song: ids[3], c: 1 }]));
+  }
+  const idx = makeIndex([...makeCatalog(40), ...songs]);
+  const on = modelOf(rawOf({ recs, events, as_of_ms: T0 + 9 * DAY }), idx).model;
+  const R2 = JSON.parse(JSON.stringify(RULES)); R2.personalization.start.expect_transition = false;
+  const off = modelOf(rawOf({ recs, events, as_of_ms: T0 + 9 * DAY }), idx, R2).model;
+  assert.equal(RULES.personalization.start.expect_transition, true);
+  assert.ok(on.adjacency.m.tempo > 1, `m_tempo ${on.adjacency.m.tempo}`);
+  assert.ok(on.start.ratio !== null && off.start.ratio !== null);
+  assert.ok(on.start.ratio > off.start.ratio, `ratio ${on.start.ratio} vs ${off.start.ratio}`);
+  assert.equal(on.start.n1, off.start.n1);   // 첫 곡 쪽은 그대로
 });

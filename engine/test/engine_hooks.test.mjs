@@ -11,6 +11,7 @@ import { loadRules, makeCatalog, makeRng, randomInputs, randomItems, randomPolic
 const rules = loadRules();
 const Z = rules.personalization;
 const band = Number(rules.preference.band);
+const R6 = (x) => Math.round(x * 1e6) / 1e6;
 const catalog = makeCatalog(rules);
 const byId = new Map(catalog.map((s) => [s.song_id, s]));
 const coords = E.workingCoords(catalog, rules);
@@ -97,9 +98,132 @@ test("두 레인(I3): 경로 모수가 같으면 취향·전환·게이트·다�
 });
 
 test("머묾 반경(§4.6): n ≥ hold_min_songs 이면 r, 아니면 0", () => {
-  assert.equal(run({ ...LONG, duration_min: 30 }, p0Policy(rules)).personal.hold_radius_used, Z.hold.p0_radius);
-  assert.equal(run({ ...LONG, duration_min: 15 }, p0Policy(rules)).personal.hold_radius_used, 0);   // 4곡
-  assert.equal(run({ ...LONG, duration_min: 15 }, { ...p0Policy(rules), hold_min_songs: 4 }).personal.hold_radius_used, Z.hold.p0_radius);
+  const fixed = { ...p0Policy(rules), hold_min_pool: 0 };   // 밀도 적응 끔 — 반경 그대로
+  assert.equal(run({ ...LONG, duration_min: 30 }, fixed).personal.hold_radius_used, Z.hold.p0_radius);
+  assert.equal(run({ ...LONG, duration_min: 15 }, fixed).personal.hold_radius_used, 0);   // 4곡
+  assert.equal(run({ ...LONG, duration_min: 15 }, { ...fixed, hold_min_songs: 4 }).personal.hold_radius_used, Z.hold.p0_radius);
+  assert.equal(run({ ...LONG, duration_min: 15 }, p0Policy(rules)).personal.hold_radius_used, 0, "곡 수가 모자라면 밀도 적응도 없다");
+});
+
+test("밀도 적응 머묾 반경(§4.6.1 변경 20260929): 반경 안 후보가 hold_min_pool 곡 미만이면 그 순번째 후보까지, 상한 hold_radius_cap(고긴장 I5)", () => {
+  const r = makeRng("hold-pool");
+  let widened = 0;
+  for (let t = 0; t < 30; t++) {
+    const inp = { ...randomInputs(r, catalog, rules), duration_min: r.pick([30, 45, 60]) };
+    for (const hs of [false, true]) {
+      const P = { ...p0Policy(rules), hold_min_pool: Z.hold.min_pool, ...(hs ? { high_stress: true } : {}) };
+      const res = run(inp, P);
+      if (res.song_count.effective < Z.hold.min_songs || !res.sequence.length) continue;
+      const S = E.sanitizePersonal(P, rules, { duration_min: inp.duration_min });
+      /* 기대값: 후보(싫어요·최근 창·게이트를 거친 곡 — 이 입력은 모두 통과)의 목표 거리 k 번째 */
+      const tgt = [res.sequence.at(-1).trace.wp_V, res.sequence.at(-1).trace.wp_A];
+      const uni = catalog.filter((s) => !(inp.user && (inp.user.disliked || []).includes(s.song_id)) && !(S.exclude_ids || []).includes(s.song_id));
+      const ds = uni.map((s) => { const c = coords.get(s.song_id); return Math.round(Math.hypot(c[0] - tgt[0], c[1] - tgt[1]) * 1e9) / 1e9; }).sort((a, b) => a - b);
+      const dk = ds[Math.min(ds.length, Z.hold.min_pool) - 1];
+      const used = res.personal.hold_radius_used;
+      assert.ok(used >= S.hold_radius - 1e-12, "좁히지 않는다");
+      assert.ok(used <= S.hold_radius_cap + 1e-12, "상한 hold_radius_cap");
+      if (hs) assert.ok(used <= Z.safety.high_stress.hold_radius_max + 1e-12, "고긴장 I5");
+      if (!(inp.gates || []).length && !(inp.genres || []).length && dk <= S.hold_radius) assert.equal(used, S.hold_radius, "후보가 충분하면 그대로");
+      if (used > S.hold_radius) widened++;
+    }
+  }
+  assert.ok(widened > 0, "합성 카탈로그(300곡)는 성겨서 넓히는 경우가 있어야 한다");
+  // 정책이 hold_min_pool 을 주지 않으면(0) 이전과 같다
+  const inp = { ...LONG, duration_min: 30, seed: "hp" };
+  assert.deepEqual(run(inp, { ...p0Policy(rules), hold_min_pool: 0 }).personal.hold_radius_used, Z.hold.p0_radius);
+});
+
+test("머묾 순서 last_fixed_turn: 곡 집합·마지막 곡은 last_fixed_progress 와 같고, (역행, 꺾임) 이 사전식으로 더 나쁘지 않다", () => {
+  const r = makeRng("hold-turn");
+  const env = Z.safety.envelope;
+  const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  const shape = (res) => {
+    const c = res.sequence.map((x) => [x.trace.song_V, x.trace.song_A]);
+    const hs = res.sequence.findIndex((x) => x.trace.p_phase === "hold");
+    const tgt = [res.sequence.at(-1).trace.wp_V, res.sequence.at(-1).trace.wp_A];
+    let turns = 0;
+    for (let i = 1; i + 1 < c.length; i++) {
+      const u = [c[i][0] - c[i - 1][0], c[i][1] - c[i - 1][1]], v = [c[i + 1][0] - c[i][0], c[i + 1][1] - c[i][1]];
+      if (Math.hypot(...u) > env.turn_min && Math.hypot(...v) > env.turn_min && u[0] * v[0] + u[1] * v[1] < 0) turns++;
+    }
+    const back = hs > 0 && d(c[hs], tgt) > d(c[hs - 1], tgt) + env.reversal_eps ? 1 : 0;
+    return { back, turns };
+  };
+  let tails = 0, better = 0;
+  for (let t = 0; t < 60; t++) {
+    const inp = { ...randomInputs(r, catalog, rules), duration_min: r.pick([30, 45, 60]) };
+    const a = run(inp, { ...p0Policy(rules), hold_order: "last_fixed_progress" });
+    const b = run(inp, { ...p0Policy(rules), hold_order: "last_fixed_turn" });
+    assert.deepEqual(b.sequence.map((x) => x.song_id).sort(), a.sequence.map((x) => x.song_id).sort(), "곡 집합 그대로");
+    const ha = a.sequence.filter((x) => x.trace.p_phase === "hold"), hb = b.sequence.filter((x) => x.trace.p_phase === "hold");
+    if (ha.length < 2) continue;
+    tails++;
+    assert.equal(hb.at(-1).song_id, ha.at(-1).song_id, "마지막(최소 fit) 곡 고정 — 지그재그 0%");
+    for (const h of hb) assert.ok(hb.at(-1).trace.va_distance <= h.trace.va_distance);
+    const sa = shape(a), sb = shape(b);
+    assert.ok(sb.back < sa.back || (sb.back === sa.back && sb.turns <= sa.turns), `역행·꺾임 ${JSON.stringify(sb)} vs ${JSON.stringify(sa)}`);
+    if (sb.back < sa.back || sb.turns < sa.turns) better++;
+  }
+  assert.ok(tails > 25, `머묾 2곡 이상 ${tails}`);
+});
+
+test("도착 상한(20260929): 머묾 걸음의 '반경 안'(거리 0·가점 허용)은 min(r, 마지막 이동 곡의 목표 거리 + reversal_eps) 까지만", () => {
+  /* 머묾 곡의 p_corridor(가점 허용) = fit ≤ 도착 상한. 이동 곡은 재배열되지 않으므로 마지막 이동 곡 = 최종 경로의 seq[hs − 1] */
+  const r = makeRng("arrive-cap");
+  const eps = Z.safety.envelope.reversal_eps;
+  let checked = 0, capped = 0;
+  for (let t = 0; t < 60; t++) {
+    const inp = { ...randomInputs(r, catalog, rules), duration_min: r.pick([30, 45, 60]) };
+    const res = run(inp, { ...p0Policy(rules), hold_radius: Z.bounds.hold_radius[1], hold_min_pool: 0, hold_cluster: false });   // 묶음은 아래 따로
+    const seq = res.sequence;
+    const hs = seq.findIndex((x) => x.trace.p_phase === "hold");
+    /* 여정 0(지금 = 목표)은 모든 경유지가 목표라 이동 곡도 머묾 재배열에 섞인다(2.5.1 부터의 퇴화 경우) — 건너뜀 */
+    if (hs < 1 || res.song_count.journey < 0.05 || seq.slice(hs).some((x) => x.trace.p_phase !== "hold")) continue;
+    const tgt = [seq.at(-1).trace.wp_V, seq.at(-1).trace.wp_A];
+    const c = coords.get(seq[hs - 1].song_id);
+    const cap = Math.min(res.personal.hold_radius_used, Math.hypot(c[0] - tgt[0], c[1] - tgt[1]) + eps);
+    if (cap < res.personal.hold_radius_used) capped++;
+    for (const x of seq.slice(hs)) {
+      if (Math.abs(x.trace.va_distance - cap) < 1e-5) continue;   // 경계(표시 반올림) 근처는 건너뜀
+      checked++;
+      assert.equal(x.trace.p_corridor, x.trace.va_distance < cap, `fit ${x.trace.va_distance} · 상한 ${cap}`);
+    }
+  }
+  assert.ok(checked > 50 && capped > 0, `검사 ${checked} · 상한이 반경보다 좁았던 경우 ${capped}`);
+});
+
+test("머묾 묶음(hold_cluster, 20260929): '도착한' 머묾 곡(p_corridor)끼리는 서로 turn_min 안 — 모두 도착한 곡이면 머묾 안 90° 꺾임 0", () => {
+  const r = makeRng("hold-cluster");
+  const tm = Z.safety.envelope.turn_min;
+  const dense = makeCatalog(rules, 2000, "wp-dense-cluster");   // 목표 근처에 묶음을 이룰 만큼 촘촘한 카탈로그
+  const dc = E.workingCoords(dense, rules);
+  const C = (x) => dc.get(x.song_id);
+  const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
+  let holds = 0, allIn = 0, outside = 0;
+  for (let t = 0; t < 60; t++) {
+    const inp = { ...randomInputs(r, dense, rules), duration_min: r.pick([30, 45, 60]) };
+    const res = E.recommend(dense, rules, { ...inp, personal: { ...p0Policy(rules), hold_cluster: true } });
+    const seq = res.sequence;
+    const hs = seq.findIndex((x) => x.trace.p_phase === "hold");
+    if (hs < 0 || seq.length - hs < 2 || seq.slice(hs).some((x) => x.trace.p_phase !== "hold")) continue;
+    holds++;
+    const inC = seq.slice(hs).filter((x) => x.trace.p_corridor);
+    for (let i = 0; i < inC.length; i++) for (let j = i + 1; j < inC.length; j++) assert.ok(d(C(inC[i]), C(inC[j])) <= tm + 1e-9, "도착한 머묾 곡끼리 turn_min 안");
+    if (inC.length === seq.length - hs) {
+      allIn++;
+      const c = seq.map(C);
+      for (let i = hs; i + 1 < c.length; i++) {
+        const u = [c[i][0] - c[i - 1][0], c[i][1] - c[i - 1][1]], v = [c[i + 1][0] - c[i][0], c[i + 1][1] - c[i][1]];
+        assert.ok(!(Math.hypot(...u) > tm && Math.hypot(...v) > tm && u[0] * v[0] + u[1] * v[1] < 0), `머묾 꺾임 @${i - hs}`);
+      }
+    } else outside++;
+  }
+  assert.ok(holds > 25 && allIn > 10, `머묾 ${holds} · 모두 도착 ${allIn} · 묶음 밖 섞임 ${outside}`);
+  // 끄면(false) 이전 동작 — 머묾 곡 사이 거리 제한 없음
+  const inp = { ...LONG, duration_min: 60, seed: "hc" };
+  const off = run(inp, { ...p0Policy(rules), hold_cluster: false }), on = run(inp, { ...p0Policy(rules), hold_cluster: true });
+  assert.equal(off.sequence.length, on.sequence.length);
 });
 
 test("머묾 순서 last_fixed_progress: 마지막 곡이 머묾 곡 중 가장 가깝고(지그재그 0%), 나머지는 진행 방향 순", () => {
@@ -259,7 +383,7 @@ test("adjFeatures / adjCost (§4.8.1–4.8.2)", () => {
   assert.deepEqual(x, { tempo: 1, vocal: 1, spoken: 0.5, genre: 1, bpm_diff: 60 });   // BPM 80 vs 140 → 60/60
   const w = P.adj_w;
   assert.equal(E.adjCost(a, b, P), Math.round((w.tempo + w.vocal + 0.5 * w.spoken + w.genre) * 1e9) / 1e9);
-  assert.ok(Math.abs(E.adjCost(a, b, P) - band * (0.4 + 0.3 + 0.15 * 0.5 + 0.15)) < 1e-9);
+  assert.ok(Math.abs(E.adjCost(a, b, P) - band * Z.adjacency.scale * (0.4 + 0.3 + 0.15 * 0.5 + 0.15)) < 1e-9);   // 기본 가중 × scale(D7 스윕 값)
   // 모르는 값은 0, 장르 겹치면 0, 한쪽 장르 없음 0
   assert.deepEqual(E.adjFeatures({ tempo: null, genres: [] }, { tempo: 0.5, instrumental: true, genres: ["pop"] }, P), { tempo: 0, vocal: 0, spoken: 0, genre: 0, bpm_diff: null });
   assert.equal(E.adjFeatures({ genres: ["pop", "rock"] }, { genres: ["rock"] }, P).genre, 0);
@@ -408,4 +532,75 @@ test("result.personal: P 모드에서만, 빈 후보에서도 모양 유지", ()
   assert.equal(res.personal.discovery_step, null); assert.equal(res.personal.soft_relaxed_steps, 0);
   assert.equal(run({ ...LONG, gates: ["exclude_instrumental", "instrumental_only"] }, undefined).personal, undefined);
   assert.equal(run(LONG, { ...p0Policy(rules), digest: "abc" }).personal.digest, "abc");
+});
+
+test("머묾 경로 비용 양자화(hold_path_q, 20260929): 결정적이고, 시드만 다른 세션의 마지막 곡이 더 갈린다(§11 B5) · 머묾 묶음과 함께면 머묾 안 꺾임 0", () => {
+  const tm = Z.safety.envelope.turn_min;
+  const C = (x) => coords.get(x.song_id);
+  let endsOn = 0, endsOff = 0, groups = 0;
+  for (const [now, target] of [[{ V: 0.3, A: 0.7 }, { V: 0.7, A: 0.3 }], [{ V: 0.2, A: 0.3 }, { V: 0.8, A: 0.8 }], [{ V: 0.6, A: 0.2 }, { V: 0.3, A: 0.75 }]]) {
+    const on = new Set(), off = new Set();
+    for (let k = 0; k < 24; k++) {
+      const inp = { now, target, duration_min: 45, seed: `pq:${k}` };
+      const a = run(inp, { ...p0Policy(rules), hold_cluster: true, hold_path_q: true });
+      assert.deepEqual(run(inp, { ...p0Policy(rules), hold_cluster: true, hold_path_q: true }).sequence.map((x) => x.song_id), a.sequence.map((x) => x.song_id), "결정적");
+      const b = run(inp, { ...p0Policy(rules), hold_cluster: true, hold_path_q: false });
+      on.add(a.sequence.at(-1).song_id); off.add(b.sequence.at(-1).song_id);
+      /* 도착한 머묾 곡들 사이엔 꺾임 없음(묶음 지름 ≤ turn_min) */
+      const hs = a.sequence.findIndex((x) => x.trace.p_phase === "hold");
+      const h = a.sequence.slice(hs);
+      if (h.every((x) => x.trace.p_corridor)) for (let i = 0; i < h.length; i++) for (let j = i + 1; j < h.length; j++)
+        assert.ok(Math.hypot(C(h[i])[0] - C(h[j])[0], C(h[i])[1] - C(h[j])[1]) <= tm + 1e-9);
+    }
+    endsOn += on.size; endsOff += off.size; groups++;
+  }
+  assert.ok(endsOn >= endsOff, `서로 다른 마지막 곡 ${endsOn} vs 양자화 없음 ${endsOff} (${groups}개 입력 × 시드 24)`);
+  // 중립 정책은 끈다(I1)
+  assert.equal(E.sanitizePersonal(neutralPolicy(rules), rules, { duration_min: 30 }).hold_path_q, false);
+});
+
+test("묶음 깨기 비용(hold_break = j_hold, 20260930): 결정적 · 지그재그 0 · 도착 영역의 묶음 밖 곡끼리는 목표 거리와 무관하게 동률 → 마지막 곡이 더 갈린다(§11 B5)", () => {
+  const sparse = makeCatalog(rules, 300, "wp-hold-break");   // 목표 근처가 성긴 카탈로그 — 묶음이 자주 모자란다
+  const Cs = E.workingCoords(sparse, rules);
+  let endsOn = 0, endsOff = 0, breakers = 0;
+  for (const [now, target] of [[{ V: 0.3, A: 0.7 }, { V: 0.7, A: 0.3 }], [{ V: 0.2, A: 0.3 }, { V: 0.8, A: 0.8 }], [{ V: 0.6, A: 0.2 }, { V: 0.3, A: 0.75 }], [{ V: 0.8, A: 0.7 }, { V: 0.25, A: 0.2 }]]) {
+    const on = new Set(), off = new Set();
+    for (let k = 0; k < 24; k++) {
+      const inp = { now, target, duration_min: 45, seed: `hb:${k}` };
+      const P1 = { ...p0Policy(rules), hold_cluster: true, hold_break: Z.safety.j_hold }, P0x = { ...P1, hold_break: null };
+      const a = E.recommend(sparse, rules, { ...inp, personal: P1 });
+      assert.deepEqual(E.recommend(sparse, rules, { ...inp, personal: P1 }).sequence.map((x) => x.song_id), a.sequence.map((x) => x.song_id), "결정적");
+      const b = E.recommend(sparse, rules, { ...inp, personal: P0x });
+      on.add(a.sequence.at(-1).song_id); off.add(b.sequence.at(-1).song_id);
+      const hold = a.sequence.filter((x) => x.trace.p_phase === "hold");
+      if (hold.length >= 2) for (const h of hold) assert.ok(hold.at(-1).trace.va_distance <= h.trace.va_distance + 1e-12, "마지막 곡이 가장 가깝다(지그재그 0)");
+      breakers += hold.filter((x) => !x.trace.p_corridor).length;
+    }
+    endsOn += on.size; endsOff += off.size;
+  }
+  assert.ok(breakers > 0, "묶음 밖 머묾 곡이 실제로 쓰였다");
+  assert.ok(endsOn >= endsOff, `서로 다른 마지막 곡 ${endsOn} vs 실거리 비용 ${endsOff}`);
+  // 정책이 주지 않으면(null) 이전 동작, 중립은 null(I1). 경계는 머묾 J.
+  assert.equal(E.sanitizePersonal(neutralPolicy(rules), rules, { duration_min: 30 }).hold_break, null);
+  assert.equal(E.sanitizePersonal({ ...p0Policy(rules), hold_break: 1 }, rules, { duration_min: 30 }).hold_break, Z.bounds.j_hold[1]);
+});
+
+test("개인 비용 흔들기(pers_jitter, 20260930): 결정적 · 이동 걸음 p_pers 는 자르지 않은 값, 머묾 걸음은 칸 폭 정수배 · 폭이 없으면 양자화(이전 동작)", () => {
+  const r = makeRng("pers-jitter");
+  const bucket = Z.safety.pers_bucket_bands * band;
+  let moveRows = 0, qRows = 0;
+  for (let t = 0; t < 30; t++) {
+    const inp = { ...randomInputs(r, catalog, rules), duration_min: r.pick([30, 45, 60]) };
+    const PJ = { ...p0Policy(rules), pers_jitter: bucket }, PQ = { ...PJ, pers_jitter: null };
+    const a = run(inp, PJ);
+    assert.deepEqual(run(inp, PJ).sequence.map((x) => x.song_id), a.sequence.map((x) => x.song_id), "결정적");
+    for (const row of a.sequence) {
+      const T = row.trace;
+      if (T.p_phase === "move") { moveRows++; assert.equal(T.p_pers, R6(Math.min(Z.safety.j_move_bands * band, T.p_adj)), "이동: 자르지 않은 전환 비용(μ = 0)"); }
+      else { const q = Math.round(T.p_pers / bucket); assert.ok(Math.abs(T.p_pers - q * bucket) < 1e-6, "머묾: 칸 폭 정수배"); }
+    }
+    for (const row of run(inp, PQ).sequence) { qRows++; const q = Math.round(row.trace.p_pers / bucket); assert.ok(Math.abs(row.trace.p_pers - q * bucket) < 1e-6, "양자화 모드: 칸 폭 정수배"); }
+  }
+  assert.ok(moveRows > 50 && qRows > 50, `이동 행 ${moveRows} · 양자화 행 ${qRows}`);
+  assert.equal(E.sanitizePersonal(neutralPolicy(rules), rules, { duration_min: 30 }).pers_jitter, null, "중립은 흔들지 않는다(I1)");
 });

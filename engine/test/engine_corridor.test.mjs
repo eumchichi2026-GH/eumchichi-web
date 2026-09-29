@@ -22,6 +22,10 @@ function randomPolicyFor(r, spec) {
     corridor_bands: spec ? Z.safety.corridor_bands : r.pick([0, 0.5, 1, 1.5, 2]),
     j_move: spec ? Z.safety.j_move_bands * band : r() * Z.safety.j_move_bands * band,
     j_hold: spec ? Z.safety.j_hold : r() * Z.safety.j_hold,
+    /* 개인 비용 양자화(2026-09-29) — 없음·규칙 값·경계 안 아무 값. 0 쪽 자름이라 두 정리가 그대로 성립해야 한다 */
+    ...(r.chance(0.25) ? {} : { pers_bucket: r.chance(0.5) ? Z.safety.pers_bucket_bands * band : r() * Z.bounds.pers_bucket_bands[1] * band }),
+    /* 개인 비용 흔들기(2026-09-30) — 없음·규칙 값·경계 안 아무 값. pj ∈ [0, pers_jitter) 를 키에 더해도 두 정리가 성립해야 한다(경계 상한까지) */
+    ...(r.chance(0.3) ? {} : { pers_jitter: r.chance(0.5) ? Z.safety.pers_bucket_bands * band : r() * Z.bounds.pers_jitter_bands[1] * band }),
   };
   return E.sanitizePersonal(raw, rules, { duration_min: 30 });
 }
@@ -40,7 +44,8 @@ function randomCands(r, P, arrival, rEff) {
   const disc = r.chance(0.1);
   for (const c of cs) {
     c.distCost = arrival ? (c.fit <= rEff ? 0 : c.fit) : c.bandIdx * band;
-    Object.assign(c, E.personalKey({ distCost: c.distCost, fit: c.fit, bandIdx: c.bandIdx, bestBand, arrival, rEff, taste: disc ? 0 : P.mu * c.pmarg, adj: c.adj }, P));
+    c.pj = P.pers_jitter > 0 ? R9(P.pers_jitter * r()) : 0;   // 엔진과 같이 지터 [0, 1) × 폭
+    Object.assign(c, E.personalKey({ distCost: c.distCost, fit: c.fit, bandIdx: c.bandIdx, bestBand, arrival, rEff, taste: disc ? 0 : P.mu * c.pmarg, adj: c.adj, pj: c.pj }, P));
   }
   return { cs, bestBand };
 }
@@ -103,6 +108,54 @@ test("정리(머묾): r = 0 이면 가점 없음 — 감점만 j_hold 까지", (
     const { cs } = randomCands(r, P, true, 0);
     for (const c of cs) { assert.ok(c.pers >= 0 || c.fit <= 0); assert.ok(c.pers <= P.j_hold + 1e-12); }
   }
+});
+
+test("양자화(pers_bucket) — 0 쪽으로 자른다: |pers| 는 커지지 않고 부호가 같으며 칸 폭의 정수배, 칸보다 작으면 0 (흔들기 모드면 머묾 걸음만)", () => {
+  const r = makeRng("corridor-bucket");
+  for (let t = 0; t < 20000; t++) {
+    const P = randomPolicyFor(r, true);
+    const Q = { ...P, pers_bucket: null };
+    const arrival = r.chance(0.5);
+    const x = { distCost: r.int(0, 5) * band, fit: r() * 0.1, bandIdx: 2, bestBand: r.int(0, 3), arrival, rEff: r.pick([0, 0.035]),
+                taste: (r() - 0.5) * 0.08, adj: r() * 0.03 };
+    const a = E.personalKey(x, P), b = E.personalKey(x, Q);
+    assert.ok(Math.abs(a.pers) <= Math.abs(b.pers) + 1e-12, "|pers| 가 커지지 않는다");
+    assert.ok(a.pers === 0 || Math.sign(a.pers) === Math.sign(b.pers), "부호 유지");
+    assert.equal(a.bonusOK, b.bonusOK);
+    if (P.pers_bucket > 0 && P.pers_jitter > 0 && !arrival) assert.equal(a.pers, b.pers, "흔들기 모드의 이동 걸음은 자르지 않는다");
+    else if (P.pers_bucket > 0) {
+      const q = Math.round(a.pers / P.pers_bucket);
+      assert.ok(Math.abs(a.pers - q * P.pers_bucket) <= 1e-9, "칸 폭의 정수배(R9 반올림 안)");
+      if (Math.abs(b.pers) < P.pers_bucket - 1e-9) assert.equal(a.pers, 0, "칸보다 작은 차이는 0");
+    } else assert.equal(a.pers, b.pers);
+  }
+});
+
+test("흔들기(pers_jitter, 20260930) — key = R9(distCost + clamp(자르기 전 값 + pj, −J, J)) (머묾은 양자화한 값 + pj), pj 는 pers(기록)에 들어가지 않고 폭이 없으면 이전 키와 같다", () => {
+  const r = makeRng("corridor-jitter");
+  for (let t = 0; t < 20000; t++) {
+    const P = randomPolicyFor(r, true);
+    const arrival = r.chance(0.5);
+    const x = { distCost: r.int(0, 5) * band, fit: r() * 0.1, bandIdx: 2, bestBand: r.int(0, 3), arrival, rEff: r.pick([0, 0.035]),
+                taste: (r() - 0.5) * 0.08, adj: r() * 0.03 };
+    const pj = P.pers_jitter > 0 ? R9(P.pers_jitter * r()) : 0;
+    const a = E.personalKey({ ...x, pj }, P), b = E.personalKey(x, P);
+    assert.equal(a.pers, b.pers, "pj 는 pers 를 바꾸지 않는다");
+    const J = arrival ? P.j_hold : P.j_move;
+    let raw = x.taste + x.adj; if (!a.bonusOK && raw < 0) raw = 0;
+    let kp = R9((arrival && P.pers_bucket > 0 ? a.pers : raw) + pj); if (!a.bonusOK && kp < 0) kp = 0;
+    kp = R9(Math.max(-J, Math.min(J, kp)));
+    assert.equal(a.key, pj > 0 && kp !== a.pers ? R9(x.distCost + kp) : b.key);
+    assert.ok(a.pj >= 0 && (!(P.pers_jitter > 0) ? a.pj === 0 : a.pj < P.pers_jitter + 1e-12), "실제로 더해진 몫 ∈ [0, 폭)");
+    assert.ok(Math.abs(R9(a.pers + a.pj)) <= J + 1e-12, "흔든 뒤에도 |pers + pj| ≤ J");
+    const none = E.personalKey({ ...x, pj }, { ...P, pers_jitter: null });
+    assert.equal(none.pj, 0, "흔들기 폭이 없으면 pj 를 무시");
+  }
+  // 경계: sanitize 가 흔들기 폭을 bounds.pers_jitter_bands 로 자른다 — 머묾 정리 여유(j_hold + pj < 가장 작은 비영 팔)
+  const hi = E.sanitizePersonal({ pers_jitter: 1, j_hold: 1 }, rules, { duration_min: 30 });
+  const minArm = Math.min(...Z.hold.arms.filter((a) => a > 0));
+  assert.ok(hi.j_hold + hi.pers_jitter < minArm, `j_hold ${hi.j_hold} + 흔들기 ${hi.pers_jitter} < ${minArm}`);
+  assert.ok(Z.safety.j_move_bands * band + hi.pers_jitter < 2 * band, "이동: J + pj < 2 band");
 });
 
 test("중립(J·corridor = null)은 자르지 않는다 — pers = μ·pmarg + adj 그대로", () => {

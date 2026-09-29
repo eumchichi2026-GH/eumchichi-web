@@ -16,7 +16,8 @@
  *   song-stats       song_stats 에 쓰는 키 ⊆ 기존 7개
  *   app-numbers      앱에 규칙 숫자 사본이 없음 — PACE_TP · RECENT_MAX · extras 0.85 (I8 · B20)
  *   sw-version       sw.js VERSION ≠ azt-v9
- *   env              index.html 이 env.js 를 앱 스크립트보다 먼저 부름 · server.mjs 기본 실행의 /env.js 가 writes:false · .gitignore 에 .env*
+ *   env              index.html 이 env.js 를 앱 스크립트보다 먼저 부름 · server.mjs 기본 실행의 /env.js 가 writes:false·offline:true ·
+ *                    local_firebase.js 가 Firebase SDK 뒤·앱 스크립트 앞 · .gitignore 에 .env*
  *   no-deps          package.json 없음 · server.mjs·tools/sim·engine 은 node: 내장 모듈과 상대 경로만 import
  *   contract         (--app-contract 를 줄 때만) 앱과 도구의 ContractSong 이 같은 값
  * "로컬 서버 기본 실행과 데모 모드에서 Firestore 쓰기 호출 0(개발 페이지 카운터)" 은 브라우저에서 보는 수동 점검(§11 J)이다.
@@ -444,16 +445,24 @@ async function checkEnv() {
       const env = JSON.parse(/window\.AZT_ENV\s*=\s*(\{[\s\S]*?\});/.exec(txt)[1]);
       if (env.writes !== false) probs.push("server.mjs 기본 실행의 /env.js 가 writes:false 가 아닙니다");
       if (env.sw !== false) probs.push("server.mjs /env.js 의 sw 가 false 가 아닙니다");
+      /* [2026-09-30] 로컬 기본 실행은 운영 Firebase 에 접속하지 않는다(offline — local_firebase.js 대역, 곡은 /api/local-catalog) */
+      if (env.offline !== true) probs.push("server.mjs 기본 실행의 /env.js 가 offline:true 가 아닙니다(운영 Firebase 에 로그인)");
       const dot = await fetch(`http://127.0.0.1:${port}/.env`, hdr);
       await dot.arrayBuffer();
       if (dot.status !== 404) probs.push(`/.env 요청이 ${dot.status}`);
     } finally { await close(); }
   } catch (e) { probs.push(`server.mjs 확인 실패: ${e.message}`); }
+  /* 대역은 Firebase SDK 뒤·앱 스크립트 앞에서 불려야 window.firebase 를 바꿀 수 있다 */
+  const lf = /<script\b[^>]*\bsrc\s*=\s*["'](?:\.\/|\/)?local_firebase\.js(?:\?[^"']*)?["'][^>]*>/i.exec(html);
+  const sdk = /firebase-firestore-compat\.js/.exec(html);
+  const appBlk = inlineScripts(html).find((b) => /function\s+loadEngine|AZT_ENV/.test(b.src));
+  if (!lf || !exists("local_firebase.js")) probs.push("index.html 이 local_firebase.js(로컬 대역)를 부르지 않습니다");
+  else if ((sdk && lf.index < sdk.index) || (appBlk && lf.index > appBlk.offset)) probs.push("local_firebase.js 는 Firebase SDK 뒤, 앱 스크립트 앞이어야 합니다");
   const gi = exists(".gitignore") ? read(".gitignore").split(/\r?\n/).map((l) => l.trim()) : [];
   if (!gi.includes(".env*") && !gi.includes(".env")) probs.push(".gitignore 에 .env* 가 없습니다");
   add("env", probs.length ? "fail" : notes.length ? "warn" : "ok",
       probs.length ? probs.join(" · ") + (notes.length ? ` · 참고: ${notes.join(" · ")}` : "")
-                   : `env.js 먼저 로드 · 로컬 서버 기본 writes:false · /.env 404 · .gitignore .env*${notes.length ? ` · 참고: ${notes.join(" · ")}` : ""}`);
+                   : `env.js 먼저 로드 · 로컬 서버 기본 writes:false · offline:true(대역 local_firebase.js) · /.env 404 · .gitignore .env*${notes.length ? ` · 참고: ${notes.join(" · ")}` : ""}`);
 }
 
 function checkNoDeps() {

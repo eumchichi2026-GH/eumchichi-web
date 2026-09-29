@@ -1,13 +1,19 @@
 /*
  * web-personal 로컬 개발 서버 (TOOLS · 명세 §9.3) — Node 내장 모듈만, package.json 없음.
  *
- *   node server.mjs [--port 5180] [--host localhost] [--writes] [--env .env] [--debug]
+ *   node server.mjs [--port 5180] [--host localhost] [--firebase] [--writes] [--env .env] [--debug]
  *
  * 무엇을 하나
  *   - localhost 에만 묶는다(Firebase 인증 승인 도메인 기본값). 포트 5180 은 fix-web 과 달라 서비스워커·캐시를 공유하지 않는다.
- *   - GET /env.js     → window.AZT_ENV = { app:"web-personal", env:"local", writes, sw:false, personal:true, debug }
+ *   - GET /env.js     → window.AZT_ENV = { app:"web-personal", env:"local", writes, sw:false, personal:true, debug, offline }
  *                       **writes 는 기본 false** — 로컬 실행은 운영 Firestore 에 쓰지 않는다(§7.5). --writes 를 줄 때만 true.
+ *                       **offline 은 기본 true** (2026-09-30, §11 H2·I) — 앱이 운영 Firebase 대신 local_firebase.js 대역을 쓴다:
+ *                       로그인(익명 포함)·Firestore 읽기·쓰기가 없고, 곡 목록은 아래 /api/local-catalog 에서 받는다.
+ *                       --firebase 를 주면 offline:false — 예전처럼 운영 Firebase 에 로그인해 곡을 읽는다(쓰기는 여전히 --writes 때만).
  *                       저장소의 정적 env.js(APP, 배포용 prod 값)보다 이 응답이 먼저다.
+ *   - GET /api/local-catalog → { n, digest, source, songs: [계약 곡] } — 데이터 저장소(../eumchichi-data 또는 AZT_DATA_REPO)를
+ *                       tools/sim/catalog.mjs 로 `git show origin/master:<csv>` 해 읽은 계약 곡(시뮬레이터·회귀와 같은 값). 파일을 남기지 않고
+ *                       서버 메모리에 한 번 만들어 둔다(?refresh=1 이면 다시 읽음).
  *   - /api/<name>     → api/<name>.js 의 Vercel 핸들러를 그대로 부른다(gemini·soundiiz). 요청·응답 모양만 흉내 낸다
  *                       (본문 최대 1MB → 넘으면 413 · application/json 은 파싱 · 빈 본문 {} · 잘못된 JSON 400 · 예외 500 · 없는 API 404)
  *   - GET /api/health → { ok, app:"web-personal", engine_version, rules_hash, personal_version }
@@ -25,7 +31,7 @@ import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 export const ROOT = path.dirname(fileURLToPath(import.meta.url));
-export const DEFAULTS = { port: 5180, host: "localhost", writes: false, env: null, debug: false };
+export const DEFAULTS = { port: 5180, host: "localhost", writes: false, env: null, debug: false, firebase: false };
 const BODY_MAX = 1024 * 1024;   // 1MB — Vercel 서버리스 함수 기본 본문 한도(4.5MB)보다 작게, 로컬에서 실수로 큰 본문을 막는 값
 const API_TIMEOUT_MS = 60_000;  // 핸들러가 응답을 끝내지 않을 때 기다리는 최대 시간
 
@@ -47,6 +53,7 @@ export function parseServerArgs(argv) {
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
     if (a === "--writes") o.writes = true;
+    else if (a === "--firebase") o.firebase = true;
     else if (a === "--debug") o.debug = true;
     else if (a === "--port") o.port = Number(argv[++i]);
     else if (a === "--host") o.host = String(argv[++i]);
@@ -106,7 +113,7 @@ export function loadEnvFiles({ envPath = null, root = ROOT, dataRepo = process.e
 
 // ── /env.js ─────────────────────────────────────────────
 export function envObject(o = DEFAULTS) {
-  return { app: "web-personal", env: "local", writes: !!o.writes, sw: false, personal: true, debug: !!o.debug };
+  return { app: "web-personal", env: "local", writes: !!o.writes, sw: false, personal: true, debug: !!o.debug, offline: !o.firebase };
 }
 export const envScript = (o = DEFAULTS) =>
   `/* server.mjs 가 만든 로컬 설정 — 저장소의 env.js(배포용)보다 먼저 응답한다 */\nwindow.AZT_ENV = ${JSON.stringify(envObject(o))};\n`;
@@ -145,6 +152,19 @@ async function health(root) {
     catch (e) { out.ok = false; out.personal_error = String(e && e.message || e); }
   }
   return out;
+}
+
+// ── /api/local-catalog — 로컬 기본 실행(offline)의 곡 목록 ──────────
+/* tools/sim/catalog.mjs 의 loadCatalog(데이터 저장소 git show, 읽기 전용)를 그대로 쓴다 — 시뮬레이터·회귀·픽스처와 같은 계약 곡.
+   한 번 만든 결과는 이 서버 프로세스 메모리에만 둔다(파일 캐시 없음). */
+let LOCAL_CATALOG = null;
+async function localCatalog(root, refresh = false) {
+  if (LOCAL_CATALOG && !refresh) return LOCAL_CATALOG;
+  const mod = await import(pathToFileURL(path.join(root, "tools", "sim", "catalog.mjs")).href);
+  const { songs, digest, source } = mod.loadCatalog({ quiet: true });
+  LOCAL_CATALOG = { n: songs.length, digest, source: { ref: source.ref, sha: source.sha, files: source.files, n_overrides: source.n_overrides },
+                    songs: songs.map(mod.contractOnly) };
+  return LOCAL_CATALOG;
 }
 
 // ── /api/:name — Vercel 핸들러 흉내 ─────────────────────
@@ -292,6 +312,11 @@ export function createAppServer(opts = {}) {
         if (method !== "GET" && !head) { res.setHeader("Allow", "GET, HEAD"); return sendJson(res, 405, { error: "GET only" }); }
         return sendJson(res, 200, await health(root), head);
       }
+      if (pathname === "/api/local-catalog") {
+        if (method !== "GET" && !head) { res.setHeader("Allow", "GET, HEAD"); return sendJson(res, 405, { error: "GET only" }); }
+        try { return sendJson(res, 200, await localCatalog(root, url.searchParams.get("refresh") === "1"), head); }
+        catch (e) { log(`로컬 카탈로그 실패: ${e && e.message}`); return sendJson(res, 500, { error: "local catalog error", detail: String(e && e.message || e) }, head); }
+      }
       const m = /^\/api\/([A-Za-z0-9_-]+)\/?$/.exec(pathname);
       if (m) return await handleApi(req, res, m[1], url, root, log);
       if (pathname.startsWith("/api/")) return sendJson(res, 404, { error: "없는 API" });
@@ -326,7 +351,8 @@ if (isMain) {
   try { o = parseServerArgs(process.argv.slice(2)); }
   catch (e) { console.error(e.message); process.exit(2); }
   if (o.help) {
-    console.log("node server.mjs [--port 5180] [--host localhost] [--writes] [--env .env] [--debug]");
+    console.log("node server.mjs [--port 5180] [--host localhost] [--firebase] [--writes] [--env .env] [--debug]");
+    console.log("  기본: 운영 Firebase 에 접속하지 않음(offline — 곡은 데이터 저장소에서, 로그인·쓰기 없음). --firebase: 운영 Firebase 로 로그인·곡 읽기");
     process.exit(0);
   }
   const env = loadEnvFiles({ envPath: o.env });
@@ -334,6 +360,7 @@ if (isMain) {
   try {
     const { url, close } = await startServer(o);
     console.log(`[server] web-personal → ${url}`);
+    console.log(`[server] Firebase: ${o.firebase ? "운영 프로젝트에 로그인·곡 읽기 (--firebase)" : "접속 안 함 (로컬 기본 offline — local_firebase.js 대역, 곡은 /api/local-catalog)"}`);
     console.log(`[server] Firestore 쓰기: ${o.writes ? "켜짐 (--writes) — 운영 Firestore 에 기록됩니다" : "꺼짐 (로컬 기본 — console.info·SESSION_LOG 에만)"} · 디버그 ${o.debug ? "켜짐" : "꺼짐"}`);
     console.log(`[server] GEMINI_API_KEY: ${env.gemini ? `있음 (출처: ${env.gemini === "환경변수" ? env.gemini : path.relative(ROOT, env.gemini) || env.gemini})` : "없음 — /api/gemini 는 500 을 돌려줍니다"}`);
     const stop = () => { close().then(() => process.exit(0)); setTimeout(() => process.exit(0), 1000).unref(); };
