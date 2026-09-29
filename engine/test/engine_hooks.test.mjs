@@ -542,9 +542,11 @@ test("머묾 경로 비용 양자화(hold_path_q, 20260929): 결정적이고, �
     const on = new Set(), off = new Set();
     for (let k = 0; k < 24; k++) {
       const inp = { now, target, duration_min: 45, seed: `pq:${k}` };
-      const a = run(inp, { ...p0Policy(rules), hold_cluster: true, hold_path_q: true });
-      assert.deepEqual(run(inp, { ...p0Policy(rules), hold_cluster: true, hold_path_q: true }).sequence.map((x) => x.song_id), a.sequence.map((x) => x.song_id), "결정적");
-      const b = run(inp, { ...p0Policy(rules), hold_cluster: true, hold_path_q: false });
+      /* 1차 수정의 조합에서 이 훅 하나만 켜고 끈다 — 2차의 흔들기·묶음 깨기(pers_jitter·hold_break)는 따로 시험한다(아래 두 시험) */
+      const base = { ...p0Policy(rules), hold_cluster: true, pers_jitter: null, hold_break: null };
+      const a = run(inp, { ...base, hold_path_q: true });
+      assert.deepEqual(run(inp, { ...base, hold_path_q: true }).sequence.map((x) => x.song_id), a.sequence.map((x) => x.song_id), "결정적");
+      const b = run(inp, { ...base, hold_path_q: false });
       on.add(a.sequence.at(-1).song_id); off.add(b.sequence.at(-1).song_id);
       /* 도착한 머묾 곡들 사이엔 꺾임 없음(묶음 지름 ≤ turn_min) */
       const hs = a.sequence.findIndex((x) => x.trace.p_phase === "hold");
@@ -559,7 +561,7 @@ test("머묾 경로 비용 양자화(hold_path_q, 20260929): 결정적이고, �
   assert.equal(E.sanitizePersonal(neutralPolicy(rules), rules, { duration_min: 30 }).hold_path_q, false);
 });
 
-test("묶음 깨기 비용(hold_break = j_hold, 20260930): 결정적 · 지그재그 0 · 도착 영역의 묶음 밖 곡끼리는 목표 거리와 무관하게 동률 → 마지막 곡이 더 갈린다(§11 B5)", () => {
+test("묶음 깨기 비용(hold_break = j_hold, 20260929): 결정적 · 지그재그 0 · 도착 영역의 묶음 밖 곡끼리는 목표 거리와 무관하게 동률 → 마지막 곡이 더 갈린다(§11 B5)", () => {
   const sparse = makeCatalog(rules, 300, "wp-hold-break");   // 목표 근처가 성긴 카탈로그 — 묶음이 자주 모자란다
   const Cs = E.workingCoords(sparse, rules);
   let endsOn = 0, endsOff = 0, breakers = 0;
@@ -585,7 +587,7 @@ test("묶음 깨기 비용(hold_break = j_hold, 20260930): 결정적 · 지그�
   assert.equal(E.sanitizePersonal({ ...p0Policy(rules), hold_break: 1 }, rules, { duration_min: 30 }).hold_break, Z.bounds.j_hold[1]);
 });
 
-test("개인 비용 흔들기(pers_jitter, 20260930): 결정적 · 이동 걸음 p_pers 는 자르지 않은 값, 머묾 걸음은 칸 폭 정수배 · 폭이 없으면 양자화(이전 동작)", () => {
+test("개인 비용 흔들기(pers_jitter, 20260929): 결정적 · 이동 걸음 p_pers 는 자르지 않은 값, 머묾 걸음은 칸 폭 정수배 · 폭이 없으면 양자화(이전 동작)", () => {
   const r = makeRng("pers-jitter");
   const bucket = Z.safety.pers_bucket_bands * band;
   let moveRows = 0, qRows = 0;

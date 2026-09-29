@@ -12,7 +12,7 @@ const Z = rules.personalization, B = Z.bounds, HS = Z.safety.high_stress;
 const band = Number(rules.preference.band);
 const S = (p, env = { duration_min: 30 }) => E.sanitizePersonal(p, rules, env);
 
-const KEYS = ["v", "schema", "digest", "model_digest", "stress", "high_stress", "tp", "quit_frac", "start_offset", "start_min_journey",
+const KEYS = ["v", "schema", "digest", "model_digest", "stress", "high_stress", "tp", "quit_frac", "quit_song", "start_offset", "start_min_journey",
   "hold_radius", "hold_min_songs", "hold_order", "hold_min_pool", "hold_radius_cap", "hold_cluster", "hold_path_q", "hold_break", "pers_bucket", "pers_jitter", "corridor_bands", "j_move", "j_hold", "mu", "taste_features", "adj_w",
   "bpm_scale", "spoken_scale", "half_double_fold", "bpm_offset", "bpm_per_tag", "lambda", "discovery_u", "soft_gates", "soft_min_pool",
   "artist_cap", "artist_cap_by_key", "exclude_ids", "replay_ids", "replay_max"].sort();
@@ -59,7 +59,7 @@ test("경계로 자른다 — 위·아래 모두", () => {
   assert.equal(hi.soft_min_pool, B.soft_min_pool[1]); assert.equal(hi.artist_cap, rules.diversity.max_per_artist); assert.equal(hi.replay_max, B.replay_max[1]);
   assert.equal(hi.high_stress, false); assert.equal(hi.hold_radius, B.hold_radius[1]); assert.equal(hi.quit_frac, B.quit_frac[1]);
   assert.equal(hi.hold_min_pool, B.hold_min_pool[1]); assert.equal(hi.pers_bucket, B.pers_bucket_bands[1] * band);
-  assert.equal(hi.hold_break, B.j_hold[1]); assert.equal(hi.pers_jitter, B.pers_jitter_bands[1] * band);   // 20260930 — 머묾 J · 흔들기 상한(정리 여유)
+  assert.equal(hi.hold_break, B.j_hold[1]); assert.equal(hi.pers_jitter, B.pers_jitter_bands[1] * band);   // 20260929 — 머묾 J · 흔들기 상한(정리 여유)
   assert.equal(hi.hold_radius_cap, B.hold_radius[1]);   // 밀도 적응 반경 상한 = 팔 최댓값(규칙 값 — 정책이 정하지 않는다)
   // stress 9 → 4 → 고긴장 → 반경·시작점 상한까지 같이 걸린다
   const hs = S({ stress: 9, hold_radius: 1, start_offset: 1, quit_frac: 0.5 });

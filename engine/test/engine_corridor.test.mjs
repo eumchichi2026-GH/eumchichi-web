@@ -24,7 +24,7 @@ function randomPolicyFor(r, spec) {
     j_hold: spec ? Z.safety.j_hold : r() * Z.safety.j_hold,
     /* 개인 비용 양자화(2026-09-29) — 없음·규칙 값·경계 안 아무 값. 0 쪽 자름이라 두 정리가 그대로 성립해야 한다 */
     ...(r.chance(0.25) ? {} : { pers_bucket: r.chance(0.5) ? Z.safety.pers_bucket_bands * band : r() * Z.bounds.pers_bucket_bands[1] * band }),
-    /* 개인 비용 흔들기(2026-09-30) — 없음·규칙 값·경계 안 아무 값. pj ∈ [0, pers_jitter) 를 키에 더해도 두 정리가 성립해야 한다(경계 상한까지) */
+    /* 개인 비용 흔들기(2026-09-29) — 없음·규칙 값·경계 안 아무 값. pj ∈ [0, pers_jitter) 를 키에 더해도 두 정리가 성립해야 한다(경계 상한까지) */
     ...(r.chance(0.3) ? {} : { pers_jitter: r.chance(0.5) ? Z.safety.pers_bucket_bands * band : r() * Z.bounds.pers_jitter_bands[1] * band }),
   };
   return E.sanitizePersonal(raw, rules, { duration_min: 30 });
@@ -131,7 +131,7 @@ test("양자화(pers_bucket) — 0 쪽으로 자른다: |pers| 는 커지지 않
   }
 });
 
-test("흔들기(pers_jitter, 20260930) — key = R9(distCost + clamp(자르기 전 값 + pj, −J, J)) (머묾은 양자화한 값 + pj), pj 는 pers(기록)에 들어가지 않고 폭이 없으면 이전 키와 같다", () => {
+test("흔들기(pers_jitter, 20260929) — key = R9(distCost + clamp(자르기 전 값 + pj, −J, J)) (머묾은 양자화한 값 + pj), pj 는 pers(기록)에 들어가지 않고 폭이 없으면 이전 키와 같다", () => {
   const r = makeRng("corridor-jitter");
   for (let t = 0; t < 20000; t++) {
     const P = randomPolicyFor(r, true);

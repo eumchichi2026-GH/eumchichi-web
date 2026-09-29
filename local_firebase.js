@@ -1,4 +1,4 @@
-/* web-personal 로컬 실행용 Firebase 대역 (APP · 명세 §9.3 · §11 H2·I — 2026-09-30)
+/* web-personal 로컬 실행용 Firebase 대역 (APP · 명세 §9.3 · §11 H2·I — 2026-09-29)
  *
  * server.mjs 가 /env.js 로 { offline: true } 를 주면(로컬 기본 실행) 앱이 운영 Firebase 에 로그인·읽기·쓰기를 하지 않도록
  * window.firebase 를 이 대역으로 바꾼다. 배포(env.js 정적 파일)와 다른 정적 서버로 연 로컬에서는 offline 이 없어 아무것도 하지 않는다.

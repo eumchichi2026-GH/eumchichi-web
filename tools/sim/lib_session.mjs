@@ -15,7 +15,7 @@ import { pathShape, adjPairs } from "./lib_metrics.mjs";
 import { SIM } from "./personas.mjs";
 
 const now = () => performance.now();
-const PATH_KEYS = ["tp", "start_offset", "quit_frac", "hold_radius"];
+const PATH_KEYS = ["tp", "start_offset", "quit_frac", "quit_song", "hold_radius"];
 const pickPM = (m) => (m ? { n: m.n, arrival: m.arrival, max_jump: m.max_jump, reversals: m.reversals, hold_zigzag: m.hold_zigzag } : null);
 
 /** 도구가 여러 번 쓰는 파생값 — 계약 곡 목록, 말 비중 게이트 문턱(상위 20%) */
@@ -81,7 +81,7 @@ export function modelSummary(model) {
   const mApplied = Object.fromEntries(["tempo", "vocal", "spoken", "genre", "va"].map((f) => [f, ap[f] ? Number(m[f] ?? 1) : 1]));
   return {
     digest: model.digest ?? null, pi: g(model, "pace", "pi") ?? null, pace_votes: g(model, "pace", "votes") ?? null,
-    quit_f_med: g(model, "pace", "quit", "f_med") ?? null,
+    quit_f_med: g(model, "pace", "quit", "f_med") ?? null, quit_k_med: g(model, "pace", "quit", "k_med") ?? null,
     E: g(model, "taste", "E") ?? g(model, "evidence", "E") ?? null, mu: g(model, "taste", "mu") ?? null,
     start_arm: g(model, "start", "arm") ?? null, hold_arm: g(model, "hold", "arm") ?? null,
     length_bias: g(model, "length", "bias_log2") ?? null, base_minutes: g(model, "length", "base_minutes") ?? null,
@@ -104,7 +104,7 @@ function policySummary(p, rules) {
   if (!p) return null;
   const band = Number(rules.preference.band);
   return {
-    tp: p.tp ?? null, quit_frac: p.quit_frac ?? null, start_offset: p.start_offset ?? 0, hold_radius: p.hold_radius ?? null, hold_order: p.hold_order ?? null,
+    tp: p.tp ?? null, quit_frac: p.quit_frac ?? null, quit_song: p.quit_song ?? null, start_offset: p.start_offset ?? 0, hold_radius: p.hold_radius ?? null, hold_order: p.hold_order ?? null,
     mu: p.mu ?? null, lambda: p.lambda ?? null, adj_w: p.adj_w ? { ...p.adj_w } : null, adj_w_bands: p.adj_w ? Object.fromEntries(Object.entries(p.adj_w).map(([k, v]) => [k, v / band])) : null,
     soft_gates: [...(p.soft_gates || [])], artist_cap: p.artist_cap ?? null, exclude_n: p.exclude_ids ? p.exclude_ids.length : null,
     replay_n: (p.replay_ids || []).length, replay_max: p.replay_max ?? null, discovery_u: p.discovery_u ?? null,

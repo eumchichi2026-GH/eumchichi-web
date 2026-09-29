@@ -100,12 +100,13 @@ test("resolvePolicy — 반환 모양 { policy, user, explain, meta }, 엔진 �
 
 test("resolvePolicy geometry 모드 — 경로 모수만 P0 로 되돌린다 (§2.2 7단계 A′)", () => {
   const m = structuredClone(P.emptyModel(RULES));
-  m.pace.pi = 0.6; m.pace.quit = { f_med: 0.6, n: 6 }; m.start.arm = 0.075; m.hold.arm = 0; m.taste.mu = 0.2; m.taste.E = 5;
+  m.pace.pi = 0.6; m.pace.quit = { f_med: 0.6, k_med: 4, n: 6 }; m.start.arm = 0.075; m.hold.arm = 0; m.taste.mu = 0.2; m.taste.E = 5;
   m.gates.soft = ["exclude_spoken"]; m.diversity.artist_cap = 1;
   const ctx = { now: LOW, minutes: 30 };
   const A = P.resolvePolicy(m, ctx, RULES).policy, G = P.resolvePolicy(m, ctx, RULES, { mode: "geometry" }).policy;
-  assert.ok(A.tp !== null && A.quit_frac !== null && A.start_offset > 0 && A.hold_radius === 0);
-  assert.deepEqual([G.tp, G.quit_frac, G.start_offset, G.hold_radius], [null, null, 0, RULES.personalization.hold.p0_radius]);
+  const quitA = RULES.personalization.pace.quit_guard.basis === "position" ? A.quit_song : A.quit_frac;   // 이탈 가드: 곡 번호 기준이면 quit_song(2026-09-29 2차)
+  assert.ok(A.tp !== null && quitA !== null && A.start_offset > 0 && A.hold_radius === 0);
+  assert.deepEqual([G.tp, G.quit_frac, G.quit_song, G.start_offset, G.hold_radius], [null, null, null, 0, RULES.personalization.hold.p0_radius]);
   assert.deepEqual([G.mu, G.soft_gates, G.artist_cap], [A.mu, A.soft_gates, A.artist_cap]);
 });
 

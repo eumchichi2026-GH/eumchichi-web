@@ -199,8 +199,8 @@ export function randomPolicy(r, rules, catalog, { spec = true } = {}) {
   P.hold_cluster = r.chance(0.5);
   P.hold_path_q = r.chance(0.5);
   P.pers_bucket = r.pick([null, 0, band / 8, band / 4, band / 2]);
-  P.hold_break = r.pick([null, null, Z.safety.j_hold, r() * Z.safety.j_hold]);   // 묶음 깨기 비용(20260930)
-  P.pers_jitter = r.pick([null, null, 0, band / 8, band / 4]);                    // 개인 비용 흔들기(20260930)
+  P.hold_break = r.pick([null, null, Z.safety.j_hold, r() * Z.safety.j_hold]);   // 묶음 깨기 비용(20260929)
+  P.pers_jitter = r.pick([null, null, 0, band / 8, band / 4]);                    // 개인 비용 흔들기(20260929)
   if (!spec) { P.corridor_bands = r.pick([null, 0, 1, 2, 1.5]); P.j_move = r.chance(0.2) ? null : r() * 1.6 * band; P.j_hold = r.chance(0.2) ? null : r() * 0.013; }
   if (r.chance(0.4)) P.discovery_u = r();
   if (r.chance(0.3)) P.tp = 0.5 + r() * 0.5;

@@ -261,20 +261,66 @@ test("이탈 가드 — 늘 5번째 곡에서 멈추면 f_med = 0.625 → 도착
   assert.equal(norm.sessions.find((s) => s.rec_id === "rq").rerequested_within_10min, true);
   assert.equal(model.pace.quit.n, 6);
   near(model.pace.quit.f_med, 0.625);
+  near(model.pace.quit.k_med, 5);   // 곡 번호 중앙값(2026-09-29 2차) — 가상 세션 2개는 '끝까지'(Infinity)
+  const byPos = RULES.personalization.pace.quit_guard.basis === "position";
   const out = P.resolvePolicy(model, { now: LOW, minutes: 30 }, RULES);
-  near(out.policy.quit_frac, 0.625);
+  if (byPos) { assert.equal(out.policy.quit_song, 5); assert.equal(out.policy.quit_frac, null); }
+  else { near(out.policy.quit_frac, 0.625); assert.equal(out.policy.quit_song, null); }
   const cat = makeCatalog(240);
   const res = E.recommend(cat, RULES, { now: { V: 0.45, A: 0.2 }, target: { V: 0.8, A: 0.85 }, duration_min: 30, seed: "t:2", user: out.user, personal: out.policy });
   assert.equal(res.sequence.findIndex((x) => x.trace.p_phase === "hold") + 1, 5);
   // '천천히'를 직접 눌렀거나 고긴장이면 끈다 · 5세션 미만이면 없음
-  assert.equal(P.resolvePolicy(model, { now: LOW, minutes: 30, pace_user: "slow" }, RULES).policy.quit_frac, null);
-  assert.equal(P.resolvePolicy(model, { now: HIGH, minutes: 30 }, RULES).policy.quit_frac, null);
+  for (const ctx of [{ now: LOW, minutes: 30, pace_user: "slow" }, { now: HIGH, minutes: 30 }]) {
+    const pol = P.resolvePolicy(model, ctx, RULES).policy;
+    assert.equal(pol.quit_frac, null); assert.equal(pol.quit_song, null);
+  }
   const few = modelOf(rawOf({ recs: recs.slice(0, 4), events: events.filter((e) => ["q0", "q1", "q2", "q3"].includes(e.rec_id)), as_of_ms: T0 + 8 * DAY }), IDX).model;
   assert.equal(few.pace.quit.f_med, null);
+  assert.equal(few.pace.quit.k_med, null);
   // 곡을 넘기면 도달이 늘 뿐 줄지 않는다 — 전부 넘겨도 끝까지 가면 f = 1
   const skipAll = [wpRec("s0", T0, { path: ids, holdFrom: 6 })];
   const ev2 = plays("s0", T0, ids.map((s) => ({ song: s, c: 0.1, listened: 20 })));
   assert.equal(modelOf(rawOf({ recs: skipAll, events: ev2 }), IDX).norm.sessions[0].reached_frac, 1);
+});
+
+test("이탈 가드 곡 번호 기준(pace.quit_guard.basis position, 2026-09-29 2차) — 곡 수가 8 → 6 으로 줄어도 늘 5번째 뒤 멈추면 K = 5 (비율 기준은 옛 세션 f = 5/8 이 섞여 K = floor(f_med·6) < 5)", () => {
+  const ids8 = ["S0001", "S0002", "S0003", "S0004", "S0005", "S0006", "S0007", "S0008"], ids6 = ids8.slice(0, 6);
+  const recs = [], events = [];
+  for (let k = 0; k < 6; k++) {
+    const at = T0 + k * DAY, ids = k < 4 ? ids8 : ids6;   // 감상 시간 제안으로 30분 → 20분대(곡 8 → 6)
+    recs.push(wpRec("v" + k, at, { path: ids, holdFrom: ids.length - 1 }));
+    events.push(...plays("v" + k, at, [...ids.slice(0, 4).map((s) => ({ song: s, c: 1 })), { song: ids[4], c: 0.5, cause: "pagehide" }]));
+  }
+  // 끝까지 들은 세션은 멈춤이 아니다(Infinity) — 한 번 섞여도 중앙값은 5
+  recs.push(wpRec("v6", T0 + 6 * DAY, { path: ids6, holdFrom: 5 }));
+  events.push(...plays("v6", T0 + 6 * DAY, ids6.map((s) => ({ song: s, c: 1 }))));
+  const { model } = modelOf(rawOf({ recs, events, as_of_ms: T0 + 8 * DAY }), IDX);
+  near(model.pace.quit.k_med, 5);
+  const Rpos = structuredClone(RULES); Rpos.personalization.pace.quit_guard.basis = "position";
+  const Rfrac = structuredClone(RULES); delete Rfrac.personalization.pace.quit_guard.basis;
+  const minutes = 24;   // 곡 수는 규칙 표(iso.song_count)에서 — 지금 규칙이면 6곡
+  const n = E.songCount(RULES, minutes);
+  const pos = P.resolvePolicy(model, { now: LOW, minutes }, Rpos).policy, frac = P.resolvePolicy(model, { now: LOW, minutes }, Rfrac).policy;
+  assert.equal(frac.quit_song, null); assert.equal(pos.quit_frac, null);
+  assert.ok(frac.quit_frac != null && Math.floor(frac.quit_frac * n) < 5, `비율 기준 K = floor(${frac.quit_frac}·${n}) — 실제 멈춤(5번째)보다 앞`);
+  if (5 < RULES.personalization.pace.quit_guard.apply_below * n) assert.equal(pos.quit_song, 5); else assert.equal(pos.quit_song, null);
+  // 엔진: 곡 번호 K = quit_song — 비율이면 floor(f_med·n) 로 더 앞당겨진다
+  const cat = makeCatalog(240);
+  const run = (pol, R) => E.recommend(cat, R, { now: { V: 0.45, A: 0.2 }, target: { V: 0.8, A: 0.85 }, duration_min: minutes, seed: "t:q", user: { disliked: [], recent_played: [] }, personal: pol });
+  const arr = (res) => res.sequence.findIndex((x) => x.trace.p_phase === "hold") + 1 || res.sequence.length;
+  const nRun = run(pos, Rpos).sequence.length;
+  assert.ok(arr(run(pos, Rpos)) <= 5, "곡 번호 기준: 5번째 곡까지 도착");
+  if (frac.quit_frac != null) assert.ok(arr(run(frac, Rfrac)) <= Math.max(2, Math.floor(frac.quit_frac * nRun)), "비율 기준: floor(f·n) 번째까지");
+  // 엔진 경계: 정수로, bounds.quit_song 안, '천천히'·고긴장이면 끔. K ≥ n 이면 상한을 걸지 않는 것과 같다
+  const B = Rpos.personalization.bounds.quit_song;
+  assert.equal(E.sanitizePersonal({ quit_song: 99 }, Rpos, { duration_min: 30 }).quit_song, B[1]);
+  assert.equal(E.sanitizePersonal({ quit_song: 3.4 }, Rpos, { duration_min: 30 }).quit_song, 3);
+  assert.equal(E.sanitizePersonal({ quit_song: 5 }, Rpos, { duration_min: 30, pace: "slow" }).quit_song, null);
+  assert.equal(E.sanitizePersonal({ quit_song: 5, stress: 4 }, Rpos, { duration_min: 30 }).quit_song, null);
+  assert.equal(P.neutralPolicy(RULES).quit_song, null);
+  const base = { now: { V: 0.45, A: 0.2 }, target: { V: 0.8, A: 0.85 }, duration_min: 30, seed: "t:q2", user: { disliked: [], recent_played: [] } };
+  assert.deepEqual(E.recommend(cat, Rpos, { ...base, personal: { ...P.resolvePolicy(P.emptyModel(RULES), { now: LOW, minutes: 30 }, Rpos, { mode: "p0" }).policy, quit_song: 99 } }).personal.tp_used,
+                   E.recommend(cat, Rpos, { ...base, personal: P.resolvePolicy(P.emptyModel(RULES), { now: LOW, minutes: 30 }, Rpos, { mode: "p0" }).policy }).personal.tp_used);
 });
 
 // ── 감상 시간 ────────────────────────────────────────────
@@ -399,6 +445,43 @@ test("시작 오프셋 — 확인 없이 · 취향만(모든 곡 넘김)이면 �
   const md = modelOf(rawOf({ recs: [...up.recs, ...down.recs], events: [...up.events, ...down.events], as_of_ms: T0 + 13 * DAY }), IDX).model;
   assert.equal(md.start.arm, 0);
   assert.equal(md.start.since_rec_id, "d1");
+});
+
+test("시작 오프셋 — 사전 중심 start.prior_center overall(2026-09-29 2차): 가상 2곡의 기대를 q̄ 로 → 첫 곡 효과가 없으면 비율 정확히 1, 1 중심(2p̄/2p̄)은 1 아래로 치우침", () => {
+  /* 세션마다 5곡(첫 곡 + 이동 3곡 + 머묾 1곡). skip1[k] = 첫 곡을 넘겼나, 이동 곡은 앞에서 skipRest 곡을 넘김. 전환 통제는 끄고(모든 q = σ(θ0)) 식을 손으로 맞춘다. */
+  const build = (skip1, skipRest) => {
+    const recs = [], events = [];
+    skip1.forEach((s1, k) => {
+      const at = T0 + k * DAY, id = "p" + k;
+      const ids = [0, 1, 2, 3, 4].map((i) => `S${String(10 + 5 * k + i).padStart(4, "0")}`);
+      recs.push(wpRec(id, at, { path: ids, holdFrom: 5 }));
+      events.push(...plays(id, at, ids.map((s, i) => ((i === 0 ? s1 : i <= skipRest) ? { song: s, c: 0.1, listened: 20 } : { song: s, c: 1 }))));
+      if (k === 0) events.push(ev(id, at + 10 * MIN, "dislike_reason", { song_id: ids[0], reason: "mood_mismatch", position: 1, role: "path", phase: "move" }));
+    });
+    return { recs, events };
+  };
+  const R = (center) => { const r = structuredClone(RULES); r.personalization.start.expect_transition = false;
+    if (center) r.personalization.start.prior_center = center; else delete r.personalization.start.prior_center; return r; };
+  const q = 1 / (1 + Math.exp(-RULES.personalization.adjacency.theta0));
+  const expect = (O1, n1, Or, nr, center) => {
+    const pbar = (O1 + Or) / (n1 + nr), qbar = q, d = center === "overall" ? 2 * qbar : 2 * pbar;
+    return ((O1 + 2 * pbar) / (n1 * q + d)) / ((Or + 2 * pbar) / (nr * q + d));
+  };
+  const model = (d, rules) => { const raw = rawOf({ ...d, as_of_ms: T0 + 7 * DAY }); const norm = P.normalizeLogs(raw, IDX, rules); return P.buildPersonalModel(norm, IDX, rules, { as_of_ms: T0 + 7 * DAY }); };
+  // (가) 첫 곡 4/5 넘김 · 이동 곡 5/15 — 날 비율 2.4. 1 중심은 1.59(< 1.8, 못 올림), overall 은 2.02(올림)
+  const a = build([true, true, false, true, true], 1);
+  const one = model(a, R(null)), ov = model(a, R("overall"));
+  near(one.start.ratio, expect(4, 5, 5, 15, "one"), 1e-5);
+  assert.ok(expect(4, 5, 5, 15, "overall") >= 1.8);
+  assert.equal(one.start.arm, 0); assert.equal(ov.start.arm, RULES.personalization.start.arms[1]);   // 올린 뒤에는 창을 비운다(비율 null)
+  // (나) 첫 곡 효과 없음(첫 곡 2/5 · 이동 6/15): overall 비율 = 1, 1 중심은 0.81
+  const b = build([true, true, false, false, false], 1);   // 첫 곡 2/5 = 이동 곡 5/15 에 가깝다(0.4 vs 0.33)
+  const bo = model(b, R("overall")).start, b1 = model(b, R(null)).start;
+  near(bo.ratio, expect(2, 5, 5, 15, "overall"), 1e-5); near(b1.ratio, expect(2, 5, 5, 15, "one"), 1e-5);
+  assert.ok(bo.ratio < 1.8 && b1.ratio < bo.ratio, `${bo.ratio} · ${b1.ratio}`);
+  // (다) 취향만(모든 곡 넘김): overall 도 1 — 올리지 않는다(F5)
+  const c = model(build([true, true, true, true, true], 3), R("overall")).start;
+  near(c.ratio, 1, 1e-6); assert.equal(c.arm, 0);
 });
 
 test("시작 오프셋 — 고긴장 상한 0.075 (I5)", () => {

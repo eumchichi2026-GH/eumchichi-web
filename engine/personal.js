@@ -636,6 +636,8 @@ function buildSession(r, evs, next, S) {
   // 도달 비율 f(§4.3.4) — 재생이 시작된 마지막 경로 위치 / n. 넘김은 f 를 늘릴 뿐 줄이지 않는다
   const startedPath = exposures.filter((x) => x.role === "path" && x.started && num(x.position));
   s.reached_frac = n > 0 && startedPath.length ? R6(Math.min(1, Math.max(...startedPath.map((x) => x.position)) / n)) : null;
+  /* [2026-09-29 2차] 곡 번호 기준(pace.quit_guard.basis "position") — 재생이 시작된 마지막 경로 곡 번호(f 의 분자) */
+  s.reached_pos = s.reached_frac === null ? null : Math.min(n, Math.max(...startedPath.map((x) => x.position)));
   s.rerequested_within_10min = !!next && next.at - r.at <= PR.load.rerequest_window_s * 1000;
   const lastExp = exposures[exposures.length - 1];
   if (exposures.some((x) => x.role === "path" && x.position === n && (x.cause === "complete" || isKept(x, PR)))) s.ended_by = "complete";
@@ -1045,7 +1047,11 @@ function buildPace(X) {
   const QG = P.quit_guard;
   const win = ss.slice(-PR.decay.lookback_sessions).filter((s) => s.reached_frac != null && !s.rerequested_within_10min);
   const fMed = win.length >= QG.min_sessions ? median([...win.map((s) => s.reached_frac), ...Array(QG.prior_sessions).fill(1)]) : null;
-  return { pi: R9(pi), W: R9(W), votes, quit: { f_med: fMed === null ? null : R6(fMed), n: win.length }, counts };
+  /* [2026-09-29 2차] 곡 번호 중앙값 k_med — 가상 세션(끝까지 = Infinity)을 더한 멈춘 곡 번호의 중앙값. 비율 f 는 세션마다 곡 수 n 이 다르면
+     (감상 시간 제안이 n 을 줄이면) 옛 세션의 f(5/8)를 새 n(6)에 곱해 K 를 실제 멈춤(5번째)보다 앞당겼다. 끝까지 닿는 사람은 Infinity(가드 없음). */
+  const kRaw = win.length >= QG.min_sessions ? median([...win.map((s) => (s.reached_frac >= 1 || s.reached_pos == null ? Infinity : s.reached_pos)), ...Array(QG.prior_sessions).fill(Infinity)]) : null;
+  const kMed = kRaw === null || !Number.isFinite(kRaw) ? null : kRaw;
+  return { pi: R9(pi), W: R9(W), votes, quit: { f_med: fMed === null ? null : R6(fMed), k_med: kMed === null ? null : R6(kMed), n: win.length }, counts };
 }
 
 /* §4.4 시작 오프셋 — 취향 통제 비율 + mood_mismatch 명시 확인, 이력 현상(팔이 바뀌면 그 뒤 세션만 센다) */
@@ -1090,7 +1096,12 @@ function buildStart(X, adj = null) {
     const a = { O1: 0, E1: 0, n1: 0, Or: 0, Er: 0, nr: 0, up: 0, down: 0 };
     for (const x of w) for (const k of Object.keys(a)) a[k] += x[k];
     const n = a.n1 + a.nr, pbar = n > 0 ? (a.O1 + a.Or) / n : 0;
-    const d1 = a.E1 + 2 * pbar, dr = a.Er + 2 * pbar;
+    /* [2026-09-29 2차] start.prior_center = "overall": 가상 2곡의 기대 거절을 관측 p̄ 가 아니라 기대 q̄(= 창 전체 E / n)로 둔다 —
+       사전 SR = p̄/q̄ = 이 사람의 전체 초과 거절비(첫 곡 효과 없음이 귀무). 2p̄/2p̄ 는 사전을 SR = 1 에 두어, 전체 거절이 q 보다 높은
+       사람(p̄/q̄ ≈ 2)에서 곡이 적은 SR_1 만 1 쪽으로 끌려 비율이 1 쪽으로 치우쳤다. 없으면 이전 식. */
+    const qbar = n > 0 ? (a.E1 + a.Er) / n : 0;
+    const dPrior = ST.prior_center === "overall" ? 2 * qbar : 2 * pbar;
+    const d1 = a.E1 + dPrior, dr = a.Er + dPrior;
     const sr1 = d1 > 0 ? (a.O1 + 2 * pbar) / d1 : null, srr = dr > 0 ? (a.Or + 2 * pbar) / dr : null;
     a.ratio = sr1 !== null && srr ? sr1 / srr : null;
     return a;
@@ -1324,7 +1335,7 @@ export function neutralPolicy(rules) {
   return withPolicyDigest({
     v: 1, schema: SCHEMAS.policy, digest: null, model_digest: null,
     stress: null, high_stress: false,
-    tp: null, quit_frac: null,
+    tp: null, quit_frac: null, quit_song: null,
     start_offset: 0, start_min_journey: PR.start.min_journey,
     hold_radius: 0, hold_min_songs: PR.hold.min_songs, hold_order: "fit", hold_min_pool: 0, hold_cluster: false, hold_path_q: false, hold_break: null,
     corridor_bands: null, j_move: null, j_hold: null, pers_bucket: null, pers_jitter: null,
@@ -1405,9 +1416,15 @@ export function resolvePolicy(model, ctx, rules, { mode = "personal" } = {}) {
     }
   }
   // 이탈 가드 (§4.3.4) — '천천히' 직접 선택·고긴장이면 끔
+  const QG = PR.pace.quit_guard;
+  const guardOn = pathLearned && QG.enabled && paceUser !== "slow" && !high;
+  const byPos = QG.basis === "position";
   const qf = model.pace.quit && model.pace.quit.f_med;
-  const quit = pathLearned && PR.pace.quit_guard.enabled && paceUser !== "slow" && !high && num(qf) && qf < PR.pace.quit_guard.apply_below
-    ? R9(clamp(qf, B.quit_frac[0], B.quit_frac[1])) : null;
+  const quit = !byPos && guardOn && num(qf) && qf < QG.apply_below ? R9(clamp(qf, B.quit_frac[0], B.quit_frac[1])) : null;
+  /* [2026-09-29 2차] 곡 번호 기준: 멈춘 곡 번호 중앙값 k_med 가 이번 곡 수(감상 시간 기준 songCount)의 apply_below 배보다 작을 때만 — 적용 조건은 비율 기준과 같은 문턱 */
+  const qk = model.pace.quit && model.pace.quit.k_med;
+  const quitSong = byPos && guardOn && num(qk) && qk < QG.apply_below * songCount(rules, minutes)
+    ? Math.round(clamp(Math.floor(qk), B.quit_song[0], B.quit_song[1])) : null;
   // 시작 오프셋 (§4.4) · 머묾 반경 (§4.6)
   let s0 = pathLearned ? model.start.arm : 0;
   if (high) s0 = Math.min(s0, HS.start_offset_max);
@@ -1446,16 +1463,16 @@ export function resolvePolicy(model, ctx, rules, { mode = "personal" } = {}) {
   const policy = withPolicyDigest({
     v: 1, schema: SCHEMAS.policy, digest: null, model_digest: model.digest ?? null,
     stress, high_stress: high,
-    tp, quit_frac: quit,
+    tp, quit_frac: quit, quit_song: quitSong,
     start_offset: R9(clamp(s0, B.start_offset[0], B.start_offset[1])), start_min_journey: PR.start.min_journey,
     hold_radius: R9(clamp(r, B.hold_radius[0], B.hold_radius[1])), hold_min_songs: PR.hold.min_songs, hold_order: PR.hold.order,
     hold_min_pool: num(PR.hold.min_pool) && r >= PR.hold.p0_radius ? PR.hold.min_pool : 0,   // 좁힌 팔(끝 분위기 불만으로 학습)은 넓히지 않는다
     hold_cluster: PR.hold.cluster === true,   // 머묾 곡끼리 turn_min 안(§4.6.1 변경 20260929) — 곡 레인(경유지 무관)
     hold_path_q: PR.hold.quantize_path === true,   // 머묾 걸음의 진행·λ 전환 비용도 pers_bucket 으로 양자화(§4.6.1 변경 20260929)
-    hold_break: PR.hold.cluster_break === "j_hold" ? SF.j_hold : null,   // 묶음 밖 도착 영역 곡의 거리 비용 = 머묾 J(§4.6.1 변경 20260930)
+    hold_break: PR.hold.cluster_break === "j_hold" ? SF.j_hold : null,   // 묶음 밖 도착 영역 곡의 거리 비용 = 머묾 J(§4.6.1 변경 20260929)
     corridor_bands: SF.corridor_bands, j_move: R9(SF.j_move_bands * band), j_hold: SF.j_hold,
     pers_bucket: num(SF.pers_bucket_bands) ? R9(SF.pers_bucket_bands * band) : null,
-    pers_jitter: SF.pers_mode === "perturb" && num(SF.pers_bucket_bands) ? R9(SF.pers_bucket_bands * band) : null,   // 이동 걸음 개인 비용 흔들기(§3.8 변경 20260930)
+    pers_jitter: SF.pers_mode === "perturb" && num(SF.pers_bucket_bands) ? R9(SF.pers_bucket_bands * band) : null,   // 이동 걸음 개인 비용 흔들기(§3.8 변경 20260929)
     mu: R9(mu), taste_features: extra.length ? extra : null,
     adj_w: adjW, bpm_scale: A.bpm_scale, spoken_scale: A.spoken_scale, half_double_fold: A.half_double_fold,
     lambda,
@@ -1550,7 +1567,7 @@ function pathShapeFull(result, rules) {
   };
 }
 /* 경로 모수(두 레인 I3 — 경유지를 바꾸는 값). 정책 A 와 기준 정책에서 이 값이 모두 같으면 R_path ≡ R, A′ ≡ A 이다. */
-export const PATH_PARAM_KEYS = ["tp", "quit_frac", "start_offset", "hold_radius", "hold_min_pool"];   // hold_min_pool 은 r 에서 정해진다(좁힌 팔은 0)
+export const PATH_PARAM_KEYS = ["tp", "quit_frac", "quit_song", "start_offset", "hold_radius", "hold_min_pool"];   // hold_min_pool 은 r 에서 정해진다(좁힌 팔은 0)
 export function pathParamsDiffer(polA, polRef) {
   return !!polA && !!polRef && PATH_PARAM_KEYS.some((k) => (polA[k] ?? null) !== (polRef[k] ?? null));
 }
@@ -1793,14 +1810,14 @@ function paceCountText(model) {
   const parts = Object.keys(W).filter((k) => c[k] > 0).map((k) => `${W[k]} ${c[k]}번`);
   return parts.length ? parts.join(" · ") + " 기준" : "";
 }
-function quitK(f, n, PR) { return Math.max(ruleOr(PR, "pace.quit_guard.min_arrival_song"), Math.floor(f * n)); }
+function quitK(f, n, PR, song = null) { return Math.max(ruleOr(PR, "pace.quit_guard.min_arrival_song"), song != null ? song : Math.floor(f * n)); }
 /* 엔진 arrivalAt 과 같은 순서(자동 tp → 이탈 가드 상한 → n ≤ 3 보호 → 고긴장 하한) — 설명의 '도착 곡 번호'용. n 은 시간 기준 곡 수 */
 function mirrorArrivalAt(rules, minutes, n, policy) {
   const PR = cfg(rules);
   const atDef = transitionAt(rules, minutes);
   let at = policy.tp != null ? policy.tp : atDef, personalized = policy.tp != null;
-  if (policy.quit_frac != null && n > 1) {
-    const cap = Math.max(PR.bounds.tp[0], (quitK(policy.quit_frac, n, PR) - 1) / (n - 1));
+  if ((policy.quit_song != null || policy.quit_frac != null) && n > 1) {
+    const cap = Math.max(PR.bounds.tp[0], (quitK(policy.quit_frac, n, PR, policy.quit_song) - 1) / (n - 1));
     if (at > cap) { at = cap; personalized = true; }
   }
   if (personalized && n <= PR.pace.small_n_max) at = Math.max(at, PR.pace.small_n_min_tp);
@@ -1849,8 +1866,8 @@ export function explainPolicy(policy, model, rules, ctx = null) {
     const cnt = paceCountText(model);
     push("pace", `${faster ? "빠르게" : "천천히"} 도착${k ? ` · ${k}번째 곡` : ""}${cnt ? ` (${cnt})` : ""}`, "pace");
   }
-  if (policy.quit_frac != null) {
-    const K = n ? quitK(policy.quit_frac, n, PR) : null;
+  if (policy.quit_song != null || policy.quit_frac != null) {
+    const K = policy.quit_song != null ? quitK(null, n, PR, policy.quit_song) : n ? quitK(policy.quit_frac, n, PR) : null;
     push("quit_guard", K ? `보통 ${K}번째 곡쯤에서 멈추셔서 그 전에 목표에 닿게 했어요`
                          : `보통 경로의 ${Math.round(policy.quit_frac * 100)}%쯤에서 멈추셔서 그 전에 목표에 닿게 했어요`, "pace");
   }
@@ -1944,10 +1961,12 @@ export function explainModel(model, rules, { history } = {}) {
   // 여정 속도
   {
     const P = model.pace, applied = Math.abs(P.pi) >= PR.pace.apply_abs, cnt = paceCountText(model);
-    const qf = P.quit && P.quit.f_med;
-    const quitOn = num(qf) && qf < PR.pace.quit_guard.apply_below;
+    const qf = P.quit && P.quit.f_med, qk = P.quit && P.quit.k_med;
+    const byPos = PR.pace.quit_guard.basis === "position";   // 곡 번호 기준(2026-09-29 2차): 적용 여부는 그 세션의 곡 수에 달려 있어 카드에는 멈춘 곡 번호만
+    const quitOn = byPos ? num(qk) : num(qf) && qf < PR.pace.quit_guard.apply_below;
     let text = applied ? `자동(나에게 맞춤): ${P.pi > 0 ? "빠르게" : "천천히"}${cnt ? " — " + cnt : ""}` : `기본 속도로 도착해요${cnt ? " — " + cnt : ""}`;
-    if (quitOn) text += ` · 보통 경로의 ${Math.round(qf * 100)}%쯤에서 멈추셔서 그 전에 목표에 닿게 해요`;
+    if (quitOn) text += byPos ? ` · 보통 ${Math.floor(qk)}번째 곡쯤에서 멈추셔서 곡이 그보다 많은 날은 그 전에 목표에 닿게 해요`
+                              : ` · 보통 경로의 ${Math.round(qf * 100)}%쯤에서 멈추셔서 그 전에 목표에 닿게 해요`;
     card({ id: "pace", title: "여정 속도", text, evidence: P.votes, confidence: dots(P.W / (P.W + PR.pace.k0)), is_default: !applied && !quitOn,
            changed: !!last && differs(R3(P.pi), R3(Number(last.pi) || 0)), series: series((p) => p.pi), reset_procedure: "pace" });
   }

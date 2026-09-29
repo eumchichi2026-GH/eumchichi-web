@@ -780,7 +780,7 @@ html[data-theme=dark] .wp-tag.changed{color:var(--accent)}
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
-<!-- [web-personal 2026-09-30] 로컬 기본 실행(server.mjs 의 /env.js 가 offline:true)이면 운영 Firebase 대신 대역 — 로그인·Firestore 쓰기 없음(§11 H2·I). 배포에서는 아무것도 하지 않는다 -->
+<!-- [web-personal 2026-09-29] 로컬 기본 실행(server.mjs 의 /env.js 가 offline:true)이면 운영 Firebase 대신 대역 — 로그인·Firestore 쓰기 없음(§11 H2·I). 배포에서는 아무것도 하지 않는다 -->
 <script src="local_firebase.js?v=302"></script>
 
 <script>
@@ -911,7 +911,7 @@ async function loadEngine() {
       AZT_RULES  = globalThis.__AZT_RULES__;
     } else {
       /* ?v= : 이미 설치된 옛 서비스워커는 이 파일들을 캐시에서 먼저 돌려준다. 주소를 바꿔 그 캐시를 비켜 간다.
-         [web-personal] 엔진 2.6.0-wp · 규칙 v2.5.0-wp · personal.js 를 한 번에 올리므로 셋 다 ?v=302 으로 맞춘다(2026-09-30 2차 수정 — 엔진·personal.js·규칙이 함께 바뀜, 1차는 301). */
+         [web-personal] 엔진 2.6.0-wp · 규칙 v2.5.0-wp · personal.js 를 한 번에 올리므로 셋 다 ?v=302 으로 맞춘다(2026-09-29 2차 수정 — 엔진·personal.js·규칙이 함께 바뀜, 1차는 301). */
       const eng = await import("./engine/engine.js?v=302");
       const res = await fetch("./rules/rules.compiled.json?v=302", { cache: "no-cache" });
       if (!res.ok) throw new Error("rules.compiled.json HTTP " + res.status);
@@ -1530,7 +1530,7 @@ async function init() {
       if (r.ok) INSTRUMENTAL_OVERRIDES = (await r.json()).overrides || {};
     } catch (e) { console.warn("[AZT] instrumental_overrides.json 로드 실패 — 0.5 규칙만 사용", e); }
     let instOverridden = 0;
-    /* [web-personal 2026-09-30] 로컬 기본 실행(offline): 곡 목록을 Firestore 대신 server.mjs 의 /api/local-catalog 에서 받는다 —
+    /* [web-personal 2026-09-29] 로컬 기본 실행(offline): 곡 목록을 Firestore 대신 server.mjs 의 /api/local-catalog 에서 받는다 —
        데이터 저장소를 git show 로 읽은 계약 곡(시뮬레이터 tools/sim/catalog.mjs 와 같은 값)을 SONGS 모양으로 되돌린다(localSongOf).
        toContractSong(localSongOf(c)) 가 c 와 같아 카탈로그 digest·개발 픽스처 digest 를 Node 와 그대로 비교할 수 있다(§11 H2). */
     if (WP_ENV.offline === true) {
@@ -2666,7 +2666,7 @@ function songIsInstrumental(s) {
   return false;
 }
 
-/* [web-personal 2026-09-30] 로컬 카탈로그의 계약 곡 → SONGS 항목(init 의 Firestore 경로와 같은 모양). toContractSong 의 역함수:
+/* [web-personal 2026-09-29] 로컬 카탈로그의 계약 곡 → SONGS 항목(init 의 Firestore 경로와 같은 모양). toContractSong 의 역함수:
    V/A → va, 말 비중·빠르기(0~1) → v2 태그, 연주곡 → isInstrumental(통일 기준 칸), 길이 ms → 초. 재생 주소는 없다(로컬 대역은 Spotify 곡 ID 를 모른다). */
 function localSongOf(c) {
   const tags = { spokenness: c.spokenness };
@@ -4135,7 +4135,7 @@ function relaxRun(run, input, needCount, order) {
   return { result, input: used, relaxed, notice };
 }
 /* §2.2 3~7: 정책(개인·기준 p0) → 실행 A(완화 포함) → 실행 R(A 가 최종적으로 쓴 입력) → 안전 확인 → 폴백 */
-const PATH_PARAM_KEYS = ["tp", "quit_frac", "start_offset", "start_min_journey", "hold_radius", "hold_min_songs", "hold_min_pool"];
+const PATH_PARAM_KEYS = ["tp", "quit_frac", "quit_song", "start_offset", "start_min_journey", "hold_radius", "hold_min_songs", "hold_min_pool"];
 function revertPathParams(pol, p0) {
   /* 경로 모수(tp·s·이탈 가드·r)만 P0 로 되돌린 정책 A′ — 취향·전환·다양성은 그대로 둔다 */
   const q = { ...pol };

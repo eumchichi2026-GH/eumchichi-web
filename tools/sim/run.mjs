@@ -237,7 +237,7 @@ ${grid ? `## 격자 상세 (신규 사용자 P0 정책 vs 2.5.1, 합성 입력)
 ` : ""}
 ## 관찰 (자동 집계, 합성 사용자)
 
-- 이탈 가드(quit_frac)가 켜진 wp 세션: ${(() => { const ids = [...new Set(R.filter((r) => r.arm === "wp" && !r.error && r.ks != null).map((r) => r.persona))]; return ids.map((id) => { const rows = R.filter((r) => r.arm === "wp" && r.persona === id && !r.error && r.ks != null); const n = rows.filter((r) => r.policy && r.policy.quit_frac != null).length; return n ? `${id} ${n}/${rows.length}` : null; }).filter(Boolean).join(" · ") || "없음"; })()}
+- 이탈 가드(quit_frac · quit_song)가 켜진 wp 세션: ${(() => { const ids = [...new Set(R.filter((r) => r.arm === "wp" && !r.error && r.ks != null).map((r) => r.persona))]; return ids.map((id) => { const rows = R.filter((r) => r.arm === "wp" && r.persona === id && !r.error && r.ks != null); const n = rows.filter((r) => r.policy && (r.policy.quit_frac != null || r.policy.quit_song != null)).length; return n ? `${id} ${n}/${rows.length}` : null; }).filter(Boolean).join(" · ") || "없음"; })()}
   — P13 은 옛 기록(fix-web)에서 끝까지 듣지 않은 마지막 곡이 저장되지 않아(B11) 도달 비율이 (n−1)/n 로 읽히고, 그것만으로 가드가 켜질 수 있다(P9 는 의도한 자극).
 - 안전 폴백: ${(() => { const rows = R.filter((r) => r.arm === "wp" && r.fallback); const v = {}; for (const r of rows) for (const x of r.safety_violations || []) v[x] = (v[x] || 0) + 1; return rows.length ? `${rows.length}세션 — 위반 ${Object.entries(v).map(([k, n]) => `${k} ${n}`).join(" · ")}` : "없음"; })()}
 

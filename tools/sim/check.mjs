@@ -445,7 +445,7 @@ async function checkEnv() {
       const env = JSON.parse(/window\.AZT_ENV\s*=\s*(\{[\s\S]*?\});/.exec(txt)[1]);
       if (env.writes !== false) probs.push("server.mjs 기본 실행의 /env.js 가 writes:false 가 아닙니다");
       if (env.sw !== false) probs.push("server.mjs /env.js 의 sw 가 false 가 아닙니다");
-      /* [2026-09-30] 로컬 기본 실행은 운영 Firebase 에 접속하지 않는다(offline — local_firebase.js 대역, 곡은 /api/local-catalog) */
+      /* [2026-09-29] 로컬 기본 실행은 운영 Firebase 에 접속하지 않는다(offline — local_firebase.js 대역, 곡은 /api/local-catalog) */
       if (env.offline !== true) probs.push("server.mjs 기본 실행의 /env.js 가 offline:true 가 아닙니다(운영 Firebase 에 로그인)");
       const dot = await fetch(`http://127.0.0.1:${port}/.env`, hdr);
       await dot.arrayBuffer();

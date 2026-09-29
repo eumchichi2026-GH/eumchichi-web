@@ -7,7 +7,7 @@
  *   - localhost 에만 묶는다(Firebase 인증 승인 도메인 기본값). 포트 5180 은 fix-web 과 달라 서비스워커·캐시를 공유하지 않는다.
  *   - GET /env.js     → window.AZT_ENV = { app:"web-personal", env:"local", writes, sw:false, personal:true, debug, offline }
  *                       **writes 는 기본 false** — 로컬 실행은 운영 Firestore 에 쓰지 않는다(§7.5). --writes 를 줄 때만 true.
- *                       **offline 은 기본 true** (2026-09-30, §11 H2·I) — 앱이 운영 Firebase 대신 local_firebase.js 대역을 쓴다:
+ *                       **offline 은 기본 true** (2026-09-29, §11 H2·I) — 앱이 운영 Firebase 대신 local_firebase.js 대역을 쓴다:
  *                       로그인(익명 포함)·Firestore 읽기·쓰기가 없고, 곡 목록은 아래 /api/local-catalog 에서 받는다.
  *                       --firebase 를 주면 offline:false — 예전처럼 운영 Firebase 에 로그인해 곡을 읽는다(쓰기는 여전히 --writes 때만).
  *                       저장소의 정적 env.js(APP, 배포용 prod 값)보다 이 응답이 먼저다.

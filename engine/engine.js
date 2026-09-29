@@ -49,12 +49,14 @@
                            머묾 경로 비용 양자화 hold_path_q(머묾 걸음의 진행·λ 전환 비용도 pers_bucket 으로 — 시드가 마지막 곡을 가른다).
                        (3) [perf] 출력이 같은 속도 개선(P 모드): 호출 안 메모(선호 점수·동점 키·가수 키·걸음별 곡 값), 앞 k 개 선택,
                            prepare 캐시(입력 지문 확인), extras 정확한 조기 종료, ASCII fnv1a32 — 개인 실행 약 40배 빠름.
-   2.6.0-wp (2026-09-30, 2차 수정 — change.md "web-personal"): P 모드만 바뀐다(P === null 출력은 그대로, 중립 정책 I1 도 그대로).
+   2.6.0-wp (2026-09-29, 2차 수정 — change.md "web-personal"): P 모드만 바뀐다(P === null 출력은 그대로, 중립 정책 I1 도 그대로).
                        (1) 개인 비용 흔들기 pers_jitter(safety.pers_mode "perturb"): 이동 걸음은 양자화 대신 kp = clamp(취향 + 전환 + 지터×칸, −J, J) 를
                            키와 빔 경로 비용에 쓴다 — 한 특징 전환 비용이 다시 순위에 닿고(양자화는 0 으로 만들었다) 시드는 여전히 가깝게 겨루는 곡을 가른다.
                            머묾 걸음은 양자화 그대로(+ 지터로 동률 가르기). 정리 한계는 그대로(kp ∈ [−J, J]).
                        (2) 묶음 깨기 비용 hold_break(= j_hold): 도착 영역 안 · 머묾 묶음 밖 곡의 거리 비용을 실거리 대신 min(J, rCap) —
-                           묶음이 모자랄 때 늘 목표에 가장 가까운 곡이 끼어 마지막 곡이 시드와 무관하게 정해지던 것을 푼다. */
+                           묶음이 모자랄 때 늘 목표에 가장 가까운 곡이 끼어 마지막 곡이 시드와 무관하게 정해지던 것을 푼다.
+                       (3) 이탈 가드 곡 번호 quit_song(pace.quit_guard.basis "position"): K = quit_song — 비율 quit_frac × 이번 곡 수 대신(§4.3.4 변경).
+                           quit_frac 은 옛 로그 재현용으로 그대로 받는다. 경계 bounds.quit_song. */
 export const ENGINE_VERSION = "2.6.0-wp";
 
 const R9 = (x) => Math.round(x * 1e9) / 1e9;
@@ -541,7 +543,9 @@ export function sanitizePersonal(p, rules, env = {}) {
   if (noFaster && tp !== null) tp = Math.max(tp, atDef);
   const qg = (Z.pace && Z.pace.quit_guard) || {};
   let quit = num(p.quit_frac) === null ? null : clamp(p.quit_frac, Number(B.quit_frac[0]), Number(B.quit_frac[1]));
-  if (qg.enabled !== true || noFaster || env.pace === "slow") quit = null;
+  /* [2026-09-29 2차] 이탈 가드 곡 번호(quit_song) — "보통 K 번째 곡쯤에서 멈춘다"의 K 를 곡 번호로(비율 quit_frac 대신, §4.3.4 변경). 정수, 경계 bounds.quit_song */
+  let quitSong = num(p.quit_song) === null || !Array.isArray(B.quit_song) ? null : Math.round(clamp(p.quit_song, Number(B.quit_song[0]), Number(B.quit_song[1])));
+  if (qg.enabled !== true || noFaster || env.pace === "slow") { quit = null; quitSong = null; }
 
   /* 시작 오프셋·머묾 반경 — 고긴장 상한 */
   let start = rng(p.start_offset, B.start_offset, 0);
@@ -584,6 +588,7 @@ export function sanitizePersonal(p, rules, env = {}) {
     high_stress: high,
     tp,
     quit_frac: quit,
+    quit_song: quitSong,
     start_offset: start,
     start_min_journey: rng(p.start_min_journey, B.start_min_journey, Number(Z.start.min_journey)),
     hold_radius: hold,
@@ -683,7 +688,7 @@ export function personalKey(x, P) {
      시드 변이(jitter)가 첫 곡 뒤로 한 번도 쓰이지 않는다(같은 곡으로 끝남 92.8%, 서로 다른 곡 480). 걸음 순위 키와 빔 경로 비용이 이 값을 같이 쓴다.
      0 쪽으로 자르므로(trunc) |pers| 는 줄기만 한다 — 코리도어 밖(pers ≥ 0)은 ≥ 0, [−J, J] 안 그대로 → §3.8 두 정리가 그대로 성립.
      중립 정책(pers_bucket = null)은 자르지 않는다(I1). */
-  /* [2026-09-30] 개인 비용 흔들기(pers_jitter, safety.pers_mode = "perturb"): 이동 걸음은 양자화하지 않고 시드 지터 x.pj ∈ [0, pers_jitter)
+  /* [2026-09-29] 개인 비용 흔들기(pers_jitter, safety.pers_mode = "perturb"): 이동 걸음은 양자화하지 않고 시드 지터 x.pj ∈ [0, pers_jitter)
      (지터 0~1 × 칸 폭)를 자르기 전 값에 더해 자른 kp = clamp(taste + adj + x.pj, −J, J) 를 키와 빔 경로 비용에 쓴다 —
      칸 폭보다 작은 비용 차이는 시드가 뒤집을 수 있고 큰 차이는 확률적으로 지킨다. 양자화(0 쪽 자름)는 한 특징 전환 비용(0.15–0.2 band < 칸 0.25 band)을
      통째로 0 으로 만들어 전환 개인화(배수 < 1.67)가 순위에 닿지 못했다. −J 에 닿은(포화한) 취향 곡들은 흔들어도 −J 로 동률 → 선호 버킷(더 좋아하는 곡)이 먼저 가른다.
@@ -802,9 +807,10 @@ function arrivalAt(rules, dur, n, pace, P) {
   if (!P) return atDef;
   let at = P.tp != null ? P.tp : atDef;
   let personalized = P.tp != null;
-  if (P.quit_frac != null && n > 1) {
-    /* 이탈 가드(§4.3.4): 보통 K 번째 곡쯤에서 멈추면 K 번째 곡 전에 도착 — 도착 곡 번호 ceil(tp·(n−1)) + 1 ≤ K */
-    const K = Math.max(Number(Z.pace.quit_guard.min_arrival_song), Math.floor(P.quit_frac * n));
+  if ((P.quit_song != null || P.quit_frac != null) && n > 1) {
+    /* 이탈 가드(§4.3.4): 보통 K 번째 곡쯤에서 멈추면 K 번째 곡 전에 도착 — 도착 곡 번호 ceil(tp·(n−1)) + 1 ≤ K.
+       [2026-09-29 2차] 곡 번호 quit_song 이 있으면 K = quit_song(비율 × 이번 곡 수가 아니라) — K ≥ n 이면 상한 1(걸지 않음과 같음). */
+    const K = Math.max(Number(Z.pace.quit_guard.min_arrival_song), P.quit_song != null ? P.quit_song : Math.floor(P.quit_frac * n));
     const cap = Math.max(Number(Z.bounds.tp[0]), (K - 1) / (n - 1));
     if (at > cap) { at = cap; personalized = true; }
   }
@@ -841,7 +847,7 @@ function stepCandidates(pool, state, ctx, wp, tgtC, term, rules, inputs, band, n
      머묾 안(머묾 첫 곡 꼭짓점 포함)에는 꺾임이 생기지 않는다. 묶음 밖 곡은 반경 밖 곡처럼 실거리 비용(곡이 모자랄 때만 쓰임). 새 숫자 없음. */
   const holdC = P && arrival && P.hold_cluster && state.holdC && state.holdC.length ? state.holdC : null;
   const inCluster = (c) => !holdC || holdC.every((h) => dist(c, h, term) <= PR.turnMin);
-  /* [2026-09-30] 묶음 깨기 비용(hold_break = j_hold): 도착 영역(fit ≤ rCap) 안이지만 머묾 묶음 밖인 곡의 거리 비용을 실거리 대신 일정한 값으로 —
+  /* [2026-09-29] 묶음 깨기 비용(hold_break = j_hold): 도착 영역(fit ≤ rCap) 안이지만 머묾 묶음 밖인 곡의 거리 비용을 실거리 대신 일정한 값으로 —
      실거리면 묶음이 모자랄 때마다 목표에 가장 가까운 곡이 늘 끼어 들어 마지막 곡(최소 fit)이 시드와 무관하게 정해졌다(푹 쉬고 싶어요 92%).
      일정하면 묶음 깨기 후보끼리 동률이라 시드가 고른다. 값은 min(머묾 결합 제한 J(j_hold), rCap) — 도착한 곡(거리 0)보다 비싸고,
      반경 밖 곡(실거리 > rCap)보다는 늘 싸다(이전 실거리 비용과 같은 순서). 새 숫자 없음. 없으면(null) 이전 동작(실거리). */
@@ -925,7 +931,7 @@ function stepCandidates(pool, state, ctx, wp, tgtC, term, rules, inputs, band, n
       x.adj_x = state.prevSong ? adjFeatures(state.prevSong, x.song, P) : null;
       x.adj = x.adj_x ? adjCostOf(x.adj_x, P) : 0;
       x.taste = P.mu * x.pmarg;
-      x.pj0 = P.pers_jitter > 0 ? R9(P.pers_jitter * x.jitter) : 0;   // [2026-09-30] 개인 비용 흔들기(personalKey 주석) — 원래 폭, x.pj 는 실제로 더해진 몫
+      x.pj0 = P.pers_jitter > 0 ? R9(P.pers_jitter * x.jitter) : 0;   // [2026-09-29] 개인 비용 흔들기(personalKey 주석) — 원래 폭, x.pj 는 실제로 더해진 몫
       const r = personalKey({ distCost: x.distCost, fit: x.fit, bandIdx: x.band, bestBand, arrival, rEff: x.rE, taste: x.taste, adj: x.adj, pj: x.pj0 }, P);
       x.pers = r.pers; x.bonusOK = r.bonusOK; x.key = r.key; x.pj = r.pj;   // = Object.assign(x, r)
     }
