@@ -1649,7 +1649,7 @@ function renderGenreChips() {
     const n = gc ? (gc[g] || 0) : null;
     return "<button type='button' aria-pressed='" + SELECTED_GENRES.includes(g) + "' data-genre='" + esc(g) + "'"
       + (n === 0 ? " disabled title='이 장르로 분류된 곡이 아직 없어요'" : "") + ">" + esc(g)
-      + (n ? " <span style='opacity:.55;font-size:.9em'>" + n + "</span>" : "") + "</button>";
+      + "</button>";
   }).join("");
   box.querySelectorAll("button:not([disabled])").forEach(b => b.addEventListener("click", () => {
     const g = b.dataset.genre;
