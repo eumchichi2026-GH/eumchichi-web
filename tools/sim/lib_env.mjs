@@ -140,7 +140,9 @@ export async function loadDeps({ dataRepo = null, needBaseline = true, needGrids
 
 export function writeFileSafe(rel, text) {
   const f = path.isAbsolute(rel) ? rel : path.join(ROOT, rel);
-  if (!path.resolve(f).startsWith(ROOT)) throw new Error(`저장소 밖에 쓰지 않습니다: ${f}`);
+  /* 저장소 안, 또는 OS 임시 폴더(평가용 보조 실행의 --out — 저장소에 파일을 남기지 않으려고, 2026-09-30 평가 담당) */
+  const r = path.resolve(f), tmp = path.resolve(os.tmpdir());
+  if (!r.startsWith(ROOT) && !r.toLowerCase().startsWith(tmp.toLowerCase() + path.sep)) throw new Error(`저장소·임시 폴더 밖에 쓰지 않습니다: ${f}`);
   fs.mkdirSync(path.dirname(f), { recursive: true });
   fs.writeFileSync(f, text);
   return f;
