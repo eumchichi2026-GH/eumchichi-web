@@ -1,6 +1,6 @@
 /* recommendExtras(§4.11·§6.7) — 더 들을 곡을 엔진이 고른다.
  *   경로(result.sequence)는 절대 바뀌지 않는다 · 경로와 같은 게이트(가사 포함)·싫어요·exclude_ids · 가수 상한은 경로에 이어서 ·
- *   경로 + 더 들을 곡 합이 target_sec 에 닿거나 max_songs 면 멈춤 · 개인화 없으면 빈 목록. */
+ *   경로 + 더 들을 곡 합이 target_sec 에 닿거나 max_songs 면 멈춤(넘는 양 > 모자란 양이 될 곡은 넣지 않음) · 개인화 없으면 빈 목록. */
 import test from "node:test";
 import assert from "node:assert/strict";
 
@@ -80,6 +80,10 @@ test("멈춤 조건: 경로 + 더 들을 곡 ≥ target_sec 이거나 max_songs,
     if (ex.extras.length > 1) {
       const beforeLast = tot - lenOf(byId.get(ex.extras.at(-1).song_id));
       assert.ok(beforeLast < target, "닿기 전에는 계속 채운다");
+    }
+    if (ex.extras.length) {
+      const beforeLast = tot - lenOf(byId.get(ex.extras.at(-1).song_id));
+      assert.ok(tot - target <= target - beforeLast + 1e-9, "마지막 곡은 넘는 양이 그 전 모자란 양 이하일 때만 넣는다(2026-09-30)");
     }
   }
   // target_sec 을 안 주면 감상 시간 × 60 × fill_ratio

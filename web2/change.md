@@ -966,3 +966,13 @@ band 를 바꾸면 이 값도 같이 검토해야 합니다.
 **검증**: jsdom 으로 실제 클릭 재현 27항목(예전 가입자 데이터 → 벽, 한글·영문·부분 검색, 가수/곡 붙이기와 저장 필드, 떼어내기, 필터, 온보딩 저장값)
 + Chromium 실제 렌더(PC 1440 · 모바일 390 · 다크 테마) 오류 0건. **미검증**: 실제 Firestore 쓰기, 실제 카탈로그의 한글 표기 전체.
 서비스워커 `azt-v9` · 엔진 캐시 `?v=232`.
+
+---
+
+# (2026-09-30) — 더 들을 곡: 요청 시간에 가장 가깝게
+
+Firestore `songs` 전곡에 `duration_ms` 가 채워져 곡 길이가 실제 값이 됐다(이전엔 전곡 210초 가정).
+`recommendExtras`·`legacyExtras` 는 경로 + 더 들을 곡 합이 요청 시간에 닿거나, 다음 곡을 넣으면 **넘는 양 > 모자란 양**이면 멈춘다.
+규칙 `personalization.extras.fill_ratio` 0.85→1.0 · `max_songs` 12→30 (rules_hash 60a437141e39→1caa430a0a9b, rules_version 은 그대로 v2.5.0-wp).
+경로(result.sequence)와 I0·I1 은 그대로 — 단위 시험 177/177. 측정은 저장소 루트 change.md 11차 표(`tools/sim/duration_fit.mjs`):
+90분 요청 중앙 75분 → 90.4분, 전체 오차 2분 이내 43% → 91%.

@@ -913,9 +913,9 @@ async function loadEngine() {
       AZT_RULES  = globalThis.__AZT_RULES__;
     } else {
       /* ?v= : 이미 설치된 옛 서비스워커는 이 파일들을 캐시에서 먼저 돌려준다. 주소를 바꿔 그 캐시를 비켜 간다.
-         [web-personal] 엔진 2.6.0-wp · 규칙 v2.5.0-wp · personal.js 를 한 번에 올리므로 셋 다 ?v=302 으로 맞춘다(2026-09-29 2차 수정 — 엔진·personal.js·규칙이 함께 바뀜, 1차는 301). */
-      const eng = await import("./engine/engine.js?v=302");
-      const res = await fetch("./rules/rules.compiled.json?v=302", { cache: "no-cache" });
+         [web-personal] 엔진 2.6.0-wp · 규칙 v2.5.0-wp · personal.js 를 한 번에 올리므로 셋 다 ?v=302 으로 맞춘다(2026-09-29 2차 수정 — 엔진·personal.js·규칙이 함께 바뀜, 1차는 301). 2026-09-30 더 들을 곡 시간 맞춤으로 엔진·규칙만 303 — personal.js 는 그대로. */
+      const eng = await import("./engine/engine.js?v=303");
+      const res = await fetch("./rules/rules.compiled.json?v=303", { cache: "no-cache" });
       if (!res.ok) throw new Error("rules.compiled.json HTTP " + res.status);
       AZT_RULES = await res.json();
       AZT_ENGINE = eng;
@@ -2700,7 +2700,7 @@ function toContractSong(s) {
     instrumental: songIsInstrumental(s),
     genres: Array.isArray(s.genres) ? s.genres : [],
     popularity: Number(s.popularity || 0),
-    duration_ms: Math.round((Number(s.durationSec) || 210) * 1000),
+    duration_ms: Number(s.durationSec) > 0 ? Math.round(Number(s.durationSec) * 1000) : null,   // [2026-09-30] 모르면 null — 엔진이 extras.default_duration_s 로 채운다
     tempo: songTempo01(s),
   };
 }
@@ -4203,8 +4203,10 @@ function legacyExtras(pool, seq, tgt, lyric) {
   const lyricOk = s => lyric === "instrumental_only" ? songIsInstrumental(s) : true;   // prefer_vocal 은 풀에서 이미 걸렀다
   const extraPool = pool.filter(s => !used.has(s.id) && !DISLIKED_SONGS.has(s.id) && !recentSet.has(s.id) && lyricOk(s))
                         .sort((a, b) => dTgt(a) - dTgt(b));
+  const target = totalTargetSec * fill;
   for (const c of extraPool) {
-    if (total >= totalTargetSec * fill) break;
+    if (total >= target) break;
+    if (total + estimated(c) - target > target - total) break;   // [2026-09-30] 넘는 양이 모자란 양보다 크면 멈춤 — 요청 시간에 가장 가깝게(엔진 recommendExtras 와 같은 규칙)
     extras.push(c); used.add(c.id); total += estimated(c);
   }
   return extras;

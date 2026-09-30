@@ -856,7 +856,7 @@ async function loadEngine() {
   } else {
     /* ?v= : 이미 설치된 옛 서비스워커(azt-v6)는 이 두 파일을 캐시에서 먼저 돌려준다.
        주소를 바꿔 그 캐시를 비켜 간다. 새 서비스워커(v7)부터는 network-first 라 값은 안 올려도 된다. */
-    AZT_ENGINE = await import("./engine/engine.js?v=261");
+    AZT_ENGINE = await import("./engine/engine.js?v=262");
     const res = await fetch("./rules/rules.compiled.json?v=254", { cache: "no-cache" });
     if (!res.ok) throw new Error("rules.compiled.json HTTP " + res.status);
     AZT_RULES = await res.json();
