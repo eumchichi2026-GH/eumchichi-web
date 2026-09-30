@@ -913,9 +913,9 @@ async function loadEngine() {
       AZT_RULES  = globalThis.__AZT_RULES__;
     } else {
       /* ?v= : 이미 설치된 옛 서비스워커는 이 파일들을 캐시에서 먼저 돌려준다. 주소를 바꿔 그 캐시를 비켜 간다.
-         [web-personal] 엔진 2.6.0-wp · 규칙 v2.5.0-wp · personal.js 를 한 번에 올리므로 셋 다 ?v=302 으로 맞춘다(2026-09-29 2차 수정 — 엔진·personal.js·규칙이 함께 바뀜, 1차는 301). 2026-09-30 더 들을 곡 시간 맞춤으로 엔진·규칙만 303 — personal.js 는 그대로. */
+         [web-personal] 엔진 2.6.0-wp · 규칙 v2.5.0-wp · personal.js 를 한 번에 올리므로 셋 다 ?v=302 으로 맞춘다(2026-09-29 2차 수정 — 엔진·personal.js·규칙이 함께 바뀜, 1차는 301). 2026-09-30 더 들을 곡 시간 맞춤으로 엔진·규칙만 303 — personal.js 는 그대로. 같은 날 경로 최대 12곡으로 규칙만 304. */
       const eng = await import("./engine/engine.js?v=303");
-      const res = await fetch("./rules/rules.compiled.json?v=303", { cache: "no-cache" });
+      const res = await fetch("./rules/rules.compiled.json?v=304", { cache: "no-cache" });
       if (!res.ok) throw new Error("rules.compiled.json HTTP " + res.status);
       AZT_RULES = await res.json();
       AZT_ENGINE = eng;

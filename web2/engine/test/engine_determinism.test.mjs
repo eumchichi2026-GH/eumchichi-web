@@ -59,7 +59,9 @@ test("시드만 다르면 머묾 곡이 달라진다(반경 r 의 목적, B5) �
   const dense = makeCatalog(rules, 1200, "wp-dense");
   const r = makeRng("det-seed");
   let setDiffer = 0, lastDiffer = 0, total = 0;
-  for (let t = 0; t < 12; t++) {
+  /* [2026-09-30] 곡 수 상한 9→12 로 60분 경로가 길어져(머묾 곡이 반경 안을 거의 다 채움) 12회 중 마지막 곡이 갈린 경우가 0 이 됐다.
+     실제 카탈로그(4,117곡 · P0 · 30~90분 × 30 · 시드 4)에서는 서로 다른 마지막 곡 수가 9곡 2.33~2.57 → 12곡 2.23~2.57 로 그대로라 표본을 24회로 */
+  for (let t = 0; t < 24; t++) {
     const inp = { now: { V: r(), A: r() }, target: { V: 0.2 + r() * 0.6, A: 0.2 + r() * 0.6 }, duration_min: 60 };
     const P = { ...randomPolicy(r, rules, dense), hold_radius: 0.05, hold_order: "last_fixed_progress", exclude_ids: [], replay_ids: [],
                 discovery_u: null, soft_gates: [], tp: null, quit_frac: null, stress: null, high_stress: false };
