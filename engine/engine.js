@@ -34,8 +34,10 @@
                        실제 duration_ms 합으로 재조정(최대 2회 재탐색). (2) 여정이 짧을 때는 '이동 걸음'만 min_step_span 으로
                        제한하고 나머지 곡은 도착 걸음(목표 근처 머무름)으로 채운다 — 곡 수를 줄이지 않는다.
                        (3) 재생 큐 밖 '추가 추천'(role=extra)은 앱에서 삭제 — 경로가 곧 전체 플레이리스트.
-                       규칙 v2.6.0: iso.song_count.max 9→40, preference.pref_weight 0→1.0 (2026-09-22 μ 스윕). */
-export const ENGINE_VERSION = "2.6.1";
+                       규칙 v2.6.0: iso.song_count.max 9→40, preference.pref_weight 0→1.0 (2026-09-22 μ 스윕).
+   2.6.2 (2026-09-30): Firestore songs 전곡에 duration_ms 가 채워져 2.6.1 의 시간 맞춤이 실제로 돈다. 재조정 결과 중
+                       요청 시간에 가장 가까운 것을 돌려주고(이전엔 마지막 시도), 이미 시도한 곡 수는 다시 돌리지 않는다. */
+export const ENGINE_VERSION = "2.6.2";
 
 const R9 = (x) => Math.round(x * 1e9) / 1e9;
 const R6 = (x) => Math.round(x * 1e6) / 1e6;
@@ -495,24 +497,29 @@ export function recommend(catalog, rules, inputsIn) {
   const c = rules.iso.song_count;
   const dur = inputsIn.duration_min ?? 30;
   const maxRetry = Number(c.duration_fit_retries ?? 2);
-  let n = null, result = null;
+  /* [2.6.2] 시도한 결과 중 실제 길이가 요청 시간에 가장 가까운 것을 돌려준다(이전엔 마지막 시도를 그대로 — 재조정이
+     오히려 멀어져도 그 결과를 냈다). 이미 시도한 곡 수로는 다시 돌리지 않는다(왕복 방지). */
+  let n = null, result = null, best = null, bestErr = Infinity;
+  const tried = new Set();
   for (let i = 0; i <= maxRetry; i++) {
     result = recommendOnce(catalog, rules, inputsIn, n);
     const seq = result.sequence;
     if (!seq.length) break;
+    tried.add(result.song_count.effective);
     const secs = seq.map((r) => Number(r.trace && r.trace.duration_ms) || 0);
-    if (secs.some((x) => !x)) break;                              // 길이 정보 없는 곡이 있으면 재조정하지 않는다
+    if (secs.some((x) => !x)) { best = null; break; }             // 길이 정보 없는 곡이 있으면 재조정하지 않는다
     const actualMin = secs.reduce((a, b) => a + b, 0) / 60000;
     result.song_count.actual_min = R6(actualMin);
     result.song_count.duration_fit_rounds = i;
-    const avg = actualMin / seq.length;
     const diff = dur - actualMin;                                   // + 면 더 넣어야, − 면 빼야
+    if (Math.abs(diff) < bestErr) { best = result; bestErr = Math.abs(diff); }
+    const avg = actualMin / seq.length;
     if (Math.abs(diff) < avg / 2) break;
     const n2 = Math.max(Number(c.min), Math.min(Number(c.max), seq.length + Math.round(diff / avg)));
-    if (n2 === seq.length || n2 === n) break;
+    if (n2 === seq.length || tried.has(n2)) break;
     n = n2;
   }
-  return result;
+  return best || result;
 }
 
 function recommendOnce(catalog, rules, inputsIn, nOverride = null) {

@@ -389,7 +389,7 @@
    "binds": []
   }
  ],
- "rules_hash": "60a437141e39",
+ "rules_hash": "1caa430a0a9b",
  "trace_keys": [
   "artist",
   "band_size",
@@ -544,8 +544,8 @@
    "diversity_evidence": "[measured] recent_window 60 은 앱 RECENT_MAX 값을 옮김(이제 기기 무관·노출 기준). [prior] 반복 불만 2세션이면 창 2배·가수 상한 1. 좋아요 곡은 7일 뒤 시퀀스당 1곡까지 다시 넣을 수 있다."
   },
   "extras": {
-   "fill_ratio": 0.85, "radius": 0.05, "default_duration_s": 210, "min_duration_s": 60, "max_songs": 12,
-   "extras_evidence": "[measured] fill 0.85 는 앱 L3535 값, 곡 길이 210초는 toContractSong 기본값, 최소 60초는 앱 estimated 값. [prior] 더 들을 곡 반경 0.05(머묾 반경의 최대 팔), 최대 12곡."
+   "fill_ratio": 1.0, "radius": 0.05, "default_duration_s": 210, "min_duration_s": 60, "max_songs": 30,
+   "extras_evidence": "[2026-09-30] 곡 길이(duration_ms)가 Firestore 전곡에 채워져 fill 0.85→1.0(요청 시간 그대로, 엔진은 합이 가장 가까운 곳에서 멈춤), 최대 12→30곡(90분 = 경로 9곡 + 더 들을 곡 약 16곡). 옛 근거: [measured] fill 0.85 는 앱 L3535 값, 곡 길이 210초는 toContractSong 기본값, 최소 60초는 앱 estimated 값. [prior] 더 들을 곡 반경 0.05(머묾 반경의 최대 팔), 최대 12곡."
   },
   "relax": {
    "order_default": ["lyric", "genre", "both"], "order_vocal_bother": ["genre", "lyric", "both"], "vocal_bother_min": 2,

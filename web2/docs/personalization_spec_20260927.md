@@ -761,7 +761,7 @@ E  = (좋아요 수) + (취향 싫어요 수: 범위에 artist·features 둘 다
    `pers` = §3.8 머묾 규칙(J_hold, 가점은 fit ≤ R_x 에서만) — 앞 곡은 직전에 고른 곡(첫 extra 는 경로 마지막 곡).
    정렬 키 `[R9(distCost + pers), jitterOf(seed, song_id, n + j), tiebreakKeys…, song_id]`.
 4. 곡 길이 = `duration_ms/1000`(없으면 `default_duration_s` 210), 최소 `min_duration_s` 60. 경로+extras 합이
-   `target_sec = 분·60·extras.fill_ratio(0.85)` 에 닿거나 `max_songs(12)` 곡이면 멈춘다.
+   `target_sec = 분·60·extras.fill_ratio(1.0)` 에 닿거나 `max_songs(30)` 곡이면 멈춘다. 다음 곡을 넣으면 넘는 양이 지금 모자란 양보다 크면 넣지 않고 멈춘다 — 합이 요청 시간에 가장 가깝게(2026-09-30, 곡 길이 전곡 반영 후. 이전 값 0.85·12곡).
 5. 반환 `{ extras: [{ song_id, trace, explanations }], total_sec }`. trace 에 `p_phase:"extra"`, `p_extra:true`, `va_distance`, `p_adj`, `p_pers`.
    **경로(`result.sequence`)는 절대 바꾸지 않는다**(시험: extras 유무와 무관하게 경로 동일).
 

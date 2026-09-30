@@ -1352,7 +1352,8 @@ export function recommend(catalog, rules, inputsIn) {
    3) 탐욕 1폭: 경유지 = 목표, distCost = fit ≤ R_x ? 0 : fit (R_x = max(유효 머묾 반경, extras.radius)),
       pers = §3.8 머묾 규칙(J = j_hold, 가점은 fit ≤ R_x 에서만), 앞 곡 = 직전에 고른 곡(첫 곡은 경로 마지막 곡)
    4) 곡 길이 = duration_ms/1000(없으면 default_duration_s), 최소 min_duration_s. 경로+더 들을 곡 합이 target_sec 에 닿거나
-      max_songs 곡이면 멈춘다. target_sec 을 안 주면 감상 시간 × 60 × fill_ratio.
+      max_songs 곡이면 멈춘다. 다음 곡을 넣으면 넘는 양이 지금 모자란 양보다 크면 그 곡은 넣지 않고 멈춘다(2026-09-30 —
+      합이 target_sec 에 가장 가깝게). target_sec 을 안 주면 감상 시간 × 60 × fill_ratio.
    반환 { extras: [{ song_id, trace, explanations }], total_sec(경로 + 더 들을 곡 초), soft_relaxed }.
    inputs.personal 이 없으면(익명·개인화 끔) { extras: [], total_sec: 0 } — 앱의 옛 경로를 쓴다. */
 export function recommendExtras(catalog, rules, inputsIn, result, opts = {}) {
@@ -1437,6 +1438,9 @@ export function recommendExtras(catalog, rules, inputsIn, result, opts = {}) {
     }
     if (!best) break;
     const s = best.x.song;
+    /* [2026-09-30] 시간 맞춤: 이 곡을 넣으면 목표를 넘는 양이 지금 모자란 양보다 크면 넣지 않고 멈춘다 —
+       합이 target_sec 에 가장 가까운 쪽에서 끝난다(이전엔 목표에 닿을 때까지 넣어 최대 한 곡 넘쳤다). */
+    if (total + lenOf(s) - target > target - total) break;
     used.add(s.song_id);
     state.artistCount[s.artist] = (state.artistCount[s.artist] || 0) + 1;
     state.keyCount = keyCountAfter(state.keyCount, s);
