@@ -67,6 +67,8 @@ export async function loadBaseline(ref = BASELINE_REF) {
     baseCache = (async () => {
       const engineSrc = readBaselineFile("engine");
       const rules = JSON.parse(readBaselineFile("rules"));
+      /* [2026-09-30] 곡 수 상한 9→12 는 의도한 변경 — 기준 규칙에도 지금 규칙의 song_count 를 넣어 경로 식만 비교한다(I0). */
+      { const cur = JSON.parse(fs.readFileSync(path.join(ROOT, "rules", "rules.compiled.json"), "utf8")).iso; rules.iso.song_count = { ...cur.song_count }; rules.iso.song_count_evidence = cur.song_count_evidence; }
       const engine = await importSource(engineSrc, `azt-engine-${BASELINE_REF}`);
       return { ref: BASELINE_REF, sha: BASELINE_SHA, engine, rules, engineSrc };
     })();

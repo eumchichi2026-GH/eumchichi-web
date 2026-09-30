@@ -201,7 +201,8 @@ test("머묾 묶음(hold_cluster, 20260929): '도착한' 머묾 곡(p_corridor)�
   const C = (x) => dc.get(x.song_id);
   const d = (a, b) => Math.hypot(a[0] - b[0], a[1] - b[1]);
   let holds = 0, allIn = 0, outside = 0;
-  for (let t = 0; t < 60; t++) {
+  /* [2026-09-30] 곡 수 상한 9→12 로 45·60분 머묾 구간이 길어져 '모두 도착' 표본이 줄었다(60회에 10) — 기준은 그대로 두고 표본을 90회로 */
+  for (let t = 0; t < 90; t++) {
     const inp = { ...randomInputs(r, dense, rules), duration_min: r.pick([30, 45, 60]) };
     const res = E.recommend(dense, rules, { ...inp, personal: { ...p0Policy(rules), hold_cluster: true } });
     const seq = res.sequence;

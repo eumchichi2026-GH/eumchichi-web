@@ -28,6 +28,8 @@ export async function loadBaseline(ref = BASE_REF) {
   if (ref !== BASE_REF) throw new Error(`기준 사본은 ${BASE_REF} 하나뿐입니다(tools/sim/baseline/) — 받은 ref: ${ref}`);
   const src = fs.readFileSync(path.join(BASE_DIR, "engine_2.5.1.js"), "utf8");
   const rules = JSON.parse(fs.readFileSync(path.join(BASE_DIR, "rules_v2.4.0.json"), "utf8"));
+  /* [2026-09-30] 곡 수 상한을 9→12 로 바꾼 것은 의도한 변경 — 기준 규칙에도 지금 규칙의 song_count 를 넣어 경로 식만 비교한다(I0). */
+  { const cur = loadRules().iso; rules.iso.song_count = { ...cur.song_count }; rules.iso.song_count_evidence = cur.song_count_evidence; }
   const f = path.join(os.tmpdir(), `azt-engine-${ref}-${process.pid}-${++importSeq}.mjs`);
   fs.writeFileSync(f, src);
   try { return { engine: await import(pathToFileURL(f).href), rules }; } finally { fs.rmSync(f, { force: true }); }

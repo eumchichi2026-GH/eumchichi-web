@@ -976,3 +976,14 @@ Firestore `songs` 전곡에 `duration_ms` 가 채워져 곡 길이가 실제 값
 규칙 `personalization.extras.fill_ratio` 0.85→1.0 · `max_songs` 12→30 (rules_hash 60a437141e39→1caa430a0a9b, rules_version 은 그대로 v2.5.0-wp).
 경로(result.sequence)와 I0·I1 은 그대로 — 단위 시험 177/177. 측정은 저장소 루트 change.md 11차 표(`tools/sim/duration_fit.mjs`):
 90분 요청 중앙 75분 → 90.4분, 전체 오차 2분 이내 43% → 91%.
+
+# (2026-09-30) — 감정 경로 최대 12곡
+
+`iso.song_count.max` 9→12 (사용자 요청). 곡 수 = floor(분 / 3.73) 이므로 38분부터 10곡, 45분 이상 12곡(여정이 짧으면 min_step_span 으로 더 적다).
+나머지 시간은 더 들을 곡이 곡 길이 합으로 채운다. 이탈 가드 곡 번호 상한 `bounds.quit_song` 도 [2, 9]→[2, 12](상한 = song_count.max 로 정의된 값).
+rules_hash 1caa430a0a9b→11da2bb8a9a3, 규칙 `?v=304`.
+- I0 기준 비교: 기준 규칙(76e8bdf v2.4.0)에도 지금 규칙의 `song_count`·`song_count_evidence` 를 넣어 경로 식만 비교한다(`engine_fixture.test.mjs`·`tools/sim/baseline.mjs`).
+  회귀 `regress.mjs --grid all --check i0,i0off,pace,i1 --every 4` 모두 일치.
+- 단위 시험 177/177. 표본 부족으로 걸린 두 시험은 기준은 그대로 두고 표본만 늘렸다 — hold_cluster 60→90회, 시드별 머묾 12→24회.
+  합성 조밀 카탈로그 60분에서 시드로 마지막 곡이 갈리는 빈도가 줄어든 것(12회 중 0)은 실제 카탈로그로 따로 쟀다:
+  4,117곡 · P0 · 30/45/60/90분 × 30 · 시드 4개 → 서로 다른 마지막 곡 수 9곡 2.33~2.57 → 12곡 2.23~2.57, 평균 경로 곡 수 45분 8.0→9.9 · 90분 8.0→9.8.
