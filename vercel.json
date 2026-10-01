@@ -1,0 +1,6 @@
+{
+  "redirects": [
+    { "source": "/web2", "destination": "/", "permanent": false },
+    { "source": "/web2/:path*", "destination": "/:path*", "permanent": false }
+  ]
+}

@@ -1,8 +1,8 @@
 {
-  "name": "AZT 개인화판 — 나만의 아지트",
-  "short_name": "AZT+ 개인화",
-  "description": "지금 나에게 딱 필요한 음악. 들을수록 나에게 맞춰지는 개인화판 — 상황에 맞춰 변하는 공간에서 평안을 찾아보세요.",
-  "id": "/web-personal",
+  "name": "AZT 구버전(v1) — 나만의 아지트",
+  "short_name": "AZT v1",
+  "description": "지금 나에게 딱 필요한 음악. 상황에 맞춰 변하는 공간에서 평안을 찾아보세요.",
+  "id": "/v1/",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
