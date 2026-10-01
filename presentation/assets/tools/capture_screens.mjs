@@ -9,7 +9,7 @@ import { launch, sleep } from './cdp.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const OUT = join(HERE, '..', 'screens');
-const BASE = process.env.AZT_URL || 'https://eumchichi-web.vercel.app/web2/';
+const BASE = process.env.AZT_URL || 'https://eumchichi-web.vercel.app/';
 const SENTENCE = '내일 발표라 너무 떨리고 긴장돼요. 차분해지고 싶어요.';
 const only = process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : null;
 const ANDROID_UA = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Mobile Safari/537.36';

@@ -163,7 +163,7 @@
     "id": "demo_scenario",
     "section": "5. 최종 결과물 — 시연 직전",
     "title": "시연 시나리오",
-    "desc": "문장 입력 → Gemini 해석(긴장돼요 → 차분해지고 싶어요) → ISO 경로 8곡과 이번 추천에 반영된 나 → 기본 추천과 비교. 오른쪽 QR은 web2 데모 프로필 주소.",
+    "desc": "문장 입력 → Gemini 해석(긴장돼요 → 차분해지고 싶어요) → ISO 경로 8곡과 이번 추천에 반영된 나 → 기본 추천과 비교. 오른쪽 QR은 기본 앱 주소(eumchichi-web.vercel.app — ver2).",
     "w": 1600,
     "h": 800,
     "file": "svg/demo_scenario.svg",

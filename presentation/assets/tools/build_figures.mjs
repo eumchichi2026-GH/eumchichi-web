@@ -1,6 +1,6 @@
 // 최종 발표(2026-10-07)용 인포그래픽을 SVG 로 만든다. 숫자는 전부 아래 출처 주석의 값 그대로다.
 //   node presentation/assets/tools/build_figures.mjs   → ../svg/*.svg · ../figures.js · ../figures.json
-// 색·글꼴은 앱(web2/index.html :root)과 같은 토큰을 쓴다 — 발표에서 시연 화면으로 넘어갈 때 톤이 이어지게.
+// 색·글꼴은 앱(index.html :root — web2, 2026-10-01부터 저장소 루트)과 같은 토큰을 쓴다 — 발표에서 시연 화면으로 넘어갈 때 톤이 이어지게.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -630,7 +630,7 @@ fig({ id: 'expected_effects', section: '7. 기대효과 및 확장 가능성', t
 
 // 15 시연 시나리오 (+QR)
 fig({ id: 'demo_scenario', section: '5. 최종 결과물 — 시연 직전', title: '시연 시나리오',
-  desc: '문장 입력 → Gemini 해석(긴장돼요 → 차분해지고 싶어요) → ISO 경로 8곡과 이번 추천에 반영된 나 → 기본 추천과 비교. 오른쪽 QR은 web2 데모 프로필 주소.' }, () => {
+  desc: '문장 입력 → Gemini 해석(긴장돼요 → 차분해지고 싶어요) → ISO 경로 8곡과 이번 추천에 반영된 나 → 기본 추천과 비교. 오른쪽 QR은 기본 앱 주소(eumchichi-web.vercel.app — ver2).' }, () => {
   const steps = [
     ['문장 한 줄 입력', '“내일 발표라 너무 떨리고 긴장돼요. 차분해지고 싶어요.”'],
     ['Gemini가 읽기', '지금: 긴장돼요 (아주)  →  목표: 차분해지고 싶어요'],
@@ -645,7 +645,7 @@ fig({ id: 'demo_scenario', section: '5. 최종 결과물 — 시연 직전', tit
     b += text(134, yy + 10, t, { size: 30, weight: 800 }) + text(134, yy + 56, s, { size: 22, fill: C.mid });
   });
   let qr = '';
-  const qf = join(OUT, 'qr_web2_demo.svg');
+  const qf = join(OUT, 'qr_app.svg');   // [10-01] 청중용 QR 은 데모가 아니라 기본 앱(루트 = ver2)
   if (existsSync(qf)) {
     const raw = readFileSync(qf, 'utf8');
     const vb = raw.match(/viewBox="0 0 (\d+) (\d+)"/)[1];
@@ -654,9 +654,9 @@ fig({ id: 'demo_scenario', section: '5. 최종 결과물 — 시연 직전', tit
   }
   b += rect(1130, 110, 400, 520, { r: 24, fill: C.white, stroke: C.line, sw: 2 }) + qr;
   b += text(1330, 520, '직접 써 보기', { size: 26, weight: 800, anchor: 'middle' });
-  b += text(1330, 556, 'eumchichi-web.vercel.app/web2', { size: 18, fill: C.mid, anchor: 'middle' });
-  b += text(1330, 590, '데모 프로필 · 기록은 저장되지 않아요', { size: 16, fill: C.muted, anchor: 'middle' });
-  b += caption(40, 770, '시연 주소: eumchichi-web.vercel.app/web2/?demo=P1 (합성 사용자 P1의 기록으로 개인화된 화면)');
+  b += text(1330, 556, 'eumchichi-web.vercel.app', { size: 18, fill: C.mid, anchor: 'middle' });
+  b += text(1330, 590, '기본 앱 · ver2', { size: 16, fill: C.muted, anchor: 'middle' });
+  b += caption(40, 770, '시연 주소: eumchichi-web.vercel.app/?demo=P1 (합성 사용자 P1의 기록으로 개인화된 화면)');
   return { body: b };
 });
 

@@ -7,7 +7,7 @@
 <!-- 앱과 같은 글꼴. 인터넷이 없으면 맑은 고딕으로 바뀐다. -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
-  /* 앱(web2/index.html :root)과 같은 토큰 — 슬라이드에서 시연 화면으로 넘어갈 때 톤이 끊기지 않게 */
+  /* 앱(index.html :root — web2, 2026-10-01부터 저장소 루트)과 같은 토큰 — 슬라이드에서 시연 화면으로 넘어갈 때 톤이 끊기지 않게 */
   :root { --ink:#161616; --mid:#6f6f6d; --muted:#9a9a97; --paper:#ffffff; --panel:#f4f4f3; --line:#e4e4e2; --accent:#E8763C; }
   html, body { margin:0; height:100%; background:#111; color:var(--ink);
     font-family:'Pretendard Variable', Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
@@ -81,8 +81,8 @@
 
 <script src="figures.js"></script>
 <script>
-  // 시연 주소. 기록을 남기는 실제 앱으로 시연하려면 https://eumchichi-web.vercel.app/ 로 바꾼다.
-  var DEMO_URL = 'https://eumchichi-web.vercel.app/web2/?demo=P1';
+  // 시연 주소. 기록을 남기는 실제 앱으로 시연하려면 ?demo=P1 을 뺀 https://eumchichi-web.vercel.app/ 로 바꾼다.
+  var DEMO_URL = 'https://eumchichi-web.vercel.app/?demo=P1';
 
   var slides = [].slice.call(document.querySelectorAll('.slide'));
   var live = document.getElementById('live');

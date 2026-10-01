@@ -10,7 +10,7 @@ const OUT = join(HERE, '..', 'svg');
 mkdirSync(OUT, { recursive: true });
 
 export const QR_TARGETS = {
-  qr_web2_demo: 'https://eumchichi-web.vercel.app/web2/?demo=P1',
+  qr_web2_demo: 'https://eumchichi-web.vercel.app/?demo=P1',
   qr_app: 'https://eumchichi-web.vercel.app/',
 };
 
