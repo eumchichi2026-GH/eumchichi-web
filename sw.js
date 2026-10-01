@@ -1,10 +1,12 @@
-/* AZT service worker
+/* AZT service worker (web-personal)
  * - 앱 셸(HTML/CSS/JS/아이콘/규칙 JSON)만 캐시
  * - HTML·엔진·규칙은 network-first (배포 즉시 반영), 그 밖의 정적 파일은 stale-while-revalidate
  * - Firebase / Spotify / Gemini 등 API 요청은 건드리지 않음
  * 배포할 때마다 VERSION 을 올리면 구캐시가 자동 삭제됩니다.
  */
-const VERSION = 'azt-v9';
+/* [web-personal 2026-09-27] fix-web(azt-v9)과 캐시 이름을 나눈다 — 같은 기기에서 두 앱의 셸이 섞이지 않게.
+   엔진 2.6.0-wp · 규칙 v2.5.0-wp · engine/personal.js · env.js 를 한 번에 올리는 배포라 새 이름에서 시작한다. */
+const VERSION = 'azt-personal-v1';
 /* [2026-09-17] '/rules.compiled.json' 은 없는 경로였다(실제는 /rules/ 아래). cache.addAll 은 하나라도
    실패하면 전체가 실패하므로, 그동안 앱 셸 사전 캐시가 통째로 조용히 실패하고 있었다(.catch 로 삼켜짐).
    경로를 고치고, 추천에 꼭 필요한 engine.js · pwa.js 를 셸에 넣었다. */
@@ -14,6 +16,8 @@ const SHELL = [
   '/manifest.webmanifest',
   '/rules/rules.compiled.json',
   '/engine/engine.js',
+  '/engine/personal.js',   // 개인 모델·정책(엔진과 같은 network-first)
+  '/env.js',               // 배포 설정(쓰기·개인화 스위치) — 늘 최신이어야 한다
   '/pwa.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
@@ -46,7 +50,9 @@ self.addEventListener('install', (e) => {
 self.addEventListener('activate', (e) => {
   e.waitUntil(
     caches.keys()
-      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION).map((k) => caches.delete(k))))
+      /* [2026-10-01] 이 앱이 도메인 루트로 올라오고 구버전은 /v1/ 아래(자기 서비스워커·캐시 'azt-v1-legacy-*')로 옮겨졌다.
+         예전 루트 앱의 캐시(azt-v9 등)는 지우되, 구버전 캐시는 남긴다. */
+      .then((keys) => Promise.all(keys.filter((k) => k !== VERSION && !k.startsWith('azt-v1-legacy-')).map((k) => caches.delete(k))))
       .then(() => self.clients.claim())
   );
 });
@@ -58,12 +64,16 @@ self.addEventListener('fetch', (e) => {
 
   if (BYPASS_HOSTS.includes(url.hostname)) return;          // API는 그대로 네트워크
   if (url.origin !== self.location.origin) return;           // CDN 등 외부 정적 파일도 그대로
+  if (url.pathname.startsWith('/v1/')) return;               // 구버전(/v1/)은 자기 서비스워커가 맡는다
 
   const isHTML = req.mode === 'navigate' || req.headers.get('accept')?.includes('text/html');
   /* 추천 알고리즘 파일(엔진·규칙)도 HTML 과 같은 network-first.
      stale-while-revalidate 로 두면 배포 직후 '새 index.html + 옛 engine.js/규칙' 조합으로 한 번 실행된다 —
      화면은 새 버전인데 추천은 옛 규칙으로 나가고, 그 세션 로그가 옛 해시로 찍힌다. */
-  const isAlgo = url.pathname.startsWith('/engine/') || url.pathname.startsWith('/rules/');
+  /* [web-personal] engine/personal.js 는 /engine/ 아래라 함께 network-first. env.js(쓰기·개인화 스위치)와
+     데모 페르소나·시뮬레이터 모듈(/demo/, /tools/)도 옛 사본으로 한 번 도는 일이 없게 같은 취급. */
+  const isAlgo = url.pathname.startsWith('/engine/') || url.pathname.startsWith('/rules/')
+    || url.pathname === '/env.js' || url.pathname.startsWith('/demo/') || url.pathname.startsWith('/tools/');
 
   if (isHTML || isAlgo) {
     // network-first: 최신 우선, 실패(오프라인) 시 캐시

@@ -20,7 +20,21 @@
   const SNOOZE_DAYS = 7;
 
   // ---- 서비스워커 ----
-  if ("serviceWorker" in navigator) {
+  /* [web-personal] AZT_ENV.sw === false(로컬 서버 server.mjs · 로컬 주소의 env.js)면 등록하지 않는다.
+     예전에 이 로컬 주소에 등록된 서비스워커(fix-web 을 같은 포트로 띄운 적이 있는 경우 등)와 그 캐시도 지운다 —
+     남아 있으면 옛 index.html·engine.js 를 캐시에서 돌려줘 로컬 수정이 안 보인다. */
+  const ENV = window.AZT_ENV || {};
+  const host = location.hostname;
+  const isLocalHost = host === "localhost" || host === "127.0.0.1" || host === "[::1]" || /\.localhost$|\.test$/.test(host);
+  if ("serviceWorker" in navigator && ENV.sw === false) {
+    if (isLocalHost) {
+      navigator.serviceWorker.getRegistrations()
+        .then((regs) => Promise.all(regs.map((r) => r.unregister())))
+        .then((done) => { if (done.length) console.info("[AZT] 로컬 서비스워커 등록 해제", done.length); })
+        .catch(() => {});
+      if ("caches" in window) caches.keys().then((ks) => ks.filter((k) => /^azt-/.test(k)).forEach((k) => caches.delete(k))).catch(() => {});
+    }
+  } else if ("serviceWorker" in navigator) {
     window.addEventListener("load", async () => {
       try {
         const reg = await navigator.serviceWorker.register("/sw.js");
