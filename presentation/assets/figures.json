@@ -1,0 +1,182 @@
+[
+  {
+    "id": "cover_path",
+    "w": 1000,
+    "h": 800,
+    "section": "표지",
+    "title": "AZT 표지 그래픽 — 지금에서 목표로 가는 음악 경로",
+    "desc": "감정 좌표 평면 위에서 지금(긴장)에서 목표(차분)까지 8곡이 이어지는 경로가 그려진다. 개념도.",
+    "file": "svg/cover_path.svg",
+    "png": "png/cover_path.png"
+  },
+  {
+    "id": "problem_survey73",
+    "section": "2. 프로젝트 개요 — 문제 정의",
+    "title": "대학생 음악 이용자 73명 사전 설문",
+    "desc": "스트레스 상황에서 음악 활용 77%, 곡 찾는 데 5분 이상 61%, 기존 추천이 기분과 불일치 62%, 서비스 사용 의향 84%.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/problem_survey73.svg",
+    "png": "png/problem_survey73.png"
+  },
+  {
+    "id": "iso_concept",
+    "section": "2. 프로젝트 개요 — 기존 서비스와의 차별성",
+    "title": "비슷한 곡 나열 vs 지금에서 목표로 가는 순서",
+    "desc": "기존 추천은 지금 기분 근처의 비슷한 곡만 이어져 기분이 그대로다. AZT는 지금 기분과 같은 곡에서 시작해 목표 분위기로 조금씩 옮겨 가고 목표에 머문다. 예시 좌표 개념도.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/iso_concept.svg",
+    "png": "png/iso_concept.png"
+  },
+  {
+    "id": "system_architecture",
+    "section": "4. AI 융합(활용) 내용",
+    "title": "AZT 서비스 구조와 AI 활용 위치",
+    "desc": "입력 → Gemini 자연어 해석 → ISO 경로 엔진 → 재생·저장. 엔진은 곡 데이터(Gemini 가사 점수 포함)와 개인 모델을 받고, 피드백은 Gemini로 분류돼 개인 모델로 돌아간다. LLM은 변환만, 곡 순서는 수식이 정한다.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/system_architecture.svg",
+    "png": "png/system_architecture.png"
+  },
+  {
+    "id": "korean_valence_fix",
+    "section": "3. 프로젝트 수행 과정 — 문제 해결",
+    "title": "가사를 더해 한국 곡 감정 정확도를 높이다",
+    "desc": "팀 골드셋과의 순위 상관: 전체 곡 Spotify만 0.399 → 가사 결합 0.495, 한국 곡 0.323 → 0.474. 해외 곡은 Spotify만으로 0.764. 보정식 V = 0.2466 + 0.3074×V(Spotify) + 0.3183×V(가사).",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/korean_valence_fix.svg",
+    "png": "png/korean_valence_fix.png"
+  },
+  {
+    "id": "data_pipeline",
+    "section": "3. 프로젝트 수행 과정 — 데이터",
+    "title": "4,117곡 감정 데이터를 만든 과정",
+    "desc": "곡 수 245 → 2,398 → 4,117곡. Spotify 특징 → 골드셋 249곡(쌍비교 964쌍) → Gemini 가사 감정 1,768곡 → 백분위 정규화 → 태그·장르·길이(장르 13, 연주곡 700, 가사 곡 3,417).",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/data_pipeline.svg",
+    "png": "png/data_pipeline.png"
+  },
+  {
+    "id": "version_timeline",
+    "section": "3. 프로젝트 수행 과정 — 추진 과정",
+    "title": "개발 과정 — v1에서 ver2까지",
+    "desc": "7월 전문가 자문, 8월 감정 데이터 구축, 8/16 엔진 v2, 9/14 가중치 근거 문제 제기, 9/15–21 v1 배포와 사용 후기 설문, 9/20–28 fix-web 재설계, 9/27–30 ver2(web2), 10/7 최종 발표.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/version_timeline.svg",
+    "png": "png/version_timeline.png"
+  },
+  {
+    "id": "survey_to_redesign",
+    "section": "3. 프로젝트 수행 과정 — 의사결정",
+    "title": "사용 후기 설문이 바꾼 것",
+    "desc": "설문 의견별로 fix-web 재설계와 ver2(web2)에서 무엇을 바꿨는지 보여 준다.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/survey_to_redesign.svg",
+    "png": "png/survey_to_redesign.png"
+  },
+  {
+    "id": "post_use_stress",
+    "section": "6. 검증 및 평가 — 사용자 평가 (실측)",
+    "title": "사용 후기 설문 — 듣기 전과 후의 스트레스",
+    "desc": "22명의 스트레스 자기보고(0–10)가 평균 5.8에서 3.7로 낮아졌고 20명이 감소, 1명 그대로, 1명 증가. 스트레스 상황이던 11명은 7.0에서 3.7. 비교군 없는 사용 직후 자기보고.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/post_use_stress.svg",
+    "png": "png/post_use_stress.png"
+  },
+  {
+    "id": "post_use_items",
+    "h": 520,
+    "section": "6. 검증 및 평가 — 사용자 평가 (실측)",
+    "title": "사용 후기 설문 문항별 평균 (5점)",
+    "desc": "첫 곡이 기분과 맞음 3.8, 원하는 상태로 옮겨 가는 느낌 3.8, 추천 만족 3.9, 사용 편의 4.2. 낮은 두 항목이 ver2 재설계의 출발점.",
+    "w": 1600,
+    "file": "svg/post_use_items.svg",
+    "png": "png/post_use_items.png"
+  },
+  {
+    "id": "engine_reeval45",
+    "section": "6. 검증 및 평가 — 성능 분석 (실측 요청)",
+    "title": "실제 요청 45건으로 엔진 다시 평가 (v1 → 개선판)",
+    "desc": "목표 도착 오차 0.058 → 0.036 (−38%), 거꾸로 가는 곡 12.2% → 7.7% (−37%), 가장 큰 곡 간 변화 0.209 → 0.189 (−10%). 빔 서치 도입으로 도착 오차 −63%, 최근 곡 제외로 반복 추천 20% → 0%.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/engine_reeval45.svg",
+    "png": "png/engine_reeval45.png"
+  },
+  {
+    "id": "parameter_evidence",
+    "section": "6. 검증 및 평가 — 실험",
+    "title": "숫자마다 근거 만들기 — 반영 강도 μ와 전환 비용 λ",
+    "desc": "μ를 0에서 4까지 바꾸면 벽에 붙인 가수 등장 비율은 4, 27, 52, 73, 82, 84%로 μ=1.0 뒤 거의 늘지 않고, 목표 도착 오차는 0.015에서 0.037로 계속 나빠져 μ=1.0을 채택. λ=0.1은 곡 간 최대 분위기 차이를 0.224에서 0.197로 줄였다.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/parameter_evidence.svg",
+    "png": "png/parameter_evidence.png"
+  },
+  {
+    "id": "web2_12_steps",
+    "section": "5. 최종 결과물 — ver2 개인화",
+    "title": "ver2(web2)에서 개인화되는 12가지 절차",
+    "desc": "입력 해석(지금·목표 좌표), 경로 설계(속도·시작점·길이·도착 후 구간), 곡 고르기(취향·곡 사이 연결·후보 거르기·다양성·더 들을 곡), 보여 주기(내 취향 모델). 경로를 바꾸는 값과 곡만 고르는 값을 분리한다.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/web2_12_steps.svg",
+    "png": "png/web2_12_steps.png"
+  },
+  {
+    "id": "web2_safety",
+    "section": "5. 최종 결과물 — ver2 설계 원칙",
+    "title": "개인화를 해도 경로가 무너지지 않게",
+    "desc": "개인화는 기하적으로 가장 잘 맞는 밴드와 그다음 밴드(코리도어) 안에서만 곡을 바꾼다. 끄면 기존 엔진과 100% 같고, 경로와 곡 선택을 분리하며, 목표를 자동으로 옮기지 않고, 스트레스가 높으면 보수적으로, 강화학습 대신 결정식 추정을 쓴다.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/web2_safety.svg",
+    "png": "png/web2_safety.png"
+  },
+  {
+    "id": "web2_validation",
+    "section": "6. 검증 및 평가 — ver2 (합성 사용자)",
+    "title": "ver2 검증 — 합성 사용자 시뮬레이션",
+    "desc": "수용 기준 65개 중 52개 합격(1차 49개), 단위 시험 177/177, 회귀 1,959 시나리오 일치, 추천 재현 140/140. P1은 속도를 응답 2번 만에 학습했지만 들려준 적 없는 재즈는 배우지 못했고, P2는 연주곡 비율이 2/8에서 8/8로 올랐다.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/web2_validation.svg",
+    "png": "png/web2_validation.png"
+  },
+  {
+    "id": "expected_effects",
+    "section": "7. 기대효과 및 확장 가능성",
+    "title": "기대효과와 확장 가능성",
+    "desc": "사전 설문: 사용 의향 84%, 유료 지불 의사 56%(그중 30%는 월 3천 원 이상), 피드백 반영 기능 희망 78%(가장 원하는 기능 1위, 이미 구현). 확장: 캠퍼스 스트레스 자기관리, 구독형·플랫폼 연동, 스마트워치 생체신호, 상황 정보·다른 세대.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/expected_effects.svg",
+    "png": "png/expected_effects.png"
+  },
+  {
+    "id": "demo_scenario",
+    "section": "5. 최종 결과물 — 시연 직전",
+    "title": "시연 시나리오",
+    "desc": "문장 입력 → Gemini 해석(긴장돼요 → 차분해지고 싶어요) → ISO 경로 8곡과 이번 추천에 반영된 나 → 기본 추천과 비교. 오른쪽 QR은 기본 앱 주소(eumchichi-web.vercel.app — ver2).",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/demo_scenario.svg",
+    "png": "png/demo_scenario.png"
+  },
+  {
+    "id": "team_roles",
+    "section": "1. 팀 소개",
+    "title": "팀 음치치 — 역할 분담",
+    "desc": "김서진(앱 기능·모바일), 박혜빈(UI·개인화), 정다솔(연구·설문), 황지민(데이터·모델). 회의록 기준.",
+    "w": 1600,
+    "h": 800,
+    "file": "svg/team_roles.svg",
+    "png": "png/team_roles.png"
+  }
+]

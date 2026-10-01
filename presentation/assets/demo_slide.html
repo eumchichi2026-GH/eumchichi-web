@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AZT 발표 — 시연 연결 예시</title>
+<!-- 앱과 같은 글꼴. 인터넷이 없으면 맑은 고딕으로 바뀐다. -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<style>
+  /* 앱(index.html :root — web2, 2026-10-01부터 저장소 루트)과 같은 토큰 — 슬라이드에서 시연 화면으로 넘어갈 때 톤이 끊기지 않게 */
+  :root { --ink:#161616; --mid:#6f6f6d; --muted:#9a9a97; --paper:#ffffff; --panel:#f4f4f3; --line:#e4e4e2; --accent:#E8763C; }
+  html, body { margin:0; height:100%; background:#111; color:var(--ink);
+    font-family:'Pretendard Variable', Pretendard, 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+  .deck { position:fixed; inset:0; overflow:hidden; }
+  /* 1920×1080 무대를 창 크기에 맞춰 줄인다 */
+  .slide { position:absolute; left:50%; top:50%; width:1920px; height:1080px; margin:-540px 0 0 -960px;
+    background:var(--paper); box-sizing:border-box; padding:80px 110px; display:none; }
+  .slide.on { display:block; }
+  .eyebrow { font-size:26px; font-weight:700; color:var(--mid); letter-spacing:.04em; }
+  .slide h1 { margin:18px 0 0; font-size:92px; line-height:1.12; font-weight:800; letter-spacing:-.03em; }
+  .slide h2 { margin:0 0 36px; font-size:54px; font-weight:800; letter-spacing:-.02em; }
+  .cover { display:grid; grid-template-columns:1fr 820px; gap:60px; align-items:center; height:100%; }
+  .cover p { font-size:30px; color:var(--mid); line-height:1.5; margin:28px 0 0; }
+  .team { margin-top:56px; font-size:26px; color:var(--ink); }
+  .team b { display:inline-block; min-width:90px; color:var(--mid); font-weight:700; }
+
+  /* 시연 슬라이드: iframe 은 무대가 아니라 실제 창 전체를 쓴다(앱이 제 해상도로 그려지도록) */
+  .slide.demo { background:var(--paper); }
+  .demo .fallback { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:top center; }
+  .live { position:fixed; inset:0; z-index:5; background:var(--paper); display:none; }
+  .live.on { display:block; }
+  .live iframe { width:100%; height:100%; border:0; display:block; }
+  .live .back { position:fixed; left:16px; bottom:16px; z-index:6; font:inherit; font-size:15px; font-weight:700;
+    padding:10px 16px; border:1px solid var(--line); background:rgba(255,255,255,.94); color:var(--ink); cursor:pointer; }
+  .live .back:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+  .hint { position:fixed; right:16px; bottom:12px; z-index:4; color:#777; font-size:13px; }
+
+  /* PDF 로 저장(인쇄)할 때: 슬라이드마다 한 쪽, 시연 슬라이드는 캡처 화면으로 */
+  @media print {
+    @page { size:1920px 1080px; margin:0; }
+    html, body { background:#fff; height:auto; }
+    .deck { position:static; overflow:visible; }
+    .slide { position:relative; left:auto; top:auto; margin:0; display:block !important; transform:none !important; break-after:page; }
+    .live, .hint { display:none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="deck" id="deck">
+
+  <!-- 1. 표지: 경로 애니메이션은 이 슬라이드에 들어올 때마다 다시 그려진다 -->
+  <section class="slide" data-replay>
+    <div class="cover">
+      <div>
+        <div class="eyebrow">2026 제2회 Google-아주대학교 AI융합 캡스톤디자인 대회</div>
+        <h1>지금 기분에서<br>원하는 기분으로,<br>AZT</h1>
+        <p>감정과 취향을 반영해 고르는 과정 없이 바로 듣는<br>대학생 음악 추천 플랫폼</p>
+        <div class="team"><b>팀 음치치</b> 김서진 · 박혜빈 · 정다솔 · 황지민</div>
+      </div>
+      <div data-azt-fig="cover_path"></div>
+    </div>
+  </section>
+
+  <!-- 2. 시연 직전: 시나리오 + QR. 이 슬라이드에 오면 시연 화면을 미리 불러 둔다 -->
+  <section class="slide" data-preload-demo>
+    <div data-azt-fig="demo_scenario"></div>
+  </section>
+
+  <!-- 3. 시연: 실제 앱. PDF 에는 아래 캡처가 들어간다 -->
+  <section class="slide demo" data-demo>
+    <img class="fallback" src="screens/screen_result_compare.png" alt="AZT 추천 결과 화면 — 이번 추천에 반영된 나, 기본 추천과 비교">
+  </section>
+
+</div>
+
+<div class="live" id="live" aria-hidden="true">
+  <iframe id="liveFrame" title="AZT 시연" allow="autoplay; encrypted-media; clipboard-write; fullscreen"></iframe>
+  <button class="back" id="back" type="button">← 발표로 (Esc)</button>
+</div>
+<div class="hint">← → 넘기기 · F 전체 화면</div>
+
+<script src="figures.js"></script>
+<script>
+  // 시연 주소. 기록을 남기는 실제 앱으로 시연하려면 ?demo=P1 을 뺀 https://eumchichi-web.vercel.app/ 로 바꾼다.
+  var DEMO_URL = 'https://eumchichi-web.vercel.app/?demo=P1';
+
+  var slides = [].slice.call(document.querySelectorAll('.slide'));
+  var live = document.getElementById('live');
+  var frame = document.getElementById('liveFrame');
+  var cur = 0;
+
+  AZTFigures.mountAll();
+
+  function fit() {
+    var s = Math.min(innerWidth / 1920, innerHeight / 1080);
+    slides.forEach(function (el) { el.style.transform = 'scale(' + s + ')'; });
+  }
+  // 시연 화면은 필요할 때 한 번만 불러온다(열 때마다 운영 Firestore 에서 곡 4,117개를 읽기 때문)
+  function loadDemo() { if (!frame.src) frame.src = DEMO_URL; }
+
+  function show(i) {
+    cur = Math.max(0, Math.min(slides.length - 1, i));
+    slides.forEach(function (el, k) { el.classList.toggle('on', k === cur); });
+    var el = slides[cur];
+    if (el.hasAttribute('data-replay')) el.querySelectorAll('[data-azt-fig]').forEach(AZTFigures.mount);
+    if (el.hasAttribute('data-preload-demo')) loadDemo();
+    var isDemo = el.hasAttribute('data-demo');
+    if (isDemo) loadDemo();
+    live.classList.toggle('on', isDemo);
+    live.setAttribute('aria-hidden', String(!isDemo));
+    try { history.replaceState(null, '', '#' + (cur + 1)); } catch (e) {}
+  }
+
+  document.getElementById('back').addEventListener('click', function () { show(cur - 1); });
+  addEventListener('keydown', function (e) {
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(cur + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(cur - 1); }
+    else if (e.key === 'Escape' && live.classList.contains('on')) show(cur - 1);
+    else if (e.key === 'f' || e.key === 'F') {
+      if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen().catch(function () {});
+    }
+  });
+  addEventListener('resize', fit);
+  fit();
+  show(Math.max(0, (parseInt(location.hash.slice(1), 10) || 1) - 1));
+</script>
+</body>
+</html>
